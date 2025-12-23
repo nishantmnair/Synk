@@ -24,6 +24,33 @@ dist-ssr
 
 # Environment files
 .env
+.env.local
+*.env.local
+
+# Backend environment
+backend/.env
 
 # Firebase credentials
 backend/serviceAccountKey.json
+
+# Test keys (backend)
+backend/test_key.pem
+backend/test_key_pkcs8.pem
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.db
+*.sqlite3
+
+# Database
+*.sql
+*.db
+db.sqlite3
+
+# Celery
+celerybeat-schedule
+celerybeat.pid

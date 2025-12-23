@@ -1,6 +1,5 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 
 const firebaseConfig = {
@@ -29,7 +28,6 @@ if (useEmulator && !firebaseConfig.projectId) {
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
-export const db = getFirestore(app);
 
 // Initialize Analytics only in browser and if supported
 export const analytics = typeof window !== 'undefined' 
@@ -39,7 +37,6 @@ export const analytics = typeof window !== 'undefined'
 // Connect to emulators if enabled
 if (useEmulator) {
   connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
-  connectFirestoreEmulator(db, 'localhost', 8080);
   console.log('🔧 Firebase emulators connected');
 }
 

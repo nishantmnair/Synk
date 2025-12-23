@@ -24,13 +24,9 @@ dist-ssr
 *.sln
 *.sw?
 
-# Environment files
-.env
-.env.local
-*.env.local
-
-# Backend environment
+# Environment files - ignore .env files in backend and frontend
 backend/.env
+frontend/.env
 
 # Firebase credentials
 backend/serviceAccountKey.json

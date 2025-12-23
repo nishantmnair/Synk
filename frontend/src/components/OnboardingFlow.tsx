@@ -9,6 +9,7 @@ import {
   Alert,
   CircularProgress,
   Stack,
+  IconButton,
 } from '@mui/material';
 import {
   Favorite,
@@ -16,6 +17,7 @@ import {
   PersonAdd,
   ArrowBack,
   ArrowForward,
+  Logout,
 } from '@mui/icons-material';
 import { createProfile, createCouple, joinCouple } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,7 +25,7 @@ import { useAuth } from '../contexts/AuthContext';
 type Step = 'choose' | 'create' | 'join';
 
 export default function OnboardingFlow() {
-  const { refreshCouple, refreshProfile } = useAuth();
+  const { refreshCouple, refreshProfile, signOut } = useAuth();
   const [step, setStep] = useState<Step>('choose');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -51,17 +53,30 @@ export default function OnboardingFlow() {
       setLoading(true);
       setError('');
 
-      await createProfile({
-        name: fullName,
-        partner_name: partnerName || undefined,
-      });
+      // Try to create profile, but if it already exists, continue
+      try {
+        await createProfile({
+          full_name: fullName,
+        });
+      } catch (profileErr: any) {
+        // If profile already exists, that's fine - continue
+        const errorMsg = JSON.stringify(profileErr.response?.data || '');
+        if (!errorMsg.includes('already exists')) {
+          throw profileErr;
+        }
+      }
 
       await createCouple();
+      console.log('Couple created successfully');
 
       await refreshProfile();
+      console.log('Profile refreshed');
+      
       await refreshCouple();
+      console.log('Couple refreshed');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to create couple');
+      console.error('Error creating couple:', err);
+      setError(err.response?.data?.detail || err.response?.data?.error || 'Failed to create couple');
     } finally {
       setLoading(false);
     }
@@ -82,7 +97,7 @@ export default function OnboardingFlow() {
       setError('');
 
       await createProfile({
-        name: fullName,
+        full_name: fullName,
       });
 
       await joinCouple(inviteCode);
@@ -109,7 +124,18 @@ export default function OnboardingFlow() {
         }}
       >
         <Container maxWidth="md">
-          <Paper elevation={6} sx={{ p: { xs: 4, md: 6 }, borderRadius: 4 }}>
+          <Paper elevation={6} sx={{ p: { xs: 4, md: 6 }, borderRadius: 4, position: 'relative' }}>
+            <IconButton
+              onClick={signOut}
+              sx={{
+                position: 'absolute',
+                top: 16,
+                right: 16,
+              }}
+              title="Sign Out"
+            >
+              <Logout />
+            </IconButton>
             <Box sx={{ textAlign: 'center', mb: 4 }}>
               <Box
                 sx={{

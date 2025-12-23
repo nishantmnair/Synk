@@ -51,8 +51,9 @@ export interface User {
 export interface Profile {
   id: number;
   user: number;
-  name: string;
-  partner_name?: string;
+  full_name: string;
+  bio?: string;
+  timezone?: string;
   created_at: string;
   updated_at: string;
 }
@@ -124,19 +125,23 @@ export const getProfiles = () => api.get<Profile[]>('/users/profiles/');
 export const getProfile = (id: number) => api.get<Profile>(`/users/profiles/${id}/`);
 export const createProfile = (data: Partial<Profile>) => api.post<Profile>('/users/profiles/', data);
 export const updateProfile = (id: number, data: Partial<Profile>) => api.patch<Profile>(`/users/profiles/${id}/`, data);
-export const getMyProfile = () => api.get<Profile>('/users/profiles/me/');
+export const getMyProfile = () => api.get<Profile[]>('/users/profiles/');
 
 // Couples
 export const getCouples = () => api.get<Couple[]>('/users/couples/');
 export const getCouple = (id: number) => api.get<Couple>(`/users/couples/${id}/`);
 export const createCouple = () => api.post<Couple>('/users/couples/');
 export const joinCouple = (inviteCode: string) => api.post<Couple>('/users/couples/join/', { invite_code: inviteCode });
-export const getMyCouples = () => api.get<Couple[]>('/users/couples/my_couples/');
+export const getMyCouples = () => api.get<Couple[]>('/users/couples/');
 
 // Sections
 export const getSections = (coupleId?: number) => {
   const params = coupleId ? { couple_id: coupleId } : {};
-  return api.get<Section[]>('/activities/sections/', { params }).then(res => res.data);
+  return api.get<Section[]>('/activities/sections/', { params }).then(res => {
+    // Handle paginated response
+    const data = res.data as any;
+    return data.results || data;
+  });
 };
 export const getSection = (id: number) => api.get<Section>(`/activities/sections/${id}/`);
 export const createSection = (data: Partial<Section>) => api.post<Section>('/activities/sections/', data);
@@ -151,7 +156,11 @@ export const getActivities = (coupleId?: number, params?: {
   show_deleted?: boolean;
 }) => {
   const queryParams = coupleId ? { couple_id: coupleId, ...params } : params;
-  return api.get<Activity[]>('/activities/activities/', { params: queryParams }).then(res => res.data);
+  return api.get<Activity[]>('/activities/activities/', { params: queryParams }).then(res => {
+    // Handle paginated response
+    const data = res.data as any;
+    return data.results || data;
+  });
 };
 
 export const getActivity = (id: number) => api.get<Activity>(`/activities/activities/${id}/`);
@@ -168,7 +177,11 @@ export const reorderActivities = (activities: Array<{ id: number; order: number 
 // Activity Reminders
 export const getActivityReminders = (coupleId?: number) => {
   const params = coupleId ? { couple_id: coupleId } : {};
-  return api.get<ActivityReminder[]>('/activities/reminders/', { params }).then(res => res.data);
+  return api.get<ActivityReminder[]>('/activities/reminders/', { params }).then(res => {
+    // Handle paginated response
+    const data = res.data as any;
+    return data.results || data;
+  });
 };
 export const getReminder = (id: number) => api.get<ActivityReminder>(`/activities/reminders/${id}/`);
 export const dismissReminder = (id: number) => api.post<ActivityReminder>(`/activities/reminders/${id}/dismiss/`);

@@ -9,6 +9,8 @@ import Dashboard from './components/Dashboard';
 function App() {
   const { user, profile, couple, loading } = useAuth();
 
+  console.log('App render:', { user: !!user, profile: !!profile, couple: !!couple, loading });
+
   if (loading) {
     return (
       <ThemeProvider theme={theme}>

@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -31,6 +31,9 @@ class ProfileViewSet(viewsets.ModelViewSet):
         return Profile.objects.filter(user=self.request.user)
     
     def perform_create(self, serializer):
+        # Check if profile already exists
+        if Profile.objects.filter(user=self.request.user).exists():
+            raise serializers.ValidationError('Profile already exists for this user')
         serializer.save(user=self.request.user)
 
 

@@ -33,7 +33,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfile = async () => {
     try {
       const response = await getMyProfile();
-      return response.data;
+      console.log('fetchProfile response:', response.data);
+      const results = response.data.results || response.data;
+      return Array.isArray(results) && results.length > 0 ? results[0] : null;
     } catch (error: any) {
       if (error.response?.status === 404) {
         // Profile doesn't exist yet
@@ -46,7 +48,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchCouple = async () => {
     try {
       const response = await getMyCouples();
-      return response.data.length > 0 ? response.data[0] : null;
+      console.log('fetchCouple response:', response.data);
+      const results = response.data.results || response.data;
+      return Array.isArray(results) && results.length > 0 ? results[0] : null;
     } catch (error) {
       console.error('Error fetching couple:', error);
       return null;
@@ -54,13 +58,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshProfile = async () => {
-    const profileData = await fetchProfile();
-    setProfile(profileData);
+    try {
+      const profileData = await fetchProfile();
+      setProfile(profileData);
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+    }
   };
 
   const refreshCouple = async () => {
-    const coupleData = await fetchCouple();
-    setCouple(coupleData);
+    try {
+      const coupleData = await fetchCouple();
+      setCouple(coupleData);
+    } catch (error) {
+      console.error('Error refreshing couple:', error);
+    }
   };
 
   useEffect(() => {

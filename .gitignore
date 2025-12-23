@@ -67,9 +67,12 @@ backend/media/
 frontend/dist/
 frontend/dist-ssr/
 
-# Package lock files (optional - only if you want to ignore them)
-# package-lock.json
-# yarn.lock
+# Package lock files
+package-lock.json
+frontend/package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.pnpm-debug.log
 
 # IDE
 .vscode/settings.json

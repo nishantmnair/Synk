@@ -56,3 +56,22 @@ db.sqlite3
 # Celery
 celerybeat-schedule
 celerybeat.pid
+
+# Static files
+backend/staticfiles/
+
+# Media files
+backend/media/
+
+# Frontend build
+frontend/dist/
+frontend/dist-ssr/
+
+# Package lock files (optional - only if you want to ignore them)
+# package-lock.json
+# yarn.lock
+
+# IDE
+.vscode/settings.json
+*.swp
+*.swo

@@ -6,7 +6,7 @@ Full-stack couple's activity tracking app with Django backend, PostgreSQL databa
 
 ## Stack
 
-- **Backend:** Django 5.2 + DRF + PostgreSQL 15 + Redis 7 + Celery
+- **Backend:** Django 5.1.4 + DRF + PostgreSQL 15 + Redis 7 + Celery
 - **Frontend:** React 18 + Material UI 5 + Axios + React Router
 - **Auth:** Firebase Auth (OAuth 2.0)
 - **DevOps:** Docker + Docker Compose + Nginx
@@ -93,8 +93,8 @@ npm test
 
 ## Documentation
 
-- [Development Guide](DEVELOPMENT.md) - Detailed setup and troubleshooting
-- [Full Stack Architecture](README_FULLSTACK.md) - Complete system overview
+- [Quick Start Guide](QUICKSTART.md)
+- [Docker Setup](DOCKER.md)
 
 ## License
 

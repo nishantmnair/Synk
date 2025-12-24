@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from users.models import Profile, Couple
 import factory
 from factory.django import DjangoModelFactory
+import secrets
 
 User = get_user_model()
 
@@ -21,8 +22,7 @@ class ProfileFactory(DjangoModelFactory):
         model = Profile
     
     user = factory.SubFactory(UserFactory)
-    name = factory.Faker('name')
-    partner_name = factory.Faker('name')
+    full_name = factory.Faker('name')
 
 
 class CoupleFactory(DjangoModelFactory):
@@ -30,8 +30,12 @@ class CoupleFactory(DjangoModelFactory):
         model = Couple
     
     user1 = factory.SubFactory(UserFactory)
-    user2 = factory.SubFactory(UserFactory)
-    invite_code = factory.Faker('uuid4')
+    user2 = None
+    
+    @factory.lazy_attribute
+    def invite_code(self):
+        # Generate 8-character invite code like in the view
+        return secrets.token_urlsafe(8).upper()[:8]
 
 
 @pytest.fixture

@@ -74,3 +74,8 @@ pnpm-lock.yaml
 .vscode/settings.json
 *.swp
 *.swo
+
+# Test coverage
+.coverage
+coverage/
+htmlcov/

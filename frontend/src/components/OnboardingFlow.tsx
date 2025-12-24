@@ -96,16 +96,32 @@ export default function OnboardingFlow() {
       setLoading(true);
       setError('');
 
-      await createProfile({
-        full_name: fullName,
-      });
+      // Try to create profile, but continue if it already exists
+      try {
+        await createProfile({
+          full_name: fullName,
+        });
+      } catch (profileErr: any) {
+        // Ignore "profile already exists" error, throw others
+        const profileErrorMsg = profileErr.response?.data?.[0] || profileErr.response?.data?.detail || '';
+        if (!profileErrorMsg.includes('already exists')) {
+          throw profileErr;
+        }
+      }
 
       await joinCouple(inviteCode);
 
       await refreshProfile();
       await refreshCouple();
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to join couple');
+      // Extract error message from different possible response formats
+      const errorMessage = err.response?.data?.error || 
+                          err.response?.data?.detail || 
+                          err.response?.data?.message ||
+                          err.message ||
+                          'Failed to join couple';
+      setError(errorMessage);
+      console.error('Join couple error:', err.response?.data || err);
     } finally {
       setLoading(false);
     }

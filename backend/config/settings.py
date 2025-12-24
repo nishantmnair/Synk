@@ -51,6 +51,7 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'config.middleware.DisableCSRFForAPIMiddleware',  # Disable CSRF for API endpoints
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -168,6 +169,15 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
 ]
+
+# CSRF Settings - exempt API endpoints since we use token authentication
+CSRF_TRUSTED_ORIGINS = env.list(
+    'CSRF_TRUSTED_ORIGINS',
+    default=['http://localhost:5173', 'http://localhost:3000']
+)
+# Exempt API URLs from CSRF since we use token authentication
+CSRF_COOKIE_HTTPONLY = False
+CSRF_USE_SESSIONS = False
 
 # Firebase Admin SDK
 FIREBASE_CREDENTIALS_PATH = env('FIREBASE_CREDENTIALS_PATH', default=None)

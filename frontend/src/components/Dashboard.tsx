@@ -62,6 +62,52 @@ export default function Dashboard() {
     }
   }, [couple]);
 
+  // Smart auto-refresh: only poll when window is focused to save resources
+  useEffect(() => {
+    if (!couple) return;
+
+    let intervalId: NodeJS.Timeout | null = null;
+
+    const startPolling = () => {
+      if (intervalId) return;
+      // Poll every 5 seconds when window is focused
+      intervalId = setInterval(() => {
+        loadData();
+      }, 5000);
+    };
+
+    const stopPolling = () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    // Start polling if window is already focused
+    if (document.hasFocus()) {
+      startPolling();
+    }
+
+    // Listen for window focus/blur events
+    const handleFocus = () => {
+      loadData(); // Immediate refresh when returning to tab
+      startPolling();
+    };
+    
+    const handleBlur = () => {
+      stopPolling();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      stopPolling();
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [couple]);
+
   const loadData = async () => {
     if (!couple) return;
 

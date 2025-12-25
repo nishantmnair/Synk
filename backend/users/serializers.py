@@ -5,7 +5,7 @@ from .models import User, Profile, Couple
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'firebase_uid', 'email', 'full_name', 'display_name', 'photo_url', 'created_at']
+        fields = ['id', 'firebase_uid', 'email', 'full_name', 'name', 'photo_url', 'created_at']
         read_only_fields = ['id', 'firebase_uid', 'created_at']
 
 

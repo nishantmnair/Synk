@@ -5,21 +5,60 @@ import {
   Container, 
   Typography, 
   Paper,
-  CircularProgress 
+  CircularProgress,
+  TextField,
+  Divider,
+  Alert
 } from '@mui/material';
 import { Favorite } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Auth() {
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
+
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    
+    if (!email || !password) {
+      setError('Please fill in all required fields');
+      return;
+    }
+    
+    if (isSignUp && !name.trim()) {
+      setError('Name is required');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      if (isSignUp) {
+        await signUpWithEmail(email, password, name);
+      } else {
+        await signInWithEmail(email, password);
+      }
+    } catch (err: any) {
+      console.error('Error with email auth:', err);
+      setError(err.message || 'Authentication failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleGoogleSignIn = async () => {
+    setError('');
     try {
       setLoading(true);
       await signInWithGoogle();
-    } catch (error) {
-      console.error('Error signing in:', error);
+    } catch (err: any) {
+      console.error('Error signing in with Google:', err);
+      setError('Google sign-in failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -67,12 +106,94 @@ export default function Auth() {
               WebkitTextFillColor: 'transparent',
             }}
           >
-            Date Ideas
+            Synk
           </Typography>
 
           <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
             Your shared checklist for memorable moments together
           </Typography>
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 3, textAlign: 'left' }}>
+              {error}
+            </Alert>
+          )}
+
+          <Box component="form" onSubmit={handleEmailAuth} sx={{ mb: 3 }}>
+            {isSignUp && (
+              <TextField
+                fullWidth
+                label="Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                sx={{ mb: 2 }}
+                disabled={loading}
+              />
+            )}
+            
+            <TextField
+              fullWidth
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              sx={{ mb: 2 }}
+              disabled={loading}
+            />
+            
+            <TextField
+              fullWidth
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              sx={{ mb: 3 }}
+              disabled={loading}
+            />
+
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              fullWidth
+              disabled={loading}
+              sx={{
+                py: 1.5,
+                background: 'linear-gradient(90deg, #ec407a 0%, #e91e63 100%)',
+                '&:hover': {
+                  background: 'linear-gradient(90deg, #d81b60 0%, #c2185b 100%)',
+                },
+              }}
+            >
+              {loading ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : isSignUp ? (
+                'Create Account'
+              ) : (
+                'Sign In'
+              )}
+            </Button>
+
+            <Button
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setError('');
+              }}
+              sx={{ mt: 2, textTransform: 'none' }}
+              disabled={loading}
+            >
+              {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+            </Button>
+          </Box>
+
+          <Divider sx={{ my: 3 }}>
+            <Typography variant="caption" color="text.secondary">
+              OR
+            </Typography>
+          </Divider>
 
           <Button
             variant="outlined"
@@ -107,14 +228,14 @@ export default function Auth() {
             sx={{
               py: 1.5,
               borderWidth: 2,
-              borderColor: 'pink.200',
+              borderColor: 'divider',
               '&:hover': {
                 borderWidth: 2,
                 borderColor: 'pink.400',
               },
             }}
           >
-            {loading ? 'Signing in...' : 'Continue with Google'}
+            Continue with Google
           </Button>
 
           <Typography variant="caption" color="text.secondary" sx={{ mt: 4, display: 'block' }}>

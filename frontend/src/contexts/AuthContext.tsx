@@ -4,12 +4,16 @@ import {
   onAuthStateChanged,
   signInWithPopup,
   GoogleAuthProvider,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithCustomToken,
   signOut as firebaseSignOut,
   User as FirebaseUser,
 } from 'firebase/auth';
 import { getMyProfile, getMyCouples, createProfile, type Profile, type Couple } from '../lib/api';
+import axios from 'axios';
 
-type AppUser = { id: string; email?: string | null; displayName?: string | null } | null;
+type AppUser = { id: string; email?: string | null; name?: string | null } | null;
 
 interface AuthContextType {
   user: AppUser;
@@ -17,6 +21,8 @@ interface AuthContextType {
   couple: Couple | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string, name?: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshCouple: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -87,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const appUser = { 
           id: fbUser.uid, 
           email: fbUser.email, 
-          displayName: fbUser.displayName 
+          name: fbUser.displayName 
         };
         setUser(appUser);
         
@@ -120,6 +126,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signInWithPopup(auth, provider);
   };
 
+  const signUpWithEmail = async (email: string, password: string, name?: string) => {
+    try {
+      // Call backend to create user in Firebase
+      const response = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/auth/signup/`, {
+        email,
+        password,
+        name: name || '',
+      });
+
+      // Sign in with the custom token returned by backend
+      if (response.data.custom_token) {
+        await signInWithCustomToken(auth, response.data.custom_token);
+      }
+    } catch (error: any) {
+      if (error.response?.data?.error) {
+        throw new Error(error.response.data.error);
+      }
+      throw error;
+    }
+  };
+
+  const signInWithEmail = async (email: string, password: string) => {
+    await signInWithEmailAndPassword(auth, email, password);
+  };
+
   const signOut = async () => {
     await firebaseSignOut(auth);
   };
@@ -130,7 +161,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile, 
       couple, 
       loading, 
-      signInWithGoogle, 
+      signInWithGoogle,
+      signInWithEmail,
+      signUpWithEmail,
       signOut, 
       refreshCouple,
       refreshProfile 

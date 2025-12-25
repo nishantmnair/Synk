@@ -19,6 +19,8 @@ const mockAuthContext = {
   couple: null,
   loading: false,
   signInWithGoogle: vi.fn(),
+  signInWithEmail: vi.fn(),
+  signUpWithEmail: vi.fn(),
   signOut: vi.fn(),
   refreshCouple: vi.fn(),
   refreshProfile: vi.fn(),
@@ -71,7 +73,7 @@ describe('Auth Component', () => {
       </AuthContext.Provider>
     );
 
-    expect(screen.getByText(/Date Ideas/i)).toBeInTheDocument();
+    expect(screen.getByText(/Synk/i)).toBeInTheDocument();
     expect(screen.getByText(/Sign in to create or join/i)).toBeInTheDocument();
   });
 

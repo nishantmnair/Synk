@@ -279,7 +279,7 @@ export default function OnboardingFlow() {
 
             <Stack spacing={3}>
               <TextField
-                label="Your Full Name"
+                label="Your Name"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 fullWidth

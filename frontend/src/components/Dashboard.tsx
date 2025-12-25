@@ -38,6 +38,7 @@ import ActivityList from './ActivityList';
 import DeletedItems from './DeletedItems';
 import SectionManager from './SectionManager';
 import ReminderPrompt from './ReminderPrompt';
+import InviteCodeReminder from './InviteCodeReminder';
 
 type ViewMode = 'activities' | 'deleted';
 type FilterStatus = 'all' | 'not_started' | 'in_progress' | 'finished';
@@ -152,7 +153,14 @@ export default function Dashboard() {
   });
 
   const sidebar = (
-    <Box sx={{ width: 280, p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ width: 280, p: 2, height: '100%', display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {/* Invite Code Reminder - show only when partner hasn't joined */}
+      {couple && !couple.user2 && (
+        <Box sx={{ pb: 2, borderBottom: 1, borderColor: 'divider' }}>
+          <InviteCodeReminder couple={couple} onCopy={() => setSnackbarOpen(true)} />
+        </Box>
+      )}
+
       <Typography variant="h6" fontWeight="bold" gutterBottom>
         View
       </Typography>
@@ -224,19 +232,8 @@ export default function Dashboard() {
           )}
           <Favorite sx={{ mr: 1 }} />
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Activity Tracker
+            Synk
           </Typography>
-
-          {couple && (
-            <Button
-              color="inherit"
-              startIcon={<Share />}
-              onClick={handleShareInviteCode}
-              sx={{ mr: 2 }}
-            >
-              Share: {couple.invite_code}
-            </Button>
-          )}
 
           <Typography variant="body2" sx={{ mr: 2 }}>
             {user?.email}

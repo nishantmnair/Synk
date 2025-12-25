@@ -28,7 +28,7 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
                 firebase_uid=firebase_uid,
                 defaults={
                     'email': decoded_token.get('email'),
-                    'display_name': decoded_token.get('name', ''),
+                    'name': decoded_token.get('name', ''),
                     'photo_url': decoded_token.get('picture'),
                 }
             )
@@ -36,7 +36,7 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
             if not created:
                 # Update user info if changed
                 user.email = decoded_token.get('email', user.email)
-                user.display_name = decoded_token.get('name', user.display_name)
+                user.name = decoded_token.get('name', user.name)
                 user.photo_url = decoded_token.get('picture', user.photo_url)
                 user.save()
             

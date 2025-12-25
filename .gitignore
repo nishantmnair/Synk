@@ -65,7 +65,6 @@ frontend/dist-ssr/
 
 # Package lock files
 package-lock.json
-frontend/package-lock.json
 yarn.lock
 pnpm-lock.yaml
 .pnpm-debug.log

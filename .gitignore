@@ -59,4 +59,26 @@ media/
 *.sqlite3
 
 # Docker
-.dockerignore
+# Note: .dockerignore should be tracked, not ignored
+
+# Vite
+.vite/
+*.tsbuildinfo
+
+# Python type checking and linting
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+.pytype/
+
+# Django local settings
+local_settings.py
+local.py
+*.local.py
+
+# Temporary files
+.tmp/
+.temp/
+*.tmp
+*.temp

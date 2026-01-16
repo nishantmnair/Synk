@@ -28,9 +28,7 @@ docker compose exec backend python manage.py create_test_user
 ## 📚 Documentation
 
 - [DOCKER.md](./DOCKER.md) - Complete Docker setup guide
-- [QUICK_START.md](./QUICK_START.md) - Manual setup without Docker
 - [backend/README.md](./backend/README.md) - Backend API documentation
-- [FRONTEND_DJANGO_SETUP.md](./FRONTEND_DJANGO_SETUP.md) - Frontend integration details
 
 ## 🛠️ Tech Stack
 
@@ -93,7 +91,7 @@ docker compose -f docker-compose.dev.yml up -d
 ```
 
 ### Without Docker
-See [QUICK_START.md](./QUICK_START.md) for manual setup instructions.
+See [DOCKER.md](./DOCKER.md) for setup instructions, or check the `backend/README.md` for backend-specific documentation.
 
 ## 📝 Environment Variables
 

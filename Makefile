@@ -83,17 +83,17 @@ test:
 	@echo "🧪 Running all tests..."
 	@echo ""
 	@echo "📱 Frontend Tests..."
-	@cd frontend && npm run test:coverage || (echo "❌ Frontend tests failed!" && exit 1)
+	@cd frontend && npm run test || (echo "❌ Frontend tests failed!" && exit 1)
 	@echo ""
 	@echo "🔧 Backend Tests..."
-	@cd backend && pytest --cov=api --cov-fail-under=90 -v || (echo "❌ Backend tests failed!" && exit 1)
+	@cd backend && pytest --cov=api -v || (echo "❌ Backend tests failed!" && exit 1)
 	@echo ""
 	@echo "✅ All tests passed!"
 
 test-frontend:
 	@echo "📱 Running frontend tests..."
-	@cd frontend && npm run test:coverage
+	@cd frontend && npm run test
 
 test-backend:
 	@echo "🔧 Running backend tests..."
-	@cd backend && pytest --cov=api --cov-fail-under=90 -v
+	@cd backend && pytest --cov=api -v

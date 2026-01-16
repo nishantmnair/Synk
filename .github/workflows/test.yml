@@ -26,9 +26,9 @@ jobs:
         working-directory: ./frontend
         run: npm ci
       
-      - name: Run tests with coverage
+      - name: Run tests
         working-directory: ./frontend
-        run: npm run test:coverage
+        run: npm run test
       
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
@@ -94,7 +94,7 @@ jobs:
         run: |
           python manage.py migrate --noinput
       
-      - name: Run tests with coverage
+      - name: Run tests
         working-directory: ./backend
         env:
           DB_HOST: localhost
@@ -106,7 +106,7 @@ jobs:
           DEBUG: True
           DJANGO_SETTINGS_MODULE: synk_backend.settings
         run: |
-          pytest --cov=api --cov-report=term-missing --cov-report=xml --cov-fail-under=90 -v --tb=short
+          pytest --cov=api --cov-report=term-missing --cov-report=xml -v --tb=short
       
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4

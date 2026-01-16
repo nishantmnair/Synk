@@ -1,0 +1,192 @@
+"""
+Tests for API serializers
+"""
+import pytest
+from django.contrib.auth.models import User
+from django.utils import timezone
+from datetime import timedelta
+from api.models import Task, Milestone, Activity, Suggestion, Collection, UserPreferences, Couple, CouplingCode
+from api.serializers import (
+    TaskSerializer, MilestoneSerializer, ActivitySerializer,
+    SuggestionSerializer, CollectionSerializer, UserPreferencesSerializer,
+    UserSerializer, UserRegistrationSerializer, CoupleSerializer, CouplingCodeSerializer
+)
+
+
+@pytest.mark.django_db
+class TestTaskSerializer:
+    """Test TaskSerializer"""
+    
+    def test_serialize_task(self, user, task):
+        """Test serializing a task"""
+        serializer = TaskSerializer(task)
+        data = serializer.data
+        assert data['title'] == 'Test Task'
+        assert data['category'] == 'Test'
+        assert data['priority'] == 'medium'
+        assert data['status'] == 'Backlog'
+        assert 'id' in data
+    
+    def test_deserialize_task(self, user):
+        """Test deserializing task data"""
+        data = {
+            'title': 'New Task',
+            'category': 'Adventure',
+            'priority': 'high',
+            'status': 'Backlog'
+        }
+        # Mock request in context for serializer
+        from django.test import RequestFactory
+        from rest_framework.test import APIRequestFactory
+        factory = APIRequestFactory()
+        request = factory.get('/')
+        request.user = user
+        
+        serializer = TaskSerializer(data=data, context={'request': request})
+        assert serializer.is_valid()
+        task = serializer.save()
+        assert task.title == 'New Task'
+        assert task.user == user
+
+
+@pytest.mark.django_db
+class TestMilestoneSerializer:
+    """Test MilestoneSerializer"""
+    
+    def test_serialize_milestone(self, user, milestone):
+        """Test serializing a milestone"""
+        serializer = MilestoneSerializer(milestone)
+        data = serializer.data
+        assert data['name'] == 'Test Milestone'
+        assert data['status'] == 'Upcoming'
+        assert 'id' in data
+
+
+@pytest.mark.django_db
+class TestActivitySerializer:
+    """Test ActivitySerializer"""
+    
+    def test_serialize_activity(self, user, activity):
+        """Test serializing an activity"""
+        serializer = ActivitySerializer(activity)
+        data = serializer.data
+        assert data['user'] == 'Test User'
+        assert data['action'] == 'added'
+        assert data['item'] == 'Test Item'
+        assert 'id' in data
+    
+    def test_deserialize_activity(self, user):
+        """Test deserializing activity data"""
+        data = {
+            'user': 'Test User',
+            'action': 'added',
+            'item': 'Test Item',
+            'timestamp': 'Just now',
+            'avatar': 'https://example.com/avatar.png'
+        }
+        # Mock request in context for serializer
+        from rest_framework.test import APIRequestFactory
+        factory = APIRequestFactory()
+        request = factory.get('/')
+        request.user = user
+        
+        serializer = ActivitySerializer(data=data, context={'request': request})
+        assert serializer.is_valid()
+        activity = serializer.save()
+        assert activity.activity_user == 'Test User'
+        assert activity.action == 'added'
+
+
+@pytest.mark.django_db
+class TestUserRegistrationSerializer:
+    """Test UserRegistrationSerializer"""
+    
+    def test_validate_passwords_match(self):
+        """Test password validation"""
+        data = {
+            'username': 'testuser',
+            'email': 'test@example.com',
+            'password': 'testpass123',
+            'password_confirm': 'wrongpass',
+            'first_name': 'Test',
+            'last_name': 'User'
+        }
+        serializer = UserRegistrationSerializer(data=data)
+        assert not serializer.is_valid()
+        assert 'password' in serializer.errors
+    
+    def test_validate_username(self):
+        """Test username validation"""
+        # Username too short
+        data = {
+            'username': 'ab',
+            'email': 'test@example.com',
+            'password': 'testpass123',
+            'password_confirm': 'testpass123'
+        }
+        serializer = UserRegistrationSerializer(data=data)
+        assert not serializer.is_valid()
+        assert 'username' in serializer.errors
+    
+    def test_validate_email(self):
+        """Test email validation"""
+        # Duplicate email
+        User.objects.create_user(username='existing', email='test@example.com', password='pass')
+        data = {
+            'username': 'newuser',
+            'email': 'test@example.com',
+            'password': 'testpass123',
+            'password_confirm': 'testpass123'
+        }
+        serializer = UserRegistrationSerializer(data=data)
+        assert not serializer.is_valid()
+        assert 'email' in serializer.errors
+    
+    def test_create_user(self):
+        """Test creating user from serializer"""
+        data = {
+            'username': 'newuser',
+            'email': 'newuser@example.com',
+            'password': 'testpass123',
+            'password_confirm': 'testpass123',
+            'first_name': 'New',
+            'last_name': 'User'
+        }
+        serializer = UserRegistrationSerializer(data=data)
+        assert serializer.is_valid()
+        user = serializer.save()
+        assert user.username == 'newuser'
+        assert user.email == 'newuser@example.com'
+        assert user.check_password('testpass123')
+
+
+@pytest.mark.django_db
+class TestCoupleSerializer:
+    """Test CoupleSerializer"""
+    
+    def test_serialize_couple(self, user, user2, couple):
+        """Test serializing a couple"""
+        request = type('Request', (), {'user': user})()
+        serializer = CoupleSerializer(couple, context={'request': request})
+        data = serializer.data
+        assert 'user1' in data
+        assert 'user2' in data
+        assert 'partner' in data
+        assert data['partner']['id'] == user2.id
+
+
+@pytest.mark.django_db
+class TestCouplingCodeSerializer:
+    """Test CouplingCodeSerializer"""
+    
+    def test_serialize_coupling_code(self, user):
+        """Test serializing a coupling code"""
+        code = CouplingCode.objects.create(
+            created_by=user,
+            code='TESTCODE',
+            expires_at=timezone.now() + timedelta(hours=24)
+        )
+        serializer = CouplingCodeSerializer(code)
+        data = serializer.data
+        assert data['code'] == 'TESTCODE'
+        assert 'expires_at' in data

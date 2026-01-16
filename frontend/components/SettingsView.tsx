@@ -203,7 +203,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
               <div className="space-y-3">
                 <div>
                   <p className="text-sm font-medium mb-2">Join with Partner Code</p>
-                  <p className="text-[11px] text-secondary mb-3">Enter your partner's coupling code to connect accounts.</p>
+                  <p className="text-[11px] text-secondary mb-3">Didn't enter a coupling code during signup? No worries! Enter your partner's coupling code here to connect your accounts.</p>
                   <div className="flex gap-2">
                     <input
                       type="text"

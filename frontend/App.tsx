@@ -9,7 +9,7 @@ import TodayView from './components/TodayView';
 import CollectionView from './components/CollectionView';
 import ProfileView from './components/ProfileView';
 import SettingsView from './components/SettingsView';
-import LandingView from './components/LandingView';
+import AuthView from './components/AuthView';
 import CouplingOnboarding from './components/CouplingOnboarding';
 import MemoriesView from './components/MemoriesView';
 import Sidebar from './components/Sidebar';
@@ -19,6 +19,7 @@ import { djangoAuthService, User } from './services/djangoAuth';
 import { djangoRealtimeService } from './services/djangoRealtime';
 import { tasksApi, milestonesApi, activitiesApi, suggestionsApi, collectionsApi, preferencesApi } from './services/djangoApi';
 import { getUserAvatar } from './utils/avatar';
+import { getDisplayName } from './utils/userDisplay';
 
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -240,7 +241,7 @@ const App: React.FC = () => {
       await loadData();
     } catch (error: any) {
       console.error('Login failed:', error);
-      throw error; // Let LandingView handle the error display
+      throw error; // Let AuthView handle the error display
     }
   };
 
@@ -260,7 +261,7 @@ const App: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Signup failed:', error);
-      throw error; // Let LandingView handle the error display
+      throw error; // Let AuthView handle the error display
     }
   };
 
@@ -276,18 +277,11 @@ const App: React.FC = () => {
   };
 
 
-  // Get display name for user (only uses first_name)
-  const getUserDisplayName = (user: User | null): string => {
-    if (!user) return 'You';
-    return user.first_name || 'User';
-  };
-
   const addActivity = async (action: string, item: string, activityUser?: string) => {
     try {
-      // Use current user's name if not specified
-      const userName = activityUser || getUserDisplayName(currentUser);
+      const userName = activityUser || getDisplayName(currentUser);
       const newActivity = {
-        user: userName,  // Frontend uses 'user', Django maps to 'activity_user'
+        user: userName,
         action,
         item,
         timestamp: 'Just now',
@@ -297,8 +291,7 @@ const App: React.FC = () => {
       setActivities(prev => [transformActivity(created), ...prev]);
     } catch (error) {
       console.error('Error creating activity:', error);
-      // Fallback to local state
-      const userName = activityUser || getUserDisplayName(currentUser);
+      const userName = activityUser || getDisplayName(currentUser);
       const newActivity: Activity = {
         id: Math.random().toString(),
         user: userName,
@@ -422,11 +415,7 @@ const App: React.FC = () => {
   }
 
   if (!isLoggedIn) {
-    return (
-      <Router>
-        <LandingView onLogin={handleLogin} onSignup={handleSignup} />
-      </Router>
-    );
+    return <AuthView onLogin={handleLogin} onSignup={handleSignup} />;
   }
 
   return (
@@ -450,9 +439,10 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col min-w-0 bg-warm-gradient transition-all duration-300">
+        <div className="flex-1 flex flex-col min-w-0 bg-main">
           <Header 
             currentUser={currentUser}
+            vibe={vibe}
             onToggleRightSidebar={toggleRightSidebar} 
             isRightSidebarOpen={isRightSidebarOpen} 
             onToggleLeftSidebar={toggleLeftSidebar}
@@ -464,13 +454,13 @@ const App: React.FC = () => {
           
           <main className="flex-1 overflow-hidden relative">
             <Routes>
-              <Route path="/" element={<TodayView tasks={tasks} />} />
-              <Route path="/today" element={<TodayView tasks={tasks.filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.category.toLowerCase().includes(searchQuery.toLowerCase()))} />} />
+              <Route path="/" element={<TodayView tasks={tasks} vibe={vibe} onShareAnswer={() => addActivity('answered', "today's connection prompt")} />} />
+              <Route path="/today" element={<TodayView tasks={tasks.filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.category.toLowerCase().includes(searchQuery.toLowerCase()))} vibe={vibe} onShareAnswer={() => addActivity('answered', "today's connection prompt")} />} />
               <Route path="/board" element={<BoardView tasks={tasks.filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.category.toLowerCase().includes(searchQuery.toLowerCase()))} setTasks={setTasks} onAction={addActivity} onAddTask={addTask} onUpdateTask={updateTask} onDeleteTask={deleteTask} />} />
               <Route path="/milestones" element={<MilestonesView milestones={milestones} />} />
               <Route path="/inbox" element={<InboxView suggestions={suggestions} onAccept={addTask} onSave={() => {}} onDecline={(id) => setSuggestions(prev => prev.filter(s => s.id !== id))} />} />
               <Route path="/collection/:collectionId" element={<CollectionView tasks={tasks} collections={collections} onAddTask={addTask} />} />
-              <Route path="/profile" element={<ProfileView currentUser={currentUser} activities={activities} />} />
+              <Route path="/profile" element={<ProfileView currentUser={currentUser} activities={activities} milestonesCount={milestones.length} />} />
               <Route path="/settings" element={<SettingsView currentUser={currentUser} />} />
               <Route path="/memories" element={<MemoriesView />} />
               <Route path="*" element={<Navigate to="/" />} />

@@ -18,6 +18,7 @@ const mockUser: User = {
 const renderHeader = (props = {}) => {
   const defaultProps = {
     currentUser: mockUser,
+    vibe: 'Feeling adventurous',
     onToggleRightSidebar: vi.fn(),
     isRightSidebarOpen: true,
     onToggleLeftSidebar: vi.fn(),
@@ -42,9 +43,7 @@ describe('Header', () => {
 
   it('renders header with user info', () => {
     renderHeader()
-    // Header should render - check for avatar
-    const avatarButton = screen.getByAltText('Avatar')
-    expect(avatarButton).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /profile/i })).toBeInTheDocument()
   })
 
   it('renders search input', () => {
@@ -63,18 +62,14 @@ describe('Header', () => {
   })
 
   it('opens profile dropdown on avatar click', () => {
-    const { container } = renderHeader()
-    const avatarButton = screen.getByAltText('Avatar')
-    fireEvent.click(avatarButton)
-    
-    // Profile dropdown should show user info
-    expect(screen.getByText('Test')).toBeInTheDocument()
+    renderHeader()
+    fireEvent.click(screen.getByRole('button', { name: /profile/i }))
+    expect(screen.getByText('Test User')).toBeInTheDocument()
     expect(screen.getByText('test@example.com')).toBeInTheDocument()
   })
 
   it('renders without user', () => {
     renderHeader({ currentUser: null })
-    const avatarButton = screen.getByAltText('Avatar')
-    expect(avatarButton).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /profile/i })).toBeInTheDocument()
   })
 })

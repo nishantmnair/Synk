@@ -235,10 +235,10 @@ const BoardView: React.FC<BoardViewProps> = ({ tasks, setTasks, onAction, onAddT
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
           <div 
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60"
             onClick={resetForm}
           ></div>
-          <div className="relative bg-card border border-subtle rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="relative bg-card border border-subtle rounded-2xl w-full max-w-md overflow-hidden">
             <div className="p-6 border-b border-subtle flex items-center justify-between">
               <h2 className="text-lg font-bold flex items-center gap-2">
                 <span className="material-symbols-outlined text-accent">edit_note</span>

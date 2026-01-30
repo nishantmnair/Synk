@@ -95,6 +95,23 @@ class TestMilestoneViewSet:
         assert response.status_code == 201
         assert response.data['name'] == 'New Milestone'
 
+    def test_update_milestone(self, authenticated_client, user, milestone):
+        """Test updating a milestone"""
+        response = authenticated_client.patch(
+            f'/api/milestones/{milestone.id}/',
+            {'name': 'Updated Milestone'},
+            format='json'
+        )
+        assert response.status_code == 200
+        assert response.data['name'] == 'Updated Milestone'
+
+    def test_delete_milestone(self, authenticated_client, user, milestone):
+        """Test deleting a milestone"""
+        mid = milestone.id
+        response = authenticated_client.delete(f'/api/milestones/{mid}/')
+        assert response.status_code == 204
+        assert not Milestone.objects.filter(id=mid).exists()
+
 
 @pytest.mark.django_db
 class TestActivityViewSet:
@@ -120,6 +137,13 @@ class TestActivityViewSet:
         response = authenticated_client.post('/api/activities/', data, format='json')
         assert response.status_code == 201
         assert response.data['action'] == 'added'
+
+    def test_list_activities_with_limit(self, authenticated_client, user, activity):
+        """Test listing activities with limit query param"""
+        response = authenticated_client.get('/api/activities/?limit=5')
+        assert response.status_code == 200
+        results = response.data.get('results', response.data) if isinstance(response.data, dict) else response.data
+        assert len(results) <= 5
 
 
 @pytest.mark.django_db
@@ -176,6 +200,23 @@ class TestCollectionViewSet:
         response = authenticated_client.post('/api/collections/', data, format='json')
         assert response.status_code == 201
         assert response.data['name'] == 'New Collection'
+
+    def test_update_collection(self, authenticated_client, user, collection):
+        """Test updating a collection"""
+        response = authenticated_client.patch(
+            f'/api/collections/{collection.id}/',
+            {'name': 'Updated Collection'},
+            format='json'
+        )
+        assert response.status_code == 200
+        assert response.data['name'] == 'Updated Collection'
+
+    def test_delete_collection(self, authenticated_client, user, collection):
+        """Test deleting a collection"""
+        cid = collection.id
+        response = authenticated_client.delete(f'/api/collections/{cid}/')
+        assert response.status_code == 204
+        assert not Collection.objects.filter(id=cid).exists()
 
 
 @pytest.mark.django_db
@@ -249,6 +290,20 @@ class TestUserRegistrationViewSet:
         # Check if couple was created
         assert Couple.objects.filter(user1=user).exists() or Couple.objects.filter(user2=user).exists()
 
+    def test_register_with_invalid_coupling_code(self, client):
+        """Test registration with invalid/expired coupling code still creates user but not coupled"""
+        data = {
+            'username': 'solouser',
+            'email': 'solo@example.com',
+            'password': 'testpass123',
+            'password_confirm': 'testpass123',
+            'coupling_code': 'EXPIREDCODE'
+        }
+        response = client.post('/api/register/', data, format='json')
+        assert response.status_code == 201
+        assert User.objects.filter(username='solouser').exists()
+        assert not Couple.objects.exists()
+
 
 @pytest.mark.django_db
 class TestCoupleViewSet:
@@ -266,6 +321,29 @@ class TestCoupleViewSet:
         assert response.status_code == 200
         assert response.data['is_coupled'] == True
         assert 'partner' in response.data
+
+    def test_get_couple_status_coupled_as_user2(self, user2, couple):
+        """Test getting couple status when current user is user2 in couple"""
+        from rest_framework.test import APIClient
+        client = APIClient()
+        resp = client.post('/api/token/', {'username': user2.username, 'password': 'testpass123'})
+        token = resp.data.get('access')
+        client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        response = client.get('/api/couple/')
+        assert response.status_code == 200
+        assert response.data['is_coupled'] is True
+
+    def test_couple_create_returns_400(self, authenticated_client, user):
+        """Test create couple directly returns 400 (use codes instead)"""
+        response = authenticated_client.post('/api/couple/', {}, format='json')
+        assert response.status_code == 400
+        assert 'coupling code' in response.data.get('detail', '').lower()
+
+    def test_uncouple_when_not_coupled(self, authenticated_client, user):
+        """Test uncouple when not coupled returns 400"""
+        response = authenticated_client.delete('/api/couple/uncouple/')
+        assert response.status_code == 400
+        assert 'not currently coupled' in response.data.get('detail', '').lower()
     
     def test_uncouple(self, authenticated_client, user, user2, couple):
         """Test uncoupling"""
@@ -339,3 +417,34 @@ class TestCouplingCodeViewSet:
             format='json'
         )
         assert response.status_code == 400
+
+    def test_create_code_when_already_coupled(self, authenticated_client, user, user2, couple):
+        """Test cannot create coupling code when already coupled"""
+        response = authenticated_client.post('/api/coupling-codes/', {}, format='json')
+        assert response.status_code == 400
+        assert 'already coupled' in response.data.get('detail', '').lower()
+
+    def test_use_code_empty(self, authenticated_client, user):
+        """Test use coupling code with empty code returns 400"""
+        response = authenticated_client.post(
+            '/api/coupling-codes/use/',
+            {'code': ''},
+            format='json'
+        )
+        assert response.status_code == 400
+        assert 'code' in response.data.get('detail', '').lower() or 'required' in response.data.get('detail', '').lower()
+
+    def test_use_code_when_already_coupled(self, authenticated_client, user, user2, couple):
+        """Test cannot use coupling code when already coupled"""
+        code = CouplingCode.objects.create(
+            created_by=User.objects.create_user(username='other', email='other@example.com', password='pass'),
+            code='OTHERCODE',
+            expires_at=timezone.now() + timedelta(hours=24)
+        )
+        response = authenticated_client.post(
+            '/api/coupling-codes/use/',
+            {'code': 'OTHERCODE'},
+            format='json'
+        )
+        assert response.status_code == 400
+        assert 'already coupled' in response.data.get('detail', '').lower()

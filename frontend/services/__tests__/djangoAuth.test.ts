@@ -65,7 +65,7 @@ describe('djangoAuthService', () => {
 
       await expect(
         djangoAuthService.login('test@example.com', 'wrongpass')
-      ).rejects.toThrow('Invalid credentials')
+      ).rejects.toThrow('Invalid email/username or password.')
     })
   })
 

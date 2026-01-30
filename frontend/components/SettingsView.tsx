@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { coupleApi, couplingCodeApi } from '../services/djangoApi';
 import { User } from '../services/djangoAuth';
+import { getDisplayName, getEmailOrUsername } from '../utils/userDisplay';
 
 interface SettingsViewProps {
   currentUser: User | null;
@@ -116,12 +117,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
     }
   };
 
-  // Helper to get display name (only uses first_name)
-  const getDisplayName = (user: User | null): string => {
-    if (!user) return 'Partner';
-    return user.first_name || 'User';
-  };
-
   return (
     <div className="h-full overflow-y-auto custom-scrollbar p-6 md:p-12">
       <div className="max-w-2xl mx-auto space-y-10">
@@ -141,7 +136,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-bold">Connected with {getDisplayName(partner)}</p>
-                  <p className="text-[11px] text-secondary">{partner.email}</p>
+                  <p className="text-[11px] text-secondary">{getEmailOrUsername(partner) ?? '—'}</p>
                 </div>
                 <button
                   onClick={handleUncouple}

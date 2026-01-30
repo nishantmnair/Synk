@@ -277,3 +277,14 @@ class TestCouplingCode:
             used_by=user
         )
         assert used_code.is_valid() == False
+
+    def test_coupling_code_str(self, user):
+        """Test coupling code string representation"""
+        code = CouplingCode.objects.create(
+            created_by=user,
+            code='ABC12345',
+            expires_at=timezone.now() + timedelta(hours=24)
+        )
+        s = str(code)
+        assert 'ABC12345' in s
+        assert user.username in s

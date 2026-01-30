@@ -3,10 +3,12 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User } from '../services/djangoAuth';
 import { getUserAvatar } from '../utils/avatar';
+import { getDisplayName, getEmailOrUsername } from '../utils/userDisplay';
 import { generateDateIdea } from '../services/geminiService';
 
 interface HeaderProps {
   currentUser: User | null;
+  vibe: string;
   onToggleRightSidebar: () => void;
   isRightSidebarOpen: boolean;
   onToggleLeftSidebar: () => void;
@@ -16,14 +18,9 @@ interface HeaderProps {
   onSearchChange: (query: string) => void;
 }
 
-// Helper to get display name (only uses first_name)
-const getUserDisplayName = (user: User | null): string => {
-  if (!user) return 'User';
-  return user.first_name || 'User';
-};
-
 const Header: React.FC<HeaderProps> = ({ 
   currentUser,
+  vibe,
   onToggleRightSidebar, 
   isRightSidebarOpen, 
   onToggleLeftSidebar, 
@@ -37,7 +34,7 @@ const Header: React.FC<HeaderProps> = ({
 
   const handlePlanDate = async () => {
     alert("Finding something magical for you...");
-    const idea = await generateDateIdea("Feeling cozy and adventurous");
+    const idea = await generateDateIdea(vibe);
     alert(`Gemini suggests: ${idea.title}\n\n${idea.description}\n\nLocation: ${idea.location}`);
   };
 
@@ -64,7 +61,7 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="h-14 border-b border-subtle flex items-center justify-between px-4 bg-main/50 backdrop-blur-md sticky top-0 z-50 shrink-0">
+    <header className="h-14 border-b border-subtle flex items-center justify-between px-4 bg-main sticky top-0 z-50 shrink-0">
       <div className="flex items-center flex-1 gap-4">
         {!isLeftSidebarOpen && (
           <button 
@@ -99,7 +96,7 @@ const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center gap-3 ml-4">
         <div className="hidden lg:flex items-center gap-3 px-3 py-1.5 rounded-full bg-card border border-subtle text-sm">
           <span className="text-base">🤗</span>
-          <span className="text-xs text-secondary font-medium">Feeling Cozy</span>
+          <span className="text-xs text-secondary font-medium line-clamp-1 max-w-[180px]" title={vibe}>{vibe}</span>
         </div>
         
         <button 
@@ -114,9 +111,10 @@ const Header: React.FC<HeaderProps> = ({
           {/* Avatar Button */}
           <button 
             onClick={toggleProfile}
+            aria-label="Profile"
             className={`w-9 h-9 rounded-full border transition-all overflow-hidden shrink-0 active:scale-95 ${isProfileOpen ? 'border-accent ring-2 ring-accent/20' : 'border-subtle hover:border-secondary'}`}
           >
-            <img alt="Avatar" className="w-full h-full object-cover" src={getUserAvatar(currentUser)} />
+            <img alt="" className="w-full h-full object-cover" src={getUserAvatar(currentUser)} />
           </button>
           
           {/* Profile Dropdown Menu */}
@@ -125,14 +123,17 @@ const Header: React.FC<HeaderProps> = ({
               {/* Invisible Backdrop to close menu */}
               <div className="fixed inset-0 z-10" onClick={() => setIsProfileOpen(false)}></div>
               
-              <div className="absolute right-0 top-11 w-56 bg-card border border-subtle rounded-xl shadow-2xl z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="absolute right-0 top-11 w-56 bg-card border border-subtle rounded-xl z-20 overflow-hidden">
                 {/* User Info Header */}
                 <div className="p-4 bg-white/[0.02] border-b border-subtle">
                   <div className="flex items-center gap-2.5 mb-1">
-                    <img src={getUserAvatar(currentUser)} className="w-7 h-7 rounded-full border border-card shadow-sm" alt={getUserDisplayName(currentUser)} />
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-primary">{getUserDisplayName(currentUser)}</span>
-                      <span className="text-[9px] text-secondary/70">{currentUser?.email || 'user@synk.app'}</span>
+                    <img src={getUserAvatar(currentUser)} className="w-7 h-7 rounded-full border border-card shadow-sm" alt="" />
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-bold text-primary truncate">{getDisplayName(currentUser)}</span>
+                      {(() => {
+                        const sub = getEmailOrUsername(currentUser);
+                        return sub ? <span className="text-[9px] text-secondary/70 truncate" title={sub}>{sub}</span> : null;
+                      })()}
                     </div>
                   </div>
                 </div>

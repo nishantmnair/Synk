@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { coupleApi, couplingCodeApi } from '../services/djangoApi';
 import { User } from '../services/djangoAuth';
+import { getDisplayName } from '../utils/userDisplay';
 
 interface CouplingOnboardingProps {
   currentUser: User | null;
@@ -83,16 +84,11 @@ const CouplingOnboarding: React.FC<CouplingOnboardingProps> = ({ currentUser, on
     onComplete();
   };
 
-  // Helper to get display name (only uses first_name)
-  const getDisplayName = (user: User | null): string => {
-    if (!user) return 'Partner';
-    return user.first_name || 'User';
-  };
 
   if (isCoupled && partner) {
     return (
-      <div className="fixed inset-0 bg-main/95 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-        <div className="bg-card border border-romantic/20 rounded-3xl p-8 md:p-12 max-w-2xl w-full text-center space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div className="fixed inset-0 bg-main z-50 flex items-center justify-center p-6">
+        <div className="bg-card border border-romantic/20 rounded-2xl p-8 max-w-2xl w-full text-center space-y-6">
           <div className="w-20 h-20 rounded-full bg-romantic/20 flex items-center justify-center mx-auto">
             <span className="material-symbols-outlined text-4xl text-romantic">favorite</span>
           </div>
@@ -110,8 +106,8 @@ const CouplingOnboarding: React.FC<CouplingOnboardingProps> = ({ currentUser, on
 
   if (step === 'generate' && couplingCode) {
     return (
-      <div className="fixed inset-0 bg-main/95 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-        <div className="bg-card border border-subtle rounded-3xl p-8 md:p-12 max-w-2xl w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div className="fixed inset-0 bg-main z-50 flex items-center justify-center p-6">
+        <div className="bg-card border border-subtle rounded-2xl p-8 max-w-2xl w-full space-y-6">
           <div className="text-center space-y-2">
             <h2 className="text-3xl font-bold">Share Your Coupling Code</h2>
             <p className="text-secondary">Give this code to your partner so they can connect their account</p>
@@ -156,8 +152,8 @@ const CouplingOnboarding: React.FC<CouplingOnboardingProps> = ({ currentUser, on
 
   if (step === 'join') {
     return (
-      <div className="fixed inset-0 bg-main/95 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-        <div className="bg-card border border-subtle rounded-3xl p-8 md:p-12 max-w-2xl w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div className="fixed inset-0 bg-main z-50 flex items-center justify-center p-6">
+        <div className="bg-card border border-subtle rounded-2xl p-8 max-w-2xl w-full space-y-6">
           <div className="text-center space-y-2">
             <h2 className="text-3xl font-bold">Join with Partner Code</h2>
             <p className="text-secondary">Enter the coupling code your partner gave you</p>
@@ -207,8 +203,8 @@ const CouplingOnboarding: React.FC<CouplingOnboardingProps> = ({ currentUser, on
 
   // Default: Choose option
   return (
-    <div className="fixed inset-0 bg-main/95 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-      <div className="bg-card border border-subtle rounded-3xl p-8 md:p-12 max-w-3xl w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+    <div className="fixed inset-0 bg-main z-50 flex items-center justify-center p-6">
+      <div className="bg-card border border-subtle rounded-2xl p-8 max-w-2xl w-full space-y-8">
         <div className="text-center space-y-3">
           <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mx-auto">
             <span className="material-symbols-outlined text-3xl text-accent">people</span>

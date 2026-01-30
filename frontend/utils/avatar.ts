@@ -41,16 +41,14 @@ export const getUserAvatar = (user: User | null, size: number = 128): string => 
   let color = generateRandomColor();
   
   if (user) {
-    // Get first letter of first_name (case-sensitive)
     if (user.first_name && user.first_name.length > 0) {
       initial = user.first_name[0];
     } else if (user.email && user.email.length > 0) {
-      // Fallback to email first letter if no first_name
       initial = user.email[0].toUpperCase();
+    } else if (user.username && user.username.length > 0) {
+      initial = user.username[0].toUpperCase();
     }
-    
-    // Generate consistent color based on email for the same user
-    color = generateRandomColor(user.email || user.first_name || 'default');
+    color = generateRandomColor(user.email || user.username || user.first_name || 'default');
   }
   
   // Create SVG as data URL

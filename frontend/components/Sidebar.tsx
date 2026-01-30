@@ -102,8 +102,8 @@ const Sidebar: React.FC<SidebarProps> = ({ vibe, collections, onAddCollection, o
       {/* Create Collection Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}></div>
-          <div className="relative bg-card border border-subtle rounded-2xl w-full max-w-xs shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setIsModalOpen(false)}></div>
+          <div className="relative bg-card border border-subtle rounded-2xl w-full max-w-xs overflow-hidden">
              <div className="p-4 border-b border-subtle flex items-center justify-between">
                 <h3 className="text-sm font-bold">New Collection</h3>
                 <button onClick={() => setIsModalOpen(false)} className="material-symbols-outlined text-secondary text-lg">close</button>

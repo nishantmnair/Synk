@@ -1,0 +1,227 @@
+import React, { useState } from 'react';
+
+interface AuthViewProps {
+  onLogin: (email: string, password: string) => Promise<void>;
+  onSignup: (email: string, password: string, passwordConfirm: string, firstName?: string, lastName?: string, couplingCode?: string) => Promise<void>;
+}
+
+const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup }) => {
+  const [isSignup, setIsSignup] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [couplingCode, setCouplingCode] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const resetForm = () => {
+    setEmail('');
+    setPassword('');
+    setPasswordConfirm('');
+    setFirstName('');
+    setLastName('');
+    setCouplingCode('');
+    setError('');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (isSignup) {
+      if (!email.trim()) {
+        setError('Email is required');
+        return;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        setError('Please enter a valid email address');
+        return;
+      }
+      if (password.length < 8) {
+        setError('Password must be at least 8 characters long');
+        return;
+      }
+      if (password !== passwordConfirm) {
+        setError('Passwords do not match');
+        return;
+      }
+    }
+
+    setIsLoading(true);
+    try {
+      if (isSignup) {
+        await onSignup(email, password, passwordConfirm, firstName, lastName, couplingCode.trim() || undefined);
+      } else {
+        await onLogin(email, password);
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : (isSignup ? 'Signup failed.' : 'Login failed.'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-main text-primary font-sans flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="flex items-center justify-center gap-2 mb-8">
+          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
+            <span className="material-symbols-outlined text-white text-sm">all_inclusive</span>
+          </div>
+          <span className="font-bold text-xl">Synk</span>
+        </div>
+
+        <div className="bg-card border border-subtle rounded-2xl p-6 space-y-5">
+          <h1 className="text-xl font-bold text-center">{isSignup ? 'Sign Up' : 'Sign In'}</h1>
+
+          <div className="flex gap-1 bg-white/5 rounded-lg p-1">
+            <button
+              type="button"
+              onClick={() => { setIsSignup(false); resetForm(); }}
+              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium ${!isSignup ? 'bg-primary text-main' : 'text-secondary'}`}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => { setIsSignup(true); resetForm(); }}
+              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium ${isSignup ? 'bg-primary text-main' : 'text-secondary'}`}
+            >
+              Sign Up
+            </button>
+          </div>
+
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-3 py-2 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {isSignup && (
+              <>
+                <div>
+                  <label className="block text-sm text-secondary mb-1">Email *</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full bg-white/5 border border-subtle rounded-lg px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent"
+                    placeholder="Enter your email"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm text-secondary mb-1">First name</label>
+                    <input
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="w-full bg-white/5 border border-subtle rounded-lg px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent"
+                      placeholder="First name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-secondary mb-1">Last name</label>
+                    <input
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="w-full bg-white/5 border border-subtle rounded-lg px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent"
+                      placeholder="Last name"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {!isSignup && (
+              <div>
+                <label className="block text-sm text-secondary mb-1">Email or username *</label>
+                <input
+                  type="text"
+                  inputMode="email"
+                  autoComplete="username"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full bg-white/5 border border-subtle rounded-lg px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent"
+                  placeholder="Email or username"
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm text-secondary mb-1">Password *</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+                className="w-full bg-white/5 border border-subtle rounded-lg px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent"
+                placeholder={isSignup ? 'At least 8 characters' : 'Password'}
+              />
+            </div>
+
+            {isSignup && (
+              <>
+                <div>
+                  <label className="block text-sm text-secondary mb-1">Confirm password *</label>
+                  <input
+                    type="password"
+                    value={passwordConfirm}
+                    onChange={(e) => setPasswordConfirm(e.target.value)}
+                    required
+                    minLength={8}
+                    className={`w-full bg-white/5 border rounded-lg px-3 py-2 text-primary text-sm focus:outline-none ${
+                      passwordConfirm && password !== passwordConfirm ? 'border-red-500/50' : 'border-subtle focus:border-accent'
+                    }`}
+                    placeholder="Confirm password"
+                  />
+                  {passwordConfirm && password !== passwordConfirm && (
+                    <p className="text-red-400 text-xs mt-1">Passwords do not match</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm text-secondary mb-1">Partner code (optional)</label>
+                  <input
+                    type="text"
+                    value={couplingCode}
+                    onChange={(e) => setCouplingCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                    maxLength={8}
+                    className="w-full bg-white/5 border border-subtle rounded-lg px-3 py-2 text-primary text-sm text-center font-mono tracking-wider focus:outline-none focus:border-accent"
+                    placeholder="8-character code"
+                  />
+                </div>
+              </>
+            )}
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-primary text-main font-semibold rounded-lg py-2.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? (isSignup ? 'Creating…' : 'Signing in…') : (isSignup ? 'Sign Up' : 'Sign In')}
+            </button>
+          </form>
+
+          {!isSignup && (
+            <p className="text-xs text-secondary text-center pt-1">
+              No account?{' '}
+              <button type="button" onClick={() => { setIsSignup(true); resetForm(); }} className="text-accent font-medium">
+                Sign up
+              </button>
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AuthView;

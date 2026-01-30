@@ -14,6 +14,16 @@ interface TokenResponse {
   refresh: string;
 }
 
+/** Derive Django username from email. Same logic for signup and login. Backend requires len >= 3. */
+function emailToUsername(email: string): string {
+  const raw = email.trim().toLowerCase();
+  const at = raw.indexOf('@');
+  const local = (at >= 0 ? raw.slice(0, at) : raw).replace(/[^a-z0-9]/g, '') || 'user';
+  if (local.length >= 3) return local.slice(0, 150);
+  const domain = (at >= 0 ? raw.slice(at + 1) : 'mail').replace(/\./g, '').slice(0, 8);
+  return (local + '_' + domain).slice(0, 150);
+}
+
 class DjangoAuthService {
   private currentUser: User | null = null;
   private accessToken: string | null = null;
@@ -26,7 +36,7 @@ class DjangoAuthService {
       // Backend still requires username for Django User model, so we use email prefix as username
       const signupUrl = `${API_BASE_URL}/api/register/`;
       const signupData: any = { 
-        username: email.trim().toLowerCase().split('@')[0], // Use email prefix as username
+        username: emailToUsername(email), // Backend requires len >= 3; keep in sync with login
         email: email.trim().toLowerCase(), 
         password, 
         password_confirm: passwordConfirm,
@@ -76,8 +86,8 @@ class DjangoAuthService {
 
       const user: User = await signupResponse.json();
       
-      // Automatically log in after signup
-      return await this.login(email, password);
+      // Automatically log in after signup. Use username (not email): JWT /api/token/ expects username.
+      return await this.login(user.username, password);
     } catch (error: any) {
       console.error('Signup error:', error);
       // Re-throw with better error message if it's not already an Error object
@@ -88,21 +98,25 @@ class DjangoAuthService {
     }
   }
 
-  async login(email: string, password: string): Promise<User> {
+  async login(identifier: string, password: string): Promise<User> {
     try {
-      // Get JWT tokens
+      // JWT /api/token/ expects username. Form uses "email"; support both email and username.
+      const username = identifier.includes('@') ? emailToUsername(identifier) : identifier.trim();
       const tokenResponse = await fetch(`${API_BASE_URL}/api/token/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        // Use email as username for login (backend can accept email as username)
-        body: JSON.stringify({ username: email, password }),
+        body: JSON.stringify({ username, password }),
       });
 
       if (!tokenResponse.ok) {
         const error = await tokenResponse.json().catch(() => ({ detail: 'Invalid credentials' })) as { detail?: string };
-        throw new Error(error.detail || 'Login failed');
+        const msg = error.detail ?? 'Login failed';
+        const friendly = /no active account|invalid credentials/i.test(msg)
+          ? 'Invalid email/username or password.'
+          : msg;
+        throw new Error(friendly);
       }
 
       const tokens: TokenResponse = await tokenResponse.json();
@@ -120,9 +134,14 @@ class DjangoAuthService {
         throw new Error('Failed to fetch user info');
       }
 
-      const users = await userResponse.json() as User[] | User;
-      // Handle both array and single object
-      this.currentUser = Array.isArray(users) ? users[0] : users;
+      const data = await userResponse.json();
+      // DRF uses PageNumberPagination: { count, next, previous, results }
+      const list = Array.isArray(data) ? data : (data?.results ?? []);
+      const user = list[0] ?? null;
+      if (!user || typeof user !== 'object') {
+        throw new Error('Failed to fetch user info');
+      }
+      this.currentUser = user as User;
 
       // Store tokens and user in localStorage
       localStorage.setItem('synk_access_token', this.accessToken);
@@ -221,10 +240,17 @@ class DjangoAuthService {
 
     if (storedUser && token) {
       try {
-        const parsedUser = JSON.parse(storedUser) as User;
-        this.currentUser = parsedUser;
-        return this.currentUser;
-      } catch (error) {
+        const parsed = JSON.parse(storedUser) as unknown;
+        // Reject pagination wrapper or invalid shape (old bug stored { results } as user)
+        const valid = parsed && typeof parsed === 'object' && !Array.isArray(parsed) &&
+          'id' in parsed && !('results' in parsed);
+        if (valid) {
+          const parsedUser = parsed as User;
+          this.currentUser = parsedUser;
+          return this.currentUser;
+        }
+        localStorage.removeItem('synk_user');
+      } catch {
         localStorage.removeItem('synk_user');
       }
     }

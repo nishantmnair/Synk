@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { User } from '../services/djangoAuth';
 import { getUserAvatar } from '../utils/avatar';
 import { getDisplayName, getEmailOrUsername } from '../utils/userDisplay';
-import { generateDateIdea } from '../services/geminiService';
+import PlanDateModal from './PlanDateModal';
 
 interface HeaderProps {
   currentUser: User | null;
@@ -16,6 +16,18 @@ interface HeaderProps {
   onLogout: () => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  theme: 'light' | 'dark';
+  onToggleTheme: () => void;
+  onSaveDateIdea: (payload: {
+    title: string;
+    suggested_by: string;
+    date: string;
+    description: string;
+    location: string;
+    category: string;
+    excitement: number;
+    tags: string[];
+  }) => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ 
@@ -27,16 +39,14 @@ const Header: React.FC<HeaderProps> = ({
   isLeftSidebarOpen,
   onLogout,
   searchQuery,
-  onSearchChange
+  onSearchChange,
+  theme,
+  onToggleTheme,
+  onSaveDateIdea
 }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [planDateOpen, setPlanDateOpen] = useState(false);
   const navigate = useNavigate();
-
-  const handlePlanDate = async () => {
-    alert("Finding something magical for you...");
-    const idea = await generateDateIdea(vibe);
-    alert(`Gemini suggests: ${idea.title}\n\n${idea.description}\n\nLocation: ${idea.location}`);
-  };
 
   const toggleProfile = () => setIsProfileOpen(!isProfileOpen);
 
@@ -94,18 +104,34 @@ const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-3 ml-4">
+        <button
+          onClick={onToggleTheme}
+          className="material-symbols-outlined text-secondary hover:text-primary transition-colors text-[20px] w-8 h-8 flex items-center justify-center rounded-md hover:bg-white/5"
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {theme === 'dark' ? 'light_mode' : 'dark_mode'}
+        </button>
         <div className="hidden lg:flex items-center gap-3 px-3 py-1.5 rounded-full bg-card border border-subtle text-sm">
           <span className="text-base">🤗</span>
           <span className="text-xs text-secondary font-medium line-clamp-1 max-w-[180px]" title={vibe}>{vibe}</span>
         </div>
         
         <button 
-          onClick={handlePlanDate}
+          onClick={() => setPlanDateOpen(true)}
           className="bg-accent text-white text-[11px] font-bold px-3 py-2 rounded-md transition-transform hover:scale-[1.02] active:scale-[0.98] flex items-center gap-1.5 whitespace-nowrap shadow-lg shadow-accent/20"
         >
           <span className="material-symbols-outlined text-base">auto_awesome</span>
           <span className="hidden sm:inline">Plan Date</span>
         </button>
+
+        <PlanDateModal
+          isOpen={planDateOpen}
+          onClose={() => setPlanDateOpen(false)}
+          vibe={vibe}
+          currentUser={currentUser}
+          onSaveToInbox={onSaveDateIdea}
+        />
 
         <div className="relative flex items-center gap-2">
           {/* Avatar Button */}

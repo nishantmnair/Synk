@@ -120,3 +120,22 @@ export const couplingCodeApi = {
     body: JSON.stringify({ code }),
   }),
 };
+
+// AI API (Gemini key on server only; no client key needed)
+export const aiApi = {
+  planDate: (vibe: string, hint?: number) =>
+    request<{ title: string; description: string; location: string; category?: string }>(
+      '/api/ai/plan-date/',
+      { method: 'POST', body: JSON.stringify({ vibe, ...(hint != null && { hint }) }) }
+    ),
+  proTip: (milestones: { name: string; status: string }[]) =>
+    request<{ tip: string }>('/api/ai/pro-tip/', {
+      method: 'POST',
+      body: JSON.stringify({ milestones }),
+    }),
+  dailyPrompt: () =>
+    request<{ prompt: string }>('/api/ai/daily-prompt/', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+};

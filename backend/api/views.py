@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
 from django.contrib.auth.models import User
+from .gemini_utils import generate_date_idea, get_pro_tip, get_daily_connection_prompt
 from django.utils import timezone
 from django.db import models as django_models
 from datetime import timedelta
@@ -467,3 +468,49 @@ class CouplingCodeViewSet(viewsets.ModelViewSet):
                 {'detail': 'Invalid or expired coupling code'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+
+# --- AI endpoints (Gemini key from server env only) ---
+
+class PlanDateView(APIView):
+    """POST { "vibe": "..." } -> { "title", "description", "location", "category" }."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        vibe = (request.data.get('vibe') or '').strip() or 'Feeling adventurous'
+        hint = request.data.get('hint')  # optional: for "Try another" variety
+        result = generate_date_idea(vibe, hint=hint)
+        if result is None:
+            return Response({
+                'title': 'Cozy Movie Marathon',
+                'description': 'A themed movie night with homemade popcorn and your favorite films.',
+                'location': 'Home Sweet Home',
+                'category': 'Date idea',
+            }, status=status.HTTP_200_OK)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class ProTipView(APIView):
+    """POST { "milestones": [ { "name", "status" }, ... ] } -> { "tip": "..." }."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        milestones = request.data.get('milestones') or []
+        summary = ', '.join(
+            f"{m.get('name', '')} ({m.get('status', '')})" for m in milestones
+        ) or 'No milestones yet'
+        tip = get_pro_tip(summary)
+        if tip is None:
+            tip = "The best journey is the one you take together. Keep dreaming big!"
+        return Response({'tip': tip}, status=status.HTTP_200_OK)
+
+
+class DailyPromptView(APIView):
+    """POST {} -> { "prompt": "..." }."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        prompt = get_daily_connection_prompt()
+        if prompt is None:
+            prompt = "If we could teleport anywhere for just one hour today, where would we go?"
+        return Response({'prompt': prompt}, status=status.HTTP_200_OK)

@@ -13,7 +13,6 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
-    "@google/genai": "^1.36.0",
     "@testing-library/dom": "^10.4.1",
     "firebase": "^10.7.1",
     "react": "^19.2.3",

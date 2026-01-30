@@ -7,7 +7,8 @@ from rest_framework.test import APIClient
 from api.views import (
     TaskViewSet, MilestoneViewSet, ActivityViewSet,
     SuggestionViewSet, CollectionViewSet, UserPreferencesViewSet,
-    UserViewSet, UserRegistrationViewSet, CoupleViewSet, CouplingCodeViewSet
+    UserViewSet, UserRegistrationViewSet, CoupleViewSet, CouplingCodeViewSet,
+    PlanDateView, ProTipView, DailyPromptView,
 )
 
 
@@ -72,6 +73,27 @@ class TestURLRouting:
         """Test coupling codes URL resolves correctly"""
         url = reverse('coupling-code-list')
         assert url == '/api/coupling-codes/'
+
+    def test_ai_plan_date_url(self):
+        """Test AI plan-date URL resolves correctly"""
+        url = reverse('ai-plan-date')
+        assert url == '/api/ai/plan-date/'
+        resolver = resolve(url)
+        assert resolver.func.view_class == PlanDateView
+
+    def test_ai_pro_tip_url(self):
+        """Test AI pro-tip URL resolves correctly"""
+        url = reverse('ai-pro-tip')
+        assert url == '/api/ai/pro-tip/'
+        resolver = resolve(url)
+        assert resolver.func.view_class == ProTipView
+
+    def test_ai_daily_prompt_url(self):
+        """Test AI daily-prompt URL resolves correctly"""
+        url = reverse('ai-daily-prompt')
+        assert url == '/api/ai/daily-prompt/'
+        resolver = resolve(url)
+        assert resolver.func.view_class == DailyPromptView
 
 
 @pytest.mark.django_db

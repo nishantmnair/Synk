@@ -2,8 +2,9 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     TaskViewSet, MilestoneViewSet, ActivityViewSet,
-    SuggestionViewSet, CollectionViewSet, UserPreferencesViewSet, 
-    UserViewSet, UserRegistrationViewSet, CoupleViewSet, CouplingCodeViewSet
+    SuggestionViewSet, CollectionViewSet, UserPreferencesViewSet,
+    UserViewSet, UserRegistrationViewSet, CoupleViewSet, CouplingCodeViewSet,
+    PlanDateView, ProTipView, DailyPromptView,
 )
 
 router = DefaultRouter()
@@ -20,4 +21,7 @@ router.register(r'coupling-codes', CouplingCodeViewSet, basename='coupling-code'
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('ai/plan-date/', PlanDateView.as_view(), name='ai-plan-date'),
+    path('ai/pro-tip/', ProTipView.as_view(), name='ai-pro-tip'),
+    path('ai/daily-prompt/', DailyPromptView.as_view(), name='ai-daily-prompt'),
 ]

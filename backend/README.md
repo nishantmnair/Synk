@@ -45,11 +45,17 @@ pip install -r requirements.txt
 
 ### 3. Environment Variables
 
-Create a `.env` file in `backend/`:
+Create a `.env` or `.env.local` file in `backend/`. **Only uncommented lines are loaded** (python-dotenv ignores `#` lines).
+
+- Copy from `.env.example` and set values. Use `.env.local` for secrets (gitignored).
+- **Plan Date AI**: set `GEMINI_API_KEY=your-key` (uncommented) in `.env` or `.env.local`. Get a key at [Google AI Studio](https://aistudio.google.com/apikey). If unset, Plan Date returns a fallback idea.
+
+Example `.env`:
 
 ```env
 SECRET_KEY=your-secret-key-here
 DEBUG=True
+GEMINI_API_KEY=your-gemini-api-key
 DB_NAME=synk_db
 DB_USER=postgres
 DB_PASSWORD=postgres

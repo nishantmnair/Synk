@@ -12,6 +12,30 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Light theme overrides */
+[data-theme="light"] {
+  --color-border: #e4e4e7;
+  --color-sidebar: #f4f4f5;
+  --color-main: #fafafa;
+  --color-card: #ffffff;
+  --color-primary: #18181b;
+  --color-secondary: #71717a;
+  --color-accent: #6366f1;
+  --color-romantic: #ec4899;
+}
+
+/* Light theme: subtle surfaces use dark tint instead of white */
+[data-theme="light"] .bg-white\/5 {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+[data-theme="light"] .hover\:bg-white\/5:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+[data-theme="light"] .bg-white\/\[0\.02\],
+[data-theme="light"] .bg-white\/\[0\.01\] {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
 @layer base {
   body {
     @apply bg-main text-primary font-sans antialiased;
@@ -29,6 +53,9 @@
   }
   .border-subtle {
     border-color: rgba(255, 255, 255, 0.08);
+  }
+  [data-theme="light"] .border-subtle {
+    border-color: rgba(0, 0, 0, 0.08);
   }
   .bg-warm-gradient {
     background-image:

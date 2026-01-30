@@ -53,12 +53,16 @@ const Sidebar: React.FC<SidebarProps> = ({ vibe, collections, onAddCollection, o
   return (
     <aside className="h-full bg-sidebar flex flex-col">
       <div className="p-4 flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2 overflow-hidden">
+        <Link
+          to="/"
+          className="flex items-center gap-2 overflow-hidden rounded-md py-1 pr-1 -ml-1 hover:bg-white/5 transition-colors cursor-pointer"
+          title="Home"
+        >
           <div className="w-6 h-6 rounded-lg bg-accent flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(99,102,241,0.3)]">
             <span className="material-symbols-outlined text-white text-sm font-bold">all_inclusive</span>
           </div>
           <span className="font-bold text-lg tracking-tight text-primary">Synk</span>
-        </div>
+        </Link>
         <button 
           onClick={onToggle}
           className="material-symbols-outlined text-secondary hover:text-primary transition-colors text-[18px] w-8 h-8 flex items-center justify-center rounded-md hover:bg-white/5"

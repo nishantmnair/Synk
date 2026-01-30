@@ -2,6 +2,7 @@
 Tests for API views
 """
 import pytest
+from unittest.mock import patch
 from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta
@@ -448,3 +449,93 @@ class TestCouplingCodeViewSet:
         )
         assert response.status_code == 400
         assert 'already coupled' in response.data.get('detail', '').lower()
+
+
+@pytest.mark.django_db
+class TestAIViews:
+    """Test Plan Date, Pro Tip, and Daily Prompt API endpoints."""
+
+    def test_plan_date_requires_auth(self, client):
+        """Plan date endpoint requires authentication."""
+        response = client.post('/api/ai/plan-date/', {'vibe': 'adventurous'}, format='json')
+        assert response.status_code == 401
+
+    def test_plan_date_returns_fallback_without_gemini_key(self, authenticated_client):
+        """Plan date returns fallback idea when Gemini key not set or API fails."""
+        response = authenticated_client.post(
+            '/api/ai/plan-date/',
+            {'vibe': 'Feeling adventurous'},
+            format='json'
+        )
+        assert response.status_code == 200
+        data = response.data
+        assert 'title' in data
+        assert 'description' in data
+        assert 'location' in data
+        assert 'category' in data
+        assert data['title'] == 'Cozy Movie Marathon'
+
+    def test_plan_date_uses_default_vibe_when_empty(self, authenticated_client):
+        """Plan date uses default vibe when body is empty."""
+        response = authenticated_client.post(
+            '/api/ai/plan-date/',
+            {},
+            format='json'
+        )
+        assert response.status_code == 200
+        assert 'title' in response.data
+
+    @patch('api.views.generate_date_idea')
+    def test_plan_date_returns_idea_when_gemini_succeeds(self, mock_generate, authenticated_client):
+        """Plan date returns Gemini idea when API succeeds."""
+        mock_generate.return_value = {
+            'title': 'Sunset Picnic',
+            'description': 'A relaxing evening.',
+            'location': 'Park',
+            'category': 'Romantic',
+        }
+        response = authenticated_client.post(
+            '/api/ai/plan-date/',
+            {'vibe': 'relaxed'},
+            format='json'
+        )
+        assert response.status_code == 200
+        assert response.data['title'] == 'Sunset Picnic'
+        assert response.data['location'] == 'Park'
+        mock_generate.assert_called_once_with('relaxed', hint=None)
+
+    def test_pro_tip_requires_auth(self, client):
+        """Pro tip endpoint requires authentication."""
+        response = client.post(
+            '/api/ai/pro-tip/',
+            {'milestones': [{'name': 'Trip', 'status': 'Upcoming'}]},
+            format='json'
+        )
+        assert response.status_code == 401
+
+    def test_pro_tip_returns_tip_or_fallback(self, authenticated_client):
+        """Pro tip returns tip string or fallback."""
+        response = authenticated_client.post(
+            '/api/ai/pro-tip/',
+            {'milestones': [{'name': 'Trip', 'status': 'Upcoming'}]},
+            format='json'
+        )
+        assert response.status_code == 200
+        assert 'tip' in response.data
+        assert isinstance(response.data['tip'], str)
+
+    def test_daily_prompt_requires_auth(self, client):
+        """Daily prompt endpoint requires authentication."""
+        response = client.post('/api/ai/daily-prompt/', {}, format='json')
+        assert response.status_code == 401
+
+    def test_daily_prompt_returns_prompt_or_fallback(self, authenticated_client):
+        """Daily prompt returns prompt string or fallback."""
+        response = authenticated_client.post(
+            '/api/ai/daily-prompt/',
+            {},
+            format='json'
+        )
+        assert response.status_code == 200
+        assert 'prompt' in response.data
+        assert isinstance(response.data['prompt'], str)

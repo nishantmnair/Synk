@@ -37,6 +37,9 @@ const App: React.FC = () => {
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
+    (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'light') ? 'light' : 'dark'
+  );
 
   // Transform Django snake_case to frontend camelCase
   const transformTask = (task: any): Task => ({
@@ -157,7 +160,12 @@ const App: React.FC = () => {
       });
 
       djangoRealtimeService.on('suggestion:created', (data: any) => {
-        setSuggestions(prev => [transformSuggestion(data), ...prev]);
+        const transformed = transformSuggestion(data);
+        setSuggestions(prev => {
+          const exists = prev.some(s => s.id === transformed.id);
+          if (exists) return prev.map(s => s.id === transformed.id ? transformed : s);
+          return [transformed, ...prev];
+        });
       });
       djangoRealtimeService.on('suggestion:deleted', (data: { id: string | number }) => {
         const suggestionId = typeof data.id === 'number' ? data.id.toString() : data.id;
@@ -402,8 +410,34 @@ const App: React.FC = () => {
     }
   };
 
+  const addSuggestionFromIdea = async (payload: {
+    title: string;
+    suggested_by: string;
+    date: string;
+    description: string;
+    location: string;
+    category: string;
+    excitement: number;
+    tags: string[];
+  }) => {
+    try {
+      const created = await suggestionsApi.create(payload);
+      setSuggestions(prev => [transformSuggestion(created), ...prev]);
+      await addActivity('suggested', payload.title);
+    } catch (error) {
+      console.error('Error saving date idea to inbox:', error);
+    }
+  };
+
   const toggleRightSidebar = () => setIsRightSidebarOpen(!isRightSidebarOpen);
   const toggleLeftSidebar = () => setIsLeftSidebarOpen(!isLeftSidebarOpen);
+
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('synk_theme', next);
+  };
 
   // Show loading state while checking auth
   if (isLoading) {
@@ -450,6 +484,9 @@ const App: React.FC = () => {
             onLogout={handleLogout}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+            onSaveDateIdea={addSuggestionFromIdea}
           />
           
           <main className="flex-1 overflow-hidden relative">
@@ -469,7 +506,7 @@ const App: React.FC = () => {
         </div>
 
         {/* Info Sidebar */}
-        <div className={`transition-all duration-300 ease-in-out border-l border-subtle bg-sidebar overflow-hidden shrink-0 ${isRightSidebarOpen ? 'w-72' : 'w-0 border-l-0'}`}>
+        <div className={`transition-[width] duration-300 ease-in-out border-l border-subtle bg-sidebar overflow-hidden shrink-0 ${isRightSidebarOpen ? 'w-72' : 'w-0 border-l-0'}`}>
            <div className="w-72 h-full">
             <RightAside activities={activities} milestones={milestones} onToggle={toggleRightSidebar} />
            </div>

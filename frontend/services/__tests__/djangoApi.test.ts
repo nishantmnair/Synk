@@ -2,7 +2,7 @@
  * Tests for Django API service
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { tasksApi, milestonesApi, activitiesApi, suggestionsApi, collectionsApi, preferencesApi, coupleApi, couplingCodeApi } from '../djangoApi'
+import { tasksApi, milestonesApi, activitiesApi, suggestionsApi, collectionsApi, preferencesApi, coupleApi, couplingCodeApi, aiApi } from '../djangoApi'
 import { djangoAuthService } from '../djangoAuth'
 
 // Mock djangoAuthService
@@ -108,6 +108,71 @@ describe('djangoApi', () => {
 
       const result = await couplingCodeApi.use('TESTCODE')
       expect(result).toEqual(mockResponse)
+    })
+  })
+
+  describe('aiApi', () => {
+    it('planDate POSTs vibe and returns idea', async () => {
+      const mockIdea = {
+        title: 'Beach Day',
+        description: 'Sun and sand',
+        location: 'Beach',
+        category: 'Adventure'
+      }
+      ;(global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockIdea
+      })
+
+      const result = await aiApi.planDate('adventurous')
+      expect(result).toEqual(mockIdea)
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/ai/plan-date/'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ vibe: 'adventurous' })
+        })
+      )
+    })
+
+    it('proTip POSTs milestones and returns tip', async () => {
+      const mockTip = { tip: 'Dream big together!' }
+      ;(global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockTip
+      })
+
+      const result = await aiApi.proTip([
+        { name: 'Trip', status: 'Upcoming' }
+      ])
+      expect(result).toEqual(mockTip)
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/ai/pro-tip/'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            milestones: [{ name: 'Trip', status: 'Upcoming' }]
+          })
+        })
+      )
+    })
+
+    it('dailyPrompt POSTs and returns prompt', async () => {
+      const mockPrompt = { prompt: 'What are you grateful for today?' }
+      ;(global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockPrompt
+      })
+
+      const result = await aiApi.dailyPrompt()
+      expect(result).toEqual(mockPrompt)
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/ai/daily-prompt/'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({})
+        })
+      )
     })
   })
 })

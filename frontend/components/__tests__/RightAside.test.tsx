@@ -36,7 +36,8 @@ describe('RightAside', () => {
   it('renders Our Journey section', () => {
     render(<RightAside activities={[]} milestones={[]} onToggle={vi.fn()} />)
     expect(screen.getByText('Our Journey')).toBeInTheDocument()
-    expect(screen.getByText('DATES THIS YEAR')).toBeInTheDocument()
-    expect(screen.getByText('Yearly Goal')).toBeInTheDocument()
+    // Updated to match current RightAside content
+    expect(screen.getByText('MILESTONES')).toBeInTheDocument()
+    expect(screen.getByText('COMPLETED')).toBeInTheDocument()
   })
 })

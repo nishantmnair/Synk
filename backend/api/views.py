@@ -17,6 +17,31 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
 
+# Minimal AI views kept for URL resolution and simple testing
+class PlanDateView(APIView):
+    """Placeholder view for AI plan date endpoint"""
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        return Response({'detail': 'plan date placeholder'}, status=status.HTTP_200_OK)
+
+
+class ProTipView(APIView):
+    """Placeholder view for AI pro tip endpoint"""
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        return Response({'detail': 'pro tip placeholder'}, status=status.HTTP_200_OK)
+
+
+class DailyPromptView(APIView):
+    """Placeholder view for AI daily prompt endpoint"""
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        return Response({'detail': 'daily prompt placeholder'}, status=status.HTTP_200_OK)
+
+
 class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]

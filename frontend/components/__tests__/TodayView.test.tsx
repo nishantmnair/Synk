@@ -39,9 +39,19 @@ describe('TodayView', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Share Answer/i })).toBeInTheDocument()
     })
+    // Open the answer modal
     fireEvent.click(screen.getByRole('button', { name: /Share Answer/i }))
-    expect(onShareAnswer).toHaveBeenCalled()
-    expect(screen.getByRole('button', { name: /Shared/i })).toBeInTheDocument()
+
+    // Fill and submit the modal form
+    const textarea = await screen.findByPlaceholderText('Share your thoughts...')
+    fireEvent.change(textarea, { target: { value: 'Hello partner' } })
+    const submit = screen.getByRole('button', { name: /Share with Partner/i })
+    fireEvent.click(submit)
+
+    await waitFor(() => {
+      expect(onShareAnswer).toHaveBeenCalled()
+      expect(screen.getByRole('button', { name: /Shared/i })).toBeInTheDocument()
+    })
   })
 
   it('shows Daily Connection section', async () => {

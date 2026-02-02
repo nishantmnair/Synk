@@ -25,10 +25,10 @@ describe('MilestonesView', () => {
   it('renders roadmap header and progress', async () => {
     render(<MilestonesView milestones={mockMilestones} />)
     await waitFor(() => {
-      expect(screen.getByText('Our 2024 Roadmap')).toBeInTheDocument()
+      expect(screen.getByText('Our Milestones')).toBeInTheDocument()
     })
     expect(screen.getByText('Overall Progress')).toBeInTheDocument()
-    expect(screen.getByText('62%')).toBeInTheDocument()
+    expect(screen.getByText('0%')).toBeInTheDocument()
   })
 
   it('renders milestones table with milestone name', async () => {

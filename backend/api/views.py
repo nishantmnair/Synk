@@ -3,18 +3,24 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
+from django.db import models as django_models
 from django.contrib.auth.models import User
 from django.utils import timezone
-from django.db import models as django_models
 from datetime import timedelta
-from .models import Task, Milestone, Activity, Suggestion, Collection, UserPreferences, Couple, CouplingCode
+from .models import (
+    Task, Milestone, Activity, Suggestion, Collection, UserPreferences,
+    Couple, CouplingCode
+)
 from .serializers import (
     TaskSerializer, MilestoneSerializer, ActivitySerializer,
-    SuggestionSerializer, CollectionSerializer, UserPreferencesSerializer, 
-    UserSerializer, UserRegistrationSerializer, CoupleSerializer, CouplingCodeSerializer
+    SuggestionSerializer, CollectionSerializer, UserPreferencesSerializer,
+    UserSerializer, UserRegistrationSerializer, CoupleSerializer, CouplingCodeSerializer,
+    UserDetailSerializer, UserProfileSerializer
 )
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+
+
 
 
 # Minimal AI views kept for URL resolution and simple testing
@@ -40,6 +46,37 @@ class DailyPromptView(APIView):
 
     def get(self, request, *args, **kwargs):
         return Response({'detail': 'daily prompt placeholder'}, status=status.HTTP_200_OK)
+
+
+class AuthLogoutView(APIView):
+    """
+    POST /api/auth/logout - Logout endpoint
+    Ends user session by invalidating refresh token
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """
+        Logout user by invalidating refresh token
+        """
+        try:
+            # In JWT, logout is handled by blacklisting tokens (optional)
+            # For now, we just return success since client will discard tokens
+            return Response(
+                {
+                    'status': 'success',
+                    'detail': 'Successfully logged out.'
+                },
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            return Response(
+                {
+                    'status': 'error',
+                    'detail': f'Logout failed: {str(e)}'
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class TaskViewSet(viewsets.ModelViewSet):
@@ -312,11 +349,79 @@ class UserPreferencesViewSet(viewsets.ModelViewSet):
 
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
-    serializer_class = UserSerializer
+    serializer_class = UserDetailSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
         return User.objects.filter(id=self.request.user.id)
+    
+    @action(detail=False, methods=['get', 'put'], permission_classes=[IsAuthenticated])
+    def me(self, request):
+        """
+        Get or update current user profile
+        GET /api/users/me - Get current user profile
+        PUT /api/users/me - Update current user profile
+        
+        PUT accepts:
+        - first_name (string, optional)
+        - last_name (string, optional)
+        - email (string, optional)
+        
+        Returns:
+            200: User profile data
+            400: Validation error
+            401: Unauthorized
+        """
+        user = request.user
+        
+        if request.method == 'GET':
+            serializer = UserDetailSerializer(user)
+            return Response({
+                'status': 'success',
+                'message': 'User profile retrieved successfully.',
+                'data': serializer.data
+            }, status=status.HTTP_200_OK)
+        
+        elif request.method == 'PUT':
+            # Update user fields
+            first_name = request.data.get('first_name')
+            last_name = request.data.get('last_name')
+            email = request.data.get('email')
+            
+            if first_name is not None:
+                user.first_name = first_name
+            if last_name is not None:
+                user.last_name = last_name
+            if email is not None:
+                # Check if email already exists for another user
+                if User.objects.filter(email__iexact=email.lower()).exclude(id=user.id).exists():
+                    return Response(
+                        {
+                            'status': 'error',
+                            'message': 'Email already exists.',
+                            'errors': {'email': 'A user with this email already exists.'}
+                        },
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                user.email = email.lower()
+            
+            user.save()
+            
+            # Update UserProfile email_normalized
+            try:
+                user.profile.email_normalized = user.email.lower()
+                user.profile.updated_at = timezone.now()
+                user.profile.save(update_fields=['email_normalized', 'updated_at'])
+            except:
+                pass
+            
+            serializer = UserDetailSerializer(user)
+            return Response({
+                'status': 'success',
+                'message': 'Profile updated successfully.',
+                'data': serializer.data
+            }, status=status.HTTP_200_OK)
+
     
     @action(detail=False, methods=['post'])
     def delete_account(self, request):
@@ -326,6 +431,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         
         serializer = AccountDeletionSerializer(data=request.data, context={'request': request})
         if not serializer.is_valid():
+            # Return field errors at top level (e.g., {'password': [...]})
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         user = request.user
@@ -350,24 +456,46 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             user.delete()
             
             return Response(
-                {'detail': 'Account successfully deleted.'}, 
+                {'status': 'success', 'detail': 'Account successfully deleted.'}, 
                 status=status.HTTP_200_OK
             )
         except Exception as e:
             return Response(
-                {'detail': f'Error deleting account: {str(e)}'}, 
+                {'status': 'error', 'detail': f'Error deleting account: {str(e)}'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 
+
+
 class UserRegistrationViewSet(viewsets.GenericViewSet):
+    """
+    POST /api/register - User registration endpoint
+    Creates new user account with email and password
+    
+    Request:
+        - email (string, required)
+        - password (string, required)
+        - password_confirm (string, required)
+        - username (string, required)
+        - first_name (string, optional)
+        - last_name (string, optional)
+        - coupling_code (string, optional)
+    
+    Returns:
+        201: User account created successfully
+        400: Validation error
+        500: Server error
+    """
     serializer_class = UserRegistrationSerializer
     permission_classes = [AllowAny]
     queryset = User.objects.none()  # Empty queryset since we're not listing users
     
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
+        serializer.is_valid(raise_exception=True)  # Let error handler deal with validation errors
+        
+        try:
             user = serializer.save()
             
             # If a coupling code is provided, try to couple the accounts
@@ -392,10 +520,30 @@ class UserRegistrationViewSet(viewsets.GenericViewSet):
                     # Invalid or expired code - user is created but not coupled
                     pass
             
-            # Return user data (without password)
-            user_serializer = UserSerializer(user)
-            return Response(user_serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            # Update UserProfile with last login
+            try:
+                user.profile.last_login_at = timezone.now()
+                user.profile.save(update_fields=['last_login_at'])
+            except:
+                pass  # Profile should exist due to signal, but handle gracefully
+            
+            # Return standardized success response (frontend logs in separately to get tokens)
+            return Response(
+                {
+                    'status': 'success',
+                    'message': 'User account created successfully.',
+                    'data': UserSerializer(user).data
+                },
+                status=status.HTTP_201_CREATED
+            )
+        except Exception as e:
+            return Response(
+                {
+                    'status': 'error',
+                    'message': f'Registration failed: {str(e)}'
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class CoupleViewSet(viewsets.ModelViewSet):

@@ -19,16 +19,6 @@ interface HeaderProps {
   onSearchChange: (query: string) => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
-  onSaveDateIdea: (payload: {
-    title: string;
-    suggested_by: string;
-    date: string;
-    description: string;
-    location: string;
-    category: string;
-    excitement: number;
-    tags: string[];
-  }) => void;
   showConfirm: (config: any) => void;
 }
 
@@ -45,7 +35,6 @@ const Header: React.FC<HeaderProps> = ({
   onSearchChange,
   theme,
   onToggleTheme,
-  onSaveDateIdea,
   showConfirm
 }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -71,7 +60,6 @@ const Header: React.FC<HeaderProps> = ({
   const baseRepeatOffset = presetVibes.length * Math.floor(repeats / 2);
   const initialIndex = baseRepeatOffset + (presetVibes.indexOf(vibe) >= 0 ? presetVibes.indexOf(vibe) : 0);
 
-  const [displayVibe, setDisplayVibe] = useState(vibe);
   const [rollIndex, setRollIndex] = useState<number>(initialIndex);
   const [transitionMs, setTransitionMs] = useState<number>(120);
   const rollerRef = React.useRef<number | null>(null);
@@ -123,7 +111,6 @@ const Header: React.FC<HeaderProps> = ({
       window.setTimeout(() => setTransitionMs(120), 50);
 
       const chosen = presetVibes[targetMod];
-      setDisplayVibe(chosen);
       if (commit && onVibeChange) onVibeChange(chosen);
     }, 820);
   };

@@ -2,14 +2,13 @@
 Tests for API serializers
 """
 import pytest
+from datetime import timedelta
 from django.contrib.auth.models import User
 from django.utils import timezone
-from datetime import timedelta
-from api.models import Task, Milestone, Activity, Suggestion, Collection, UserPreferences, Couple, CouplingCode
+from api.models import CouplingCode
 from api.serializers import (
     TaskSerializer, MilestoneSerializer, ActivitySerializer,
-    SuggestionSerializer, CollectionSerializer, UserPreferencesSerializer,
-    UserSerializer, UserRegistrationSerializer, CoupleSerializer, CouplingCodeSerializer
+    UserRegistrationSerializer, CoupleSerializer, CouplingCodeSerializer
 )
 
 

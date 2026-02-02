@@ -2,8 +2,7 @@
  * Tests for Django API service
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { tasksApi, milestonesApi, activitiesApi, suggestionsApi, collectionsApi, preferencesApi, coupleApi, couplingCodeApi } from '../djangoApi'
-import { djangoAuthService } from '../djangoAuth'
+import { tasksApi, coupleApi, couplingCodeApi } from '../djangoApi'
 
 // Mock djangoAuthService
 vi.mock('../djangoAuth', () => ({

@@ -4,10 +4,9 @@ interface DeleteAccountModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (password: string) => Promise<void>;
-  isLoading?: boolean;
 }
 
-const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({ isOpen, onClose, onConfirm, isLoading = false }) => {
+const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({ isOpen, onClose, onConfirm }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);

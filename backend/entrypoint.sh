@@ -5,11 +5,11 @@ echo "🚀 Starting Synk Backend..."
 
 # Check if using PostgreSQL (Docker) or SQLite (local)
 if [ -n "$DB_HOST" ] && [ "$DB_HOST" != "localhost" ]; then
-  # Using PostgreSQL - wait for it to be ready
+  # Using PostgreSQL - wait for it to be ready using TCP connection test
   echo "⏳ Waiting for PostgreSQL database to be ready..."
   MAX_WAIT=30
   WAITED=0
-  until python -c "import psycopg2; psycopg2.connect(host='$DB_HOST', port='$DB_PORT', user='$DB_USER', password='$DB_PASSWORD', dbname='postgres', connect_timeout=5)" 2>/dev/null; do
+  until (echo > /dev/tcp/"$DB_HOST"/"$DB_PORT") 2>/dev/null; do
     if [ $WAITED -ge $MAX_WAIT ]; then
       echo "⚠️  Database connection timeout, but continuing anyway..."
       break

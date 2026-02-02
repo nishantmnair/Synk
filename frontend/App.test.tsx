@@ -46,7 +46,7 @@ describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(djangoAuth.djangoAuthService.getCurrentUser).mockResolvedValue(null)
-    vi.mocked(djangoAuth.djangoAuthService.onAuthStateChange).mockImplementation((cb) => {
+    vi.mocked(djangoAuth.djangoAuthService.onAuthStateChange).mockImplementation(() => {
       return () => {}
     })
   })

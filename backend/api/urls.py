@@ -4,7 +4,7 @@ from .views import (
     TaskViewSet, MilestoneViewSet, ActivityViewSet,
     SuggestionViewSet, CollectionViewSet, UserPreferencesViewSet,
     UserViewSet, UserRegistrationViewSet, CoupleViewSet, CouplingCodeViewSet,
-    PlanDateView, ProTipView, DailyPromptView,
+    PlanDateView, ProTipView, DailyPromptView, AuthLogoutView,
 )
 
 router = DefaultRouter()
@@ -18,9 +18,12 @@ router.register(r'users', UserViewSet, basename='user')
 router.register(r'register', UserRegistrationViewSet, basename='register')
 router.register(r'couple', CoupleViewSet, basename='couple')
 router.register(r'coupling-codes', CouplingCodeViewSet, basename='coupling-code')
+# Profile section endpoints
 
 urlpatterns = [
     path('', include(router.urls)),
+    # Authentication endpoints
+    path('auth/logout/', AuthLogoutView.as_view(), name='auth-logout'),
     # AI helper endpoints
     path('ai/plan-date/', PlanDateView.as_view(), name='ai-plan-date'),
     path('ai/pro-tip/', ProTipView.as_view(), name='ai-pro-tip'),

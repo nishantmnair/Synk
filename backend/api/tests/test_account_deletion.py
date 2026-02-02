@@ -2,13 +2,14 @@
 Tests for account deletion functionality
 """
 import pytest
-from django.contrib.auth.models import User
-from django.utils import timezone
-from rest_framework.test import APIRequestFactory, APIClient
+from django.contrib.auth import get_user_model
 from rest_framework import status
+from rest_framework.test import APIClient, APIRequestFactory
 
 from api.serializers import AccountDeletionSerializer
-from api.models import Task, Milestone, Activity, Suggestion, Collection, UserPreferences, Couple
+from api.models import Task, Milestone, UserPreferences
+
+User = get_user_model()
 
 
 @pytest.mark.django_db
@@ -227,4 +228,4 @@ class TestAccountDeletionEndpoint:
             'password': 'DeletePass123!'
         }, format='json')
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert 'No active account found' in response.data['detail']
+        assert 'invalid_credentials' in response.data.get('error_code', '') or 'No active account found' in response.data.get('message', '')

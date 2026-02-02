@@ -8,9 +8,6 @@ import RightAside from '../RightAside'
 const mockActivities = [
   { id: '1', user: 'Sam', action: 'added', item: 'Beach day', timestamp: 'Just now', avatar: 'https://example.com/1.png' },
 ]
-const mockMilestones = [
-  { id: '1', name: 'Trip', date: '2025-06-01', status: 'Upcoming', samExcitement: 80, alexExcitement: 90, icon: 'flight' },
-]
 
 describe('RightAside', () => {
   it('renders Our Activity header and toggle button', () => {

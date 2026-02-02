@@ -2,6 +2,38 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 import secrets
+import uuid
+
+
+class UserProfile(models.Model):
+    """Extended user profile with UUID and enhanced data persistence"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    id_uuid = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True, editable=False)
+    email_normalized = models.EmailField(unique=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    last_login_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name = 'User Profile'
+        verbose_name_plural = 'User Profiles'
+        ordering = ['-created_at']
+        # Database constraint to prevent duplicate emails
+        constraints = [
+            models.UniqueConstraint(
+                fields=['email_normalized'],
+                name='unique_normalized_email',
+                violation_error_message='A user with this email already exists.'
+            )
+        ]
+    
+    def __str__(self):
+        return f"Profile for {self.user.username}"
+    
+    def save(self, *args, **kwargs):
+        """Ensure email is normalized to lowercase"""
+        self.email_normalized = self.user.email.lower()
+        super().save(*args, **kwargs)
 
 
 class Task(models.Model):
@@ -182,3 +214,91 @@ class CouplingCode(models.Model):
     def is_valid(self):
         """Check if code is still valid (not used and not expired)"""
         return self.used_by is None and self.expires_at > timezone.now()
+
+
+class Employment(models.Model):
+    """User employment history"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='employment_history')
+    company = models.CharField(max_length=200)
+    position = models.CharField(max_length=200)
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)  # Null if currently employed
+    description = models.TextField(blank=True)
+    is_current = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-start_date']
+        verbose_name_plural = 'Employment History'
+    
+    def __str__(self):
+        return f"{self.position} at {self.company}"
+
+
+class Education(models.Model):
+    """User education history"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='education_history')
+    school = models.CharField(max_length=200)
+    degree = models.CharField(max_length=200)
+    field_of_study = models.CharField(max_length=200)
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)  # Null if still studying
+    description = models.TextField(blank=True)
+    is_current = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-start_date']
+        verbose_name_plural = 'Education History'
+    
+    def __str__(self):
+        return f"{self.degree} from {self.school}"
+
+
+class Skill(models.Model):
+    """User skills"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='skills')
+    name = models.CharField(max_length=100)
+    proficiency = models.CharField(
+        max_length=20,
+        choices=[
+            ('Beginner', 'Beginner'),
+            ('Intermediate', 'Intermediate'),
+            ('Advanced', 'Advanced'),
+            ('Expert', 'Expert'),
+        ],
+        default='Intermediate'
+    )
+    endorsements = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-endorsements', 'name']
+        unique_together = [['user', 'name']]
+    
+    def __str__(self):
+        return f"{self.name} ({self.proficiency})"
+
+
+class Project(models.Model):
+    """User projects"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='projects')
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    technologies = models.JSONField(default=list)  # List of tech used
+    link = models.URLField(blank=True)
+    image_url = models.URLField(blank=True)
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)  # Null if ongoing
+    is_featured = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-start_date']
+    
+    def __str__(self):
+        return self.title

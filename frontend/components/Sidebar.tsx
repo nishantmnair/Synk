@@ -115,8 +115,9 @@ const Sidebar: React.FC<SidebarProps> = ({ vibe, collections, onAddCollection, o
              </div>
              <form onSubmit={handleCreate} className="p-4 space-y-4">
                 <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-secondary uppercase">Name</label>
+                    <label htmlFor="collection-name" className="text-[10px] font-bold text-secondary uppercase">Name</label>
                     <input 
+                        id="collection-name"
                         autoFocus
                         className="w-full bg-white/5 border border-subtle rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
                         placeholder="e.g., Home Projects"

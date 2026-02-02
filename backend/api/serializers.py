@@ -1,8 +1,9 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from django.utils import timezone
-from datetime import timedelta
-from .models import Task, Milestone, Activity, Suggestion, Collection, UserPreferences, Couple, CouplingCode
+from .models import (
+    Task, Milestone, Activity, Suggestion, Collection, UserPreferences,
+    Couple, CouplingCode, UserProfile, Employment, Education, Skill, Project
+)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -10,6 +11,16 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name']
         read_only_fields = ['id']
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    id_uuid = serializers.UUIDField(read_only=True)
+    
+    class Meta:
+        model = UserProfile
+        fields = ['id_uuid', 'user', 'email_normalized', 'created_at', 'updated_at', 'last_login_at']
+        read_only_fields = ['id_uuid', 'created_at', 'updated_at', 'email_normalized']
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -59,13 +70,15 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         validated_data.pop('password_confirm')
         password = validated_data.pop('password')
         
-        # Convert empty strings to None for optional fields
-        if 'first_name' in validated_data and validated_data['first_name'] == '':
-            validated_data['first_name'] = None
-        if 'last_name' in validated_data and validated_data['last_name'] == '':
-            validated_data['last_name'] = None
+        # Note: Django User model doesn't allow null values for first_name and last_name,
+        # so we keep them as empty strings if not provided
         
-        # create_user already hashes the password, so we pass it directly
+        # Normalize email to lowercase
+        email = validated_data.get('email', '').lower()
+        validated_data['email'] = email
+        
+        # create_user already hashes the password with bcrypt/PBKDF2, so we pass it directly
+        # The post_save signal will automatically create the UserProfile
         # Validation methods above already check for duplicates, but keep try/except as safety net
         try:
             user = User.objects.create_user(password=password, **validated_data)
@@ -107,14 +120,13 @@ class CoupleSerializer(serializers.ModelSerializer):
     user1 = UserSerializer(read_only=True)
     user2 = UserSerializer(read_only=True)
     partner = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Couple
         fields = ['id', 'user1', 'user2', 'partner', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
-    
+
     def get_partner(self, obj):
-        """Return partner info based on current user"""
         request = self.context.get('request')
         if request and request.user:
             partner = obj.get_partner(request.user)
@@ -151,31 +163,7 @@ class MilestoneSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
-class CoupleSerializer(serializers.ModelSerializer):
-    user1 = UserSerializer(read_only=True)
-    user2 = UserSerializer(read_only=True)
-    partner = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = Couple
-        fields = ['id', 'user1', 'user2', 'partner', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
-    
-    def get_partner(self, obj):
-        """Return partner info based on current user"""
-        request = self.context.get('request')
-        if request and request.user:
-            partner = obj.get_partner(request.user)
-            if partner:
-                return UserSerializer(partner).data
-        return None
-
-
-class CouplingCodeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CouplingCode
-        fields = ['id', 'code', 'expires_at', 'created_at']
-        read_only_fields = ['id', 'code', 'expires_at', 'created_at']
+# (pruned duplicate CoupleSerializer/CouplingCodeSerializer definitions)
 
 
 class ActivitySerializer(serializers.ModelSerializer):
@@ -231,31 +219,7 @@ class SuggestionSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
-class CoupleSerializer(serializers.ModelSerializer):
-    user1 = UserSerializer(read_only=True)
-    user2 = UserSerializer(read_only=True)
-    partner = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = Couple
-        fields = ['id', 'user1', 'user2', 'partner', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
-    
-    def get_partner(self, obj):
-        """Return partner info based on current user"""
-        request = self.context.get('request')
-        if request and request.user:
-            partner = obj.get_partner(request.user)
-            if partner:
-                return UserSerializer(partner).data
-        return None
-
-
-class CouplingCodeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CouplingCode
-        fields = ['id', 'code', 'expires_at', 'created_at']
-        read_only_fields = ['id', 'code', 'expires_at', 'created_at']
+# (pruned duplicate CoupleSerializer/CouplingCodeSerializer definitions)
 
 
 class CollectionSerializer(serializers.ModelSerializer):
@@ -276,31 +240,7 @@ class CollectionSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
-class CoupleSerializer(serializers.ModelSerializer):
-    user1 = UserSerializer(read_only=True)
-    user2 = UserSerializer(read_only=True)
-    partner = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = Couple
-        fields = ['id', 'user1', 'user2', 'partner', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
-    
-    def get_partner(self, obj):
-        """Return partner info based on current user"""
-        request = self.context.get('request')
-        if request and request.user:
-            partner = obj.get_partner(request.user)
-            if partner:
-                return UserSerializer(partner).data
-        return None
-
-
-class CouplingCodeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CouplingCode
-        fields = ['id', 'code', 'expires_at', 'created_at']
-        read_only_fields = ['id', 'code', 'expires_at', 'created_at']
+# (pruned duplicate CoupleSerializer/CouplingCodeSerializer definitions)
 
 
 class UserPreferencesSerializer(serializers.ModelSerializer):
@@ -353,3 +293,50 @@ class AccountDeletionSerializer(serializers.Serializer):
         if not user.check_password(value):
             raise serializers.ValidationError('Password is incorrect.')
         return value
+
+
+class EmploymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Employment
+        fields = ['id', 'company', 'position', 'start_date', 'end_date', 'description', 'is_current', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class EducationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Education
+        fields = ['id', 'school', 'degree', 'field_of_study', 'start_date', 'end_date', 'description', 'is_current', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class SkillSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Skill
+        fields = ['id', 'name', 'proficiency', 'endorsements', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class ProjectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Project
+        fields = ['id', 'title', 'description', 'technologies', 'link', 'image_url', 'start_date', 'end_date', 'is_featured', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class UserDetailSerializer(serializers.ModelSerializer):
+    """Detailed user profile serializer with all sections"""
+    profile = UserProfileSerializer(read_only=True)
+    preferences = UserPreferencesSerializer(read_only=True)
+    employment_history = EmploymentSerializer(many=True, read_only=True)
+    education_history = EducationSerializer(many=True, read_only=True)
+    skills = SkillSerializer(many=True, read_only=True)
+    projects = ProjectSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'profile', 'preferences', 'employment_history', 'education_history',
+            'skills', 'projects'
+        ]
+        read_only_fields = ['id', 'username']

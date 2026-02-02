@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Milestone } from '../types';
 
 interface MilestonesViewProps {
@@ -7,7 +7,7 @@ interface MilestonesViewProps {
 }
 
 const MilestonesView: React.FC<MilestonesViewProps> = ({ milestones }) => {
-  const [proTip, setProTip] = useState("Dreaming together is the first step. Keep working towards your shared goals!");
+  const [proTip] = useState("Dreaming together is the first step. Keep working towards your shared goals!");
 
   // Calculate actual progress from milestones
   const completedMilestones = milestones.filter(m => m.status === 'Completed').length;

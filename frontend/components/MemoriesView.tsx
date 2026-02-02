@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Milestone } from '../types';
 
 interface Memory {
   id: string;

@@ -10,7 +10,7 @@ interface CouplingOnboardingProps {
   showToast?: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
-const CouplingOnboarding: React.FC<CouplingOnboardingProps> = ({ currentUser, onComplete, showToast }) => {
+const CouplingOnboarding: React.FC<CouplingOnboardingProps> = ({ onComplete, showToast }) => {
   const [step, setStep] = useState<'choose' | 'generate' | 'join'>('choose');
   const [couplingCode, setCouplingCode] = useState<string | null>(null);
   const [codeExpiresAt, setCodeExpiresAt] = useState<string | null>(null);
@@ -162,10 +162,11 @@ const CouplingOnboarding: React.FC<CouplingOnboardingProps> = ({ currentUser, on
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-secondary mb-3 text-center">
+              <label htmlFor="join-code" className="block text-sm font-medium text-secondary mb-3 text-center">
                 Enter Coupling Code
               </label>
               <input
+                id="join-code"
                 type="text"
                 value={joinCode}
                 onChange={(e) => {

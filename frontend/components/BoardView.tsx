@@ -260,8 +260,9 @@ const BoardView: React.FC<BoardViewProps> = ({ tasks, setTasks, onAction, onAddT
             
             <form onSubmit={handleAddTask} className="p-6 space-y-5">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-secondary">What should we do?</label>
+                <label htmlFor="plan-title" className="text-[10px] font-bold uppercase tracking-widest text-secondary">What should we do?</label>
                 <input 
+                  id="plan-title"
                   autoFocus
                   required
                   type="text"
@@ -274,8 +275,9 @@ const BoardView: React.FC<BoardViewProps> = ({ tasks, setTasks, onAction, onAddT
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-secondary">Category</label>
+                  <label htmlFor="plan-category" className="text-[10px] font-bold uppercase tracking-widest text-secondary">Category</label>
                   <input 
+                    id="plan-category"
                     type="text"
                     placeholder="Adventure, Travel..."
                     className="w-full bg-white/5 border border-subtle rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-accent transition-all placeholder:text-secondary/40"
@@ -284,8 +286,9 @@ const BoardView: React.FC<BoardViewProps> = ({ tasks, setTasks, onAction, onAddT
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-secondary">Priority</label>
+                  <label htmlFor="plan-priority" className="text-[10px] font-bold uppercase tracking-widest text-secondary">Priority</label>
                   <select 
+                    id="plan-priority"
                     className="w-full bg-sidebar border border-subtle rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-accent transition-all appearance-none cursor-pointer"
                     value={priority}
                     onChange={(e) => setPriority(e.target.value as any)}
@@ -298,8 +301,9 @@ const BoardView: React.FC<BoardViewProps> = ({ tasks, setTasks, onAction, onAddT
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-secondary">Description (Optional)</label>
+                <label htmlFor="plan-description" className="text-[10px] font-bold uppercase tracking-widest text-secondary">Description (Optional)</label>
                 <textarea 
+                  id="plan-description"
                   placeholder="Add more details..."
                   rows={3}
                   className="w-full bg-white/5 border border-subtle rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-accent transition-all placeholder:text-secondary/40 resize-none"
@@ -309,8 +313,9 @@ const BoardView: React.FC<BoardViewProps> = ({ tasks, setTasks, onAction, onAddT
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-secondary">Time (Optional)</label>
+                <label htmlFor="plan-time" className="text-[10px] font-bold uppercase tracking-widest text-secondary">Time (Optional)</label>
                 <input 
+                  id="plan-time"
                   type="text"
                   placeholder="e.g., 8:00 PM"
                   className="w-full bg-white/5 border border-subtle rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-accent transition-all placeholder:text-secondary/40"

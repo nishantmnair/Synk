@@ -6,6 +6,7 @@ channels==4.0.0
 channels-redis==4.1.0
 python-dotenv==1.0.0
 daphne==4.1.0
+psycopg2-binary==2.9.9
 pytest==7.4.3
 pytest-django==4.7.0
 pytest-cov==4.1.0

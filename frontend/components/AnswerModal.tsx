@@ -47,8 +47,9 @@ const AnswerModal: React.FC<AnswerModalProps> = ({ prompt, isOpen, onClose, onSu
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-widest text-secondary">Your Answer</label>
+            <label htmlFor="answer" className="text-xs font-bold uppercase tracking-widest text-secondary">Your Answer</label>
             <textarea
+              id="answer"
               autoFocus
               required
               value={answer}

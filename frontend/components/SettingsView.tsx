@@ -12,7 +12,7 @@ interface SettingsViewProps {
   onLogout?: () => void;
 }
 
-const SettingsView: React.FC<SettingsViewProps> = ({ currentUser, showToast, showConfirm, onLogout }) => {
+const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onLogout }) => {
   const [anniversary, setAnniversary] = useState(() => {
     return localStorage.getItem('synk_anniversary') || '2024-01-15';
   });
@@ -23,6 +23,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser, showToast, sho
     return localStorage.getItem('synk_notifications') !== 'false';
   });
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'unsaved' | 'saving'>('saved');
   
   // Coupling state
   const [isCoupled, setIsCoupled] = useState(false);
@@ -32,6 +33,45 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser, showToast, sho
   const [joinCode, setJoinCode] = useState('');
   const [isLoadingCode, setIsLoadingCode] = useState(false);
   const [couplingError, setCouplingError] = useState('');
+
+  // Load couple status on mount
+  useEffect(() => {
+    loadCoupleStatus();
+    loadCouplingCodes();
+  }, []);
+
+  // Auto-save anniversary changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      localStorage.setItem('synk_anniversary', anniversary);
+      setSaveStatus('saved');
+    }, 500);
+
+    setSaveStatus('unsaved');
+    return () => clearTimeout(timer);
+  }, [anniversary]);
+
+  // Auto-save isPrivate changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      localStorage.setItem('synk_is_private', isPrivate.toString());
+      setSaveStatus('saved');
+    }, 500);
+
+    setSaveStatus('unsaved');
+    return () => clearTimeout(timer);
+  }, [isPrivate]);
+
+  // Auto-save notifications changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      localStorage.setItem('synk_notifications', notifications.toString());
+      setSaveStatus('saved');
+    }, 500);
+
+    setSaveStatus('unsaved');
+    return () => clearTimeout(timer);
+  }, [notifications]);
 
   // Load couple status on mount
   useEffect(() => {
@@ -350,17 +390,14 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser, showToast, sho
         </section>
 
         <div className="text-center pt-8">
-           <button 
-             onClick={() => {
-               localStorage.setItem('synk_anniversary', anniversary);
-               localStorage.setItem('synk_is_private', isPrivate.toString());
-               localStorage.setItem('synk_notifications', notifications.toString());
-               showToast?.('Settings saved successfully!', 'success');
-             }}
-             className="bg-accent text-white px-8 py-2.5 rounded-full text-xs font-bold hover:scale-105 active:scale-95 transition-all shadow-lg shadow-accent/20"
-           >
-             Save All Changes
-           </button>
+           <div className="flex items-center justify-center gap-2 text-xs">
+             <span className={`w-2 h-2 rounded-full transition-colors ${
+               saveStatus === 'saved' ? 'bg-green-400' : saveStatus === 'saving' ? 'bg-yellow-400 animate-pulse' : 'bg-gray-400'
+             }`}></span>
+             <span className="text-secondary">
+               {saveStatus === 'saved' ? 'All changes saved automatically' : saveStatus === 'saving' ? 'Saving...' : 'Unsaved changes'}
+             </span>
+           </div>
         </div>
       </div>
 

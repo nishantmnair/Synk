@@ -2,13 +2,11 @@
 Tests for URL routing
 """
 import pytest
-from django.urls import reverse, resolve
-from rest_framework.test import APIClient
+from django.urls import resolve, reverse
 from api.views import (
     TaskViewSet, MilestoneViewSet, ActivityViewSet,
-    SuggestionViewSet, CollectionViewSet, UserPreferencesViewSet,
-    UserViewSet, UserRegistrationViewSet, CoupleViewSet, CouplingCodeViewSet,
-    PlanDateView, ProTipView, DailyPromptView,
+    UserRegistrationViewSet, PlanDateView, ProTipView, DailyPromptView,
+    AuthLogoutView, UserViewSet,
 )
 
 
@@ -95,6 +93,18 @@ class TestURLRouting:
         resolver = resolve(url)
         assert resolver.func.view_class == DailyPromptView
 
+    def test_auth_logout_url(self):
+        """Test auth logout URL resolves correctly"""
+        url = reverse('auth-logout')
+        assert url == '/api/auth/logout/'
+        resolver = resolve(url)
+        assert resolver.func.view_class == AuthLogoutView
+
+    def test_users_me_url(self):
+        """Test users me action URL resolves correctly"""
+        url = reverse('user-me')
+        assert url == '/api/users/me/'
+
 
 @pytest.mark.django_db
 class TestAPIEndpoints:
@@ -108,5 +118,21 @@ class TestAPIEndpoints:
     def test_register_endpoint_allows_any(self, client):
         """Test register endpoint allows unauthenticated access"""
         response = client.post('/api/register/', {})
+        # Should fail validation but not 401
+        assert response.status_code != 401
+    
+    def test_users_me_endpoint_requires_auth(self, client):
+        """Test /api/users/me/ requires authentication"""
+        response = client.get('/api/users/me/')
+        assert response.status_code == 401
+    
+    def test_auth_logout_endpoint_requires_auth(self, client):
+        """Test /api/auth/logout/ requires authentication"""
+        response = client.post('/api/auth/logout/')
+        assert response.status_code == 401
+    
+    def test_token_endpoint_allows_any(self, client):
+        """Test /api/token/ allows unauthenticated access"""
+        response = client.post('/api/token/', {})
         # Should fail validation but not 401
         assert response.status_code != 401

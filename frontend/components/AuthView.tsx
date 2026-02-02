@@ -116,8 +116,9 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup }) => {
             {isSignup && (
               <>
                 <div>
-                  <label className="block text-sm text-secondary mb-1">Email *</label>
+                  <label htmlFor="signup-email" className="block text-sm text-secondary mb-1">Email *</label>
                   <input
+                    id="signup-email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -128,8 +129,9 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup }) => {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm text-secondary mb-1">First name</label>
+                    <label htmlFor="first-name" className="block text-sm text-secondary mb-1">First name</label>
                     <input
+                      id="first-name"
                       type="text"
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
@@ -138,8 +140,9 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup }) => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-secondary mb-1">Last name</label>
+                    <label htmlFor="last-name" className="block text-sm text-secondary mb-1">Last name</label>
                     <input
+                      id="last-name"
                       type="text"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
@@ -153,8 +156,9 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup }) => {
 
             {!isSignup && (
               <div>
-                <label className="block text-sm text-secondary mb-1">Email or username *</label>
+                <label htmlFor="login-email" className="block text-sm text-secondary mb-1">Email or username *</label>
                 <input
+                  id="login-email"
                   type="text"
                   inputMode="email"
                   autoComplete="username"
@@ -168,8 +172,9 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup }) => {
             )}
 
             <div>
-              <label className="block text-sm text-secondary mb-1">Password *</label>
+              <label htmlFor="password" className="block text-sm text-secondary mb-1">Password *</label>
               <input
+                id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -203,8 +208,9 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup }) => {
             {isSignup && (
               <>
                 <div>
-                  <label className="block text-sm text-secondary mb-1">Confirm password *</label>
+                  <label htmlFor="confirm-password" className="block text-sm text-secondary mb-1">Confirm password *</label>
                   <input
+                    id="confirm-password"
                     type="password"
                     value={passwordConfirm}
                     onChange={(e) => setPasswordConfirm(e.target.value)}
@@ -220,8 +226,9 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup }) => {
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm text-secondary mb-1">Partner code (optional)</label>
+                  <label htmlFor="coupling-code" className="block text-sm text-secondary mb-1">Partner code (optional)</label>
                   <input
+                    id="coupling-code"
                     type="text"
                     value={couplingCode}
                     onChange={(e) => setCouplingCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}

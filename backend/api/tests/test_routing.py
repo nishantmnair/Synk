@@ -1,7 +1,6 @@
 """
 Tests for API WebSocket routing
 """
-import pytest
 from api.routing import websocket_urlpatterns
 
 

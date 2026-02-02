@@ -2,11 +2,8 @@
 Tests for API WebSocket consumers
 """
 import pytest
-import json
-from channels.testing import WebsocketCommunicator
 from channels.layers import get_channel_layer
-from channels.db import database_sync_to_async
-from django.contrib.auth.models import User
+from channels.testing import WebsocketCommunicator
 from synk_backend.asgi import application
 
 

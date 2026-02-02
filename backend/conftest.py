@@ -3,7 +3,6 @@ Pytest configuration and shared fixtures for Django tests
 """
 import pytest
 from django.contrib.auth.models import User
-from django.test import Client
 from rest_framework.test import APIClient
 from api.models import (
     Task, Milestone, Activity, Suggestion, Collection, 

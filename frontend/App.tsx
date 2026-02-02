@@ -254,6 +254,46 @@ const App: React.FC = () => {
     };
   }, []);
 
+  // Auto-refresh user profile every 30 seconds to catch updates from profile page
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const refreshUserProfile = async () => {
+      try {
+        const user = await djangoAuthService.getCurrentUser();
+        if (user) {
+          setCurrentUser(user);
+        }
+      } catch (error) {
+        // Silently fail - don't interrupt user experience
+        console.debug('Auto-refresh user profile failed:', error);
+      }
+    };
+
+    const interval = setInterval(refreshUserProfile, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
+  }, [isLoggedIn]);
+
+  // Auto-refresh activities every 20 seconds to stay up-to-date
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const refreshActivities = async () => {
+      try {
+        const activitiesData = await activitiesApi.getAll(50);
+        if (activitiesData && Array.isArray(activitiesData)) {
+          setActivities(activitiesData.map(transformActivity));
+        }
+      } catch (error) {
+        // Silently fail - don't interrupt user experience
+        console.debug('Auto-refresh activities failed:', error);
+      }
+    };
+
+    const interval = setInterval(refreshActivities, 20000); // Refresh every 20 seconds
+    return () => clearInterval(interval);
+  }, [isLoggedIn]);
+
   const handleLogin = async (email: string, password: string): Promise<void> => {
     try {
       const user = await djangoAuthService.login(email, password);

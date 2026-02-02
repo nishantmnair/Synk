@@ -52,7 +52,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ currentUser, activities, mile
 
         {/* Recent Contributions */}
         <div className="space-y-4">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-secondary px-2">Your Recent Activity</h3>
+          <div className="flex items-center justify-between px-2">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-secondary">Your Recent Activity</h3>
+            <span className="text-[10px] text-secondary/50">Auto-updating</span>
+          </div>
           <div className="bg-card border border-subtle rounded-2xl overflow-hidden">
             {userActivities.length > 0 ? (
               <div className="divide-y divide-subtle">
@@ -78,6 +81,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ currentUser, activities, mile
       </div>
     </div>
   );
+
 };
 
 export default ProfileView;

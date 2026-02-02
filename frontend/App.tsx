@@ -15,6 +15,8 @@ import MemoriesView from './components/MemoriesView';
 import Sidebar from './components/Sidebar';
 import RightAside from './components/RightAside';
 import Header from './components/Header';
+import Toast, { ToastType } from './components/Toast';
+import ConfirmDialog, { ConfirmDialogProps } from './components/ConfirmDialog';
 import { djangoAuthService, User } from './services/djangoAuth';
 import { djangoRealtimeService } from './services/djangoRealtime';
 import { tasksApi, milestonesApi, activitiesApi, suggestionsApi, collectionsApi, preferencesApi } from './services/djangoApi';
@@ -26,6 +28,10 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showCouplingOnboarding, setShowCouplingOnboarding] = useState(false);
+  
+  // Notification states
+  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<Omit<ConfirmDialogProps, 'onConfirm' | 'onCancel'> & { onConfirm: () => void } | null>(null);
   
   // Initialize with empty arrays - data will be loaded from API after login
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -40,6 +46,15 @@ const App: React.FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>(() =>
     (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'light') ? 'light' : 'dark'
   );
+
+  // Notification helpers
+  const showToast = (message: string, type: ToastType = 'success') => {
+    setToast({ message, type });
+  };
+
+  const showConfirm = (config: Omit<ConfirmDialogProps, 'onConfirm' | 'onCancel'> & { onConfirm: () => void }) => {
+    setConfirmDialog(config);
+  };
 
   // Transform Django snake_case to frontend camelCase
   const transformTask = (task: any): Task => ({
@@ -279,8 +294,10 @@ const App: React.FC = () => {
       setCurrentUser(null);
       setIsLoggedIn(false);
       djangoRealtimeService.disconnect();
+      showToast('Successfully logged out.', 'success');
     } catch (error) {
       console.error('Logout failed:', error);
+      showToast('Logout failed. Please try again.', 'error');
     }
   };
 
@@ -458,6 +475,7 @@ const App: React.FC = () => {
         <CouplingOnboarding
           currentUser={currentUser}
           onComplete={() => setShowCouplingOnboarding(false)}
+          showToast={showToast}
         />
       )}
       <div className="h-screen flex overflow-hidden bg-main">
@@ -468,7 +486,8 @@ const App: React.FC = () => {
               vibe={vibe} 
               collections={collections} 
               onAddCollection={addCollection} 
-              onToggle={toggleLeftSidebar} 
+              onToggle={toggleLeftSidebar}
+              suggestionsCount={suggestions.length}
             />
           </div>
         </div>
@@ -477,6 +496,7 @@ const App: React.FC = () => {
           <Header 
             currentUser={currentUser}
             vibe={vibe}
+            onVibeChange={(v) => setVibe(v)}
             onToggleRightSidebar={toggleRightSidebar} 
             isRightSidebarOpen={isRightSidebarOpen} 
             onToggleLeftSidebar={toggleLeftSidebar}
@@ -487,18 +507,19 @@ const App: React.FC = () => {
             theme={theme}
             onToggleTheme={toggleTheme}
             onSaveDateIdea={addSuggestionFromIdea}
+            showConfirm={showConfirm}
           />
           
           <main className="flex-1 overflow-hidden relative">
             <Routes>
               <Route path="/" element={<TodayView tasks={tasks} vibe={vibe} onShareAnswer={() => addActivity('answered', "today's connection prompt")} />} />
               <Route path="/today" element={<TodayView tasks={tasks.filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.category.toLowerCase().includes(searchQuery.toLowerCase()))} vibe={vibe} onShareAnswer={() => addActivity('answered', "today's connection prompt")} />} />
-              <Route path="/board" element={<BoardView tasks={tasks.filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.category.toLowerCase().includes(searchQuery.toLowerCase()))} setTasks={setTasks} onAction={addActivity} onAddTask={addTask} onUpdateTask={updateTask} onDeleteTask={deleteTask} />} />
+              <Route path="/board" element={<BoardView tasks={tasks.filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.category.toLowerCase().includes(searchQuery.toLowerCase()))} setTasks={setTasks} onAction={addActivity} onAddTask={addTask} onUpdateTask={updateTask} onDeleteTask={deleteTask} showConfirm={showConfirm} />} />
               <Route path="/milestones" element={<MilestonesView milestones={milestones} />} />
-              <Route path="/inbox" element={<InboxView suggestions={suggestions} onAccept={addTask} onSave={() => {}} onDecline={(id) => setSuggestions(prev => prev.filter(s => s.id !== id))} />} />
+              <Route path="/inbox" element={<InboxView suggestions={suggestions} onAccept={addTask} onSave={() => {}} onDecline={(id) => setSuggestions(prev => prev.filter(s => s.id !== id))} showToast={showToast} showConfirm={showConfirm} />} />
               <Route path="/collection/:collectionId" element={<CollectionView tasks={tasks} collections={collections} onAddTask={addTask} />} />
               <Route path="/profile" element={<ProfileView currentUser={currentUser} activities={activities} milestonesCount={milestones.length} />} />
-              <Route path="/settings" element={<SettingsView currentUser={currentUser} />} />
+              <Route path="/settings" element={<SettingsView currentUser={currentUser} showToast={showToast} showConfirm={showConfirm} onLogout={handleLogout} />} />
               <Route path="/memories" element={<MemoriesView />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
@@ -512,6 +533,25 @@ const App: React.FC = () => {
            </div>
         </div>
       </div>
+
+      {/* Notifications */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+      {confirmDialog && (
+        <ConfirmDialog
+          {...confirmDialog}
+          onConfirm={() => {
+            confirmDialog.onConfirm();
+            setConfirmDialog(null);
+          }}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
     </Router>
   );
 };

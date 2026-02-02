@@ -75,19 +75,20 @@ const CollectionView: React.FC<CollectionViewProps> = ({ tasks, collections, onA
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Toggle liked state - would need to pass updateTask function
-                        alert('Liked! ❤️');
+                        // Toggle liked state - visual feedback only
                       }}
                       className="text-sm hover:scale-110 transition-transform"
+                      title="Like"
                     >
                       ❤️
                     </button>
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
-                        alert('Fired! 🔥');
+                        // Toggle fired state - visual feedback only
                       }}
                       className="text-sm hover:scale-110 transition-transform"
+                      title="Fire"
                     >
                       🔥
                     </button>

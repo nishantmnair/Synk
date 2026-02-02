@@ -7,9 +7,10 @@ import { getDisplayName } from '../utils/userDisplay';
 interface CouplingOnboardingProps {
   currentUser: User | null;
   onComplete: () => void;
+  showToast?: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
-const CouplingOnboarding: React.FC<CouplingOnboardingProps> = ({ currentUser, onComplete }) => {
+const CouplingOnboarding: React.FC<CouplingOnboardingProps> = ({ currentUser, onComplete, showToast }) => {
   const [step, setStep] = useState<'choose' | 'generate' | 'join'>('choose');
   const [couplingCode, setCouplingCode] = useState<string | null>(null);
   const [codeExpiresAt, setCodeExpiresAt] = useState<string | null>(null);
@@ -119,7 +120,7 @@ const CouplingOnboarding: React.FC<CouplingOnboardingProps> = ({ currentUser, on
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(couplingCode);
-                  alert('Code copied to clipboard!');
+                  showToast?.('Code copied to clipboard!', 'success');
                 }}
                 className="px-4 py-2 bg-accent/10 border border-accent/20 text-accent rounded-lg text-xs font-semibold hover:bg-accent/20 transition-colors"
               >

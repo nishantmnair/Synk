@@ -8,9 +8,10 @@ interface SidebarProps {
   collections: Collection[];
   onAddCollection: (name: string, icon: string) => void;
   onToggle: () => void;
+  suggestionsCount?: number;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ vibe, collections, onAddCollection, onToggle }) => {
+const Sidebar: React.FC<SidebarProps> = ({ vibe, collections, onAddCollection, onToggle, suggestionsCount = 0 }) => {
   const location = useLocation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newColName, setNewColName] = useState('');
@@ -73,7 +74,7 @@ const Sidebar: React.FC<SidebarProps> = ({ vibe, collections, onAddCollection, o
       </div>
 
       <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto custom-scrollbar">
-        <NavLink to="/inbox" icon="inbox" label="Inbox" badge={3} />
+        <NavLink to="/inbox" icon="inbox" label="Inbox" badge={suggestionsCount > 0 ? suggestionsCount : undefined} />
         <NavLink to="/today" icon="calendar_today" label="Today" />
         <NavLink to="/board" icon="grid_view" label="Board" />
         <NavLink to="/memories" icon="photo_library" label="Memories" />

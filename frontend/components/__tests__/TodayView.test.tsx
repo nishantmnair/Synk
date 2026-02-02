@@ -5,11 +5,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import TodayView from '../TodayView'
-import * as geminiService from '../../services/geminiService'
-
-vi.mock('../../services/geminiService', () => ({
-  getDailyConnectionPrompt: vi.fn(),
-}))
 
 const defaultTasks: any[] = []
 
@@ -23,7 +18,6 @@ const renderTodayView = (props = {}) =>
 describe('TodayView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(geminiService.getDailyConnectionPrompt).mockResolvedValue('What made you smile today?')
   })
 
   it('renders date and greeting', async () => {
@@ -36,10 +30,7 @@ describe('TodayView', () => {
 
   it('shows loading then daily connection prompt', async () => {
     renderTodayView()
-    expect(screen.getByText(/Loading your connection prompt/i)).toBeInTheDocument()
-    await waitFor(() => {
-      expect(screen.getByText(/What made you smile today\?/)).toBeInTheDocument()
-    })
+    expect(screen.getByText(/Take a moment to share/i)).toBeInTheDocument()
   })
 
   it('Share Answer button calls onShareAnswer and becomes Shared', async () => {

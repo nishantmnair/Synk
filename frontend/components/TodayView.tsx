@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Task, TaskStatus } from '../types';
-import { getDailyConnectionPrompt } from '../services/geminiService';
+import AnswerModal from './AnswerModal';
 
 function timeBasedGreeting(): string {
   const h = new Date().getHours();
@@ -20,14 +20,14 @@ const TodayView: React.FC<TodayViewProps> = ({ tasks, vibe, onShareAnswer }) => 
   const [prompt, setPrompt] = useState<string>('Loading your connection prompt...');
   const [shared, setShared] = useState(false);
   const [loadingSkip, setLoadingSkip] = useState(false);
+  const [answerModalOpen, setAnswerModalOpen] = useState(false);
 
   const todayTasks = tasks.filter(t => t.status === TaskStatus.UPCOMING);
   const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', month: 'long', day: 'numeric' };
   const todayDate = new Date().toLocaleDateString('en-US', dateOptions);
 
   const fetchPrompt = async () => {
-    const p = await getDailyConnectionPrompt();
-    setPrompt(p || "What is one thing you're grateful for about us today?");
+    setPrompt('Take a moment to share something meaningful with your partner.');
   };
 
   useEffect(() => {
@@ -35,14 +35,20 @@ const TodayView: React.FC<TodayViewProps> = ({ tasks, vibe, onShareAnswer }) => 
   }, []);
 
   const handleShare = () => {
-    if (shared) return;
+    setAnswerModalOpen(true);
+  };
+
+  const handleSubmitAnswer = (answer: string) => {
     onShareAnswer?.();
+    // Here you could save the answer to the backend if needed
+    console.log('Shared answer:', answer);
     setShared(true);
   };
 
   const handleSkip = async () => {
     if (loadingSkip) return;
     setLoadingSkip(true);
+    setShared(false);
     await fetchPrompt();
     setLoadingSkip(false);
   };
@@ -139,16 +145,14 @@ const TodayView: React.FC<TodayViewProps> = ({ tasks, vibe, onShareAnswer }) => 
             </div>
           </div>
         </div>
-
-        <div className="pt-4 flex justify-center">
-          <div className="flex items-center gap-4 px-6 py-3 bg-white/[0.02] border border-subtle rounded-full">
-            <span className="text-lg">💡</span>
-            <p className="text-xs text-secondary leading-relaxed">
-              <span className="text-primary font-medium">Pro-tip:</span> Today is a great day to send a random &ldquo;I love you&rdquo; text.
-            </p>
-          </div>
-        </div>
       </div>
+
+      <AnswerModal
+        prompt={prompt}
+        isOpen={answerModalOpen}
+        onClose={() => setAnswerModalOpen(false)}
+        onSubmit={handleSubmitAnswer}
+      />
     </div>
   );
 };

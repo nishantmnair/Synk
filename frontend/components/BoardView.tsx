@@ -9,9 +9,10 @@ interface BoardViewProps {
   onAddTask: (task: Task) => void;
   onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
   onDeleteTask: (taskId: string) => void;
+  showConfirm?: (config: any) => void;
 }
 
-const BoardView: React.FC<BoardViewProps> = ({ tasks, setTasks, onAction, onAddTask, onUpdateTask, onDeleteTask }) => {
+const BoardView: React.FC<BoardViewProps> = ({ tasks, setTasks, onAction, onAddTask, onUpdateTask, onDeleteTask, showConfirm }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalStatus, setModalStatus] = useState<TaskStatus>(TaskStatus.BACKLOG);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -193,8 +194,18 @@ const BoardView: React.FC<BoardViewProps> = ({ tasks, setTasks, onAction, onAddT
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (window.confirm('Are you sure you want to delete this task?')) {
-                          onDeleteTask(task.id);
+                        if (showConfirm) {
+                          showConfirm({
+                            title: 'Delete Task',
+                            message: 'Are you sure you want to delete this task?',
+                            confirmText: 'Delete',
+                            confirmVariant: 'danger' as const,
+                            onConfirm: () => onDeleteTask(task.id)
+                          });
+                        } else {
+                          if (window.confirm('Are you sure you want to delete this task?')) {
+                            onDeleteTask(task.id);
+                          }
                         }
                       }}
                       className="opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-300"

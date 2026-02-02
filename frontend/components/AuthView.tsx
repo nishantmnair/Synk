@@ -44,6 +44,18 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup }) => {
         setError('Password must be at least 8 characters long');
         return;
       }
+      if (!/[A-Z]/.test(password)) {
+        setError('Password must contain at least one uppercase letter');
+        return;
+      }
+      if (!/[a-z]/.test(password)) {
+        setError('Password must contain at least one lowercase letter');
+        return;
+      }
+      if (!/[0-9]/.test(password)) {
+        setError('Password must contain at least one number');
+        return;
+      }
       if (password !== passwordConfirm) {
         setError('Passwords do not match');
         return;
@@ -166,6 +178,26 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup }) => {
                 className="w-full bg-white/5 border border-subtle rounded-lg px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent"
                 placeholder={isSignup ? 'At least 8 characters' : 'Password'}
               />
+              {isSignup && password && (
+                <div className="mt-3 space-y-1.5 text-xs">
+                  <div className={`flex items-center gap-2 ${password.length >= 8 ? 'text-green-400' : 'text-secondary'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${password.length >= 8 ? 'bg-green-400' : 'bg-white/10'}`}></span>
+                    At least 8 characters
+                  </div>
+                  <div className={`flex items-center gap-2 ${/[A-Z]/.test(password) ? 'text-green-400' : 'text-secondary'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${/[A-Z]/.test(password) ? 'bg-green-400' : 'bg-white/10'}`}></span>
+                    One uppercase letter
+                  </div>
+                  <div className={`flex items-center gap-2 ${/[a-z]/.test(password) ? 'text-green-400' : 'text-secondary'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${/[a-z]/.test(password) ? 'bg-green-400' : 'bg-white/10'}`}></span>
+                    One lowercase letter
+                  </div>
+                  <div className={`flex items-center gap-2 ${/[0-9]/.test(password) ? 'text-green-400' : 'text-secondary'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${/[0-9]/.test(password) ? 'bg-green-400' : 'bg-white/10'}`}></span>
+                    One number
+                  </div>
+                </div>
+              )}
             </div>
 
             {isSignup && (

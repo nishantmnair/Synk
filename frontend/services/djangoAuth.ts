@@ -200,7 +200,7 @@ class DjangoAuthService {
     }
   }
 
-  private async refreshAccessToken(): Promise<void> {
+  async refreshAccessToken(): Promise<void> {
     const storedRefresh = localStorage.getItem('synk_refresh_token');
     if (!storedRefresh) {
       return;

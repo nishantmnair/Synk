@@ -44,6 +44,18 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('A user with this email already exists.')
         return value.strip().lower()
     
+    def validate_password(self, value):
+        """Validate password strength"""
+        if len(value) < 8:
+            raise serializers.ValidationError('Password must be at least 8 characters long.')
+        if not any(c.isupper() for c in value):
+            raise serializers.ValidationError('Password must contain at least one uppercase letter.')
+        if not any(c.islower() for c in value):
+            raise serializers.ValidationError('Password must contain at least one lowercase letter.')
+        if not any(c.isdigit() for c in value):
+            raise serializers.ValidationError('Password must contain at least one number.')
+        return value
+    
     def validate(self, attrs):
         if attrs['password'] != attrs['password_confirm']:
             raise serializers.ValidationError({'password': 'Passwords do not match.'})
@@ -335,3 +347,15 @@ class CouplingCodeSerializer(serializers.ModelSerializer):
         model = CouplingCode
         fields = ['id', 'code', 'expires_at', 'created_at']
         read_only_fields = ['id', 'code', 'expires_at', 'created_at']
+
+
+class AccountDeletionSerializer(serializers.Serializer):
+    """Serializer for account deletion request"""
+    password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    
+    def validate_password(self, value):
+        """Verify password is correct"""
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError('Password is incorrect.')
+        return value

@@ -4,9 +4,9 @@ import { djangoAuthService } from './djangoAuth';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const token = await djangoAuthService.getAccessToken();
+  let token = await djangoAuthService.getAccessToken();
   
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  let response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -14,6 +14,26 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
       ...options?.headers,
     },
   });
+
+  // If 401, try to refresh token and retry once
+  if (response.status === 401 && token) {
+    try {
+      await djangoAuthService.refreshAccessToken();
+      token = await djangoAuthService.getAccessToken();
+      if (token) {
+        response = await fetch(`${API_BASE_URL}${endpoint}`, {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            ...options?.headers,
+          },
+        });
+      }
+    } catch (err) {
+      console.error('[API] Token refresh failed:', err);
+    }
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Request failed' })) as { detail?: string; error?: string };
@@ -120,22 +140,10 @@ export const couplingCodeApi = {
     body: JSON.stringify({ code }),
   }),
 };
-
-// AI API (Gemini key on server only; no client key needed)
-export const aiApi = {
-  planDate: (vibe: string, hint?: number) =>
-    request<{ title: string; description: string; location: string; category?: string }>(
-      '/api/ai/plan-date/',
-      { method: 'POST', body: JSON.stringify({ vibe, ...(hint != null && { hint }) }) }
-    ),
-  proTip: (milestones: { name: string; status: string }[]) =>
-    request<{ tip: string }>('/api/ai/pro-tip/', {
-      method: 'POST',
-      body: JSON.stringify({ milestones }),
-    }),
-  dailyPrompt: () =>
-    request<{ prompt: string }>('/api/ai/daily-prompt/', {
-      method: 'POST',
-      body: JSON.stringify({}),
-    }),
+// Account API
+export const accountApi = {
+  deleteAccount: (password: string) => request('/api/users/delete_account/', {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+  }),
 };

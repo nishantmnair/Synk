@@ -7,15 +7,6 @@ import { BrowserRouter } from 'react-router-dom'
 import Header from '../Header'
 import { User } from '../../services/djangoAuth'
 
-vi.mock('../../services/geminiService', () => ({
-  generateDateIdea: vi.fn().mockResolvedValue({
-    title: 'Test Idea',
-    description: 'Test description',
-    location: 'Test location',
-    category: 'Date idea',
-  }),
-}))
-
 const mockUser: User = {
   id: 1,
   username: 'testuser',
@@ -83,15 +74,5 @@ describe('Header', () => {
   it('renders without user', () => {
     renderHeader({ currentUser: null })
     expect(screen.getByRole('button', { name: /profile/i })).toBeInTheDocument()
-  })
-
-  it('opens Plan Date modal when Plan Date button is clicked', async () => {
-    renderHeader()
-    const planDateButton = screen.getByRole('button', { name: /plan date/i })
-    expect(planDateButton).toBeInTheDocument()
-    fireEvent.click(planDateButton)
-    await waitFor(() => {
-      expect(screen.getByRole('dialog', { name: /plan a date/i })).toBeInTheDocument()
-    })
   })
 })

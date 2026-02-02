@@ -1,27 +1,21 @@
 
 import React, { useState, useEffect } from 'react';
 import { Milestone } from '../types';
-import { getProTip } from '../services/geminiService';
 
 interface MilestonesViewProps {
   milestones: Milestone[];
 }
 
 const MilestonesView: React.FC<MilestonesViewProps> = ({ milestones }) => {
-  const [proTip, setProTip] = useState("Dreaming together is the first step...");
-  const [loadingTip, setLoadingTip] = useState(false);
+  const [proTip, setProTip] = useState("Dreaming together is the first step. Keep working towards your shared goals!");
 
-  useEffect(() => {
-    const fetchTip = async () => {
-      setLoadingTip(true);
-      const tip = await getProTip(milestones);
-      setProTip(tip);
-      setLoadingTip(false);
-    };
-    fetchTip();
-  }, [milestones]);
+  // Calculate actual progress from milestones
+  const completedMilestones = milestones.filter(m => m.status === 'Completed').length;
+  const totalMilestones = milestones.length;
+  const overallProgress = totalMilestones > 0 ? Math.round((completedMilestones / totalMilestones) * 100) : 0;
 
-  const overallProgress = 62;
+  const upcomingCount = milestones.filter(m => m.status === 'Upcoming').length;
+  const dreamingCount = milestones.filter(m => m.status === 'Dreaming').length;
 
   return (
     <div className="h-full overflow-y-auto custom-scrollbar p-8">
@@ -32,9 +26,9 @@ const MilestonesView: React.FC<MilestonesViewProps> = ({ milestones }) => {
             <div>
               <h1 className="text-xl font-bold flex items-center gap-2">
                 <span className="material-symbols-outlined text-accent">map</span>
-                Our 2024 Roadmap
+                Our Milestones
               </h1>
-              <p className="text-sm text-secondary mt-1">Goal: Travel to 3 new countries and host 5 dinner parties</p>
+              <p className="text-sm text-secondary mt-1">{totalMilestones === 0 ? 'Start adding milestones to track your journey together' : `Tracking ${totalMilestones} shared milestone${totalMilestones !== 1 ? 's' : ''}`}</p>
             </div>
             <div className="text-right">
               <span className="text-2xl font-bold text-accent">{overallProgress}%</span>
@@ -44,17 +38,35 @@ const MilestonesView: React.FC<MilestonesViewProps> = ({ milestones }) => {
           <div className="h-3 w-full bg-zinc-800 rounded-full overflow-hidden flex">
             <div className="h-full bg-accent transition-all" style={{ width: `${overallProgress}%` }}></div>
           </div>
-          <div className="flex justify-between mt-3 text-[11px] text-secondary font-medium">
-            <div className="flex gap-4">
-              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-400"></span> 8 Completed</span>
-              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400"></span> 3 Upcoming</span>
-              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-white/20"></span> 5 Dreaming</span>
+          {totalMilestones > 0 && (
+            <div className="flex justify-between mt-3 text-[11px] text-secondary font-medium">
+              <div className="flex gap-4">
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-400"></span> {completedMilestones} Completed</span>
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400"></span> {upcomingCount} Upcoming</span>
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-white/20"></span> {dreamingCount} Dreaming</span>
+              </div>
+              <span>{completedMilestones} / {totalMilestones} total</span>
             </div>
-            <span>11 / 16 total</span>
-          </div>
+          )}
         </div>
 
         {/* Milestones Table */}
+        {milestones.length === 0 ? (
+          <div className="bg-card border border-subtle rounded-xl p-12 text-center">
+            <div className="max-w-md mx-auto space-y-4">
+              <div className="w-20 h-20 rounded-full bg-white/5 border border-dashed border-subtle mx-auto flex items-center justify-center">
+                <span className="material-symbols-outlined text-4xl opacity-20">flag</span>
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold">No Milestones Yet</h3>
+                <p className="text-sm text-secondary">Start tracking your shared goals and dreams together!</p>
+              </div>
+              <button className="mt-4 bg-accent text-white px-6 py-2.5 rounded-lg text-sm font-bold uppercase tracking-widest hover:bg-indigo-500 transition-colors shadow-lg shadow-accent/20">
+                Add Your First Milestone
+              </button>
+            </div>
+          </div>
+        ) : (
         <div className="bg-card border border-subtle rounded-xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left">
@@ -118,33 +130,20 @@ const MilestonesView: React.FC<MilestonesViewProps> = ({ milestones }) => {
             </table>
           </div>
         </div>
+        )}
 
-        {/* Bottom Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-card/50 border border-subtle p-5 rounded-xl">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="material-symbols-outlined text-romantic">favorite</span>
-              <span className="text-xs font-bold uppercase tracking-widest text-secondary">Most Anticipated (Sam)</span>
-            </div>
-            <p className="text-sm font-medium">Japan Trip</p>
-          </div>
-          <div className="bg-card/50 border border-subtle p-5 rounded-xl">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="material-symbols-outlined text-accent">rocket_launch</span>
-              <span className="text-xs font-bold uppercase tracking-widest text-secondary">Next Up (Alex)</span>
-            </div>
-            <p className="text-sm font-medium">Michelin Dinner Party</p>
-          </div>
-          <div className="bg-accent/5 border border-accent/20 border-dashed p-5 rounded-xl flex flex-col justify-center">
+        {/* Pro Tip Card */}
+        {totalMilestones > 0 && (
+          <div className="bg-accent/5 border border-accent/20 border-dashed rounded-xl p-6">
             <div className="flex items-center gap-3 mb-2">
               <span className="material-symbols-outlined text-accent">auto_awesome</span>
               <span className="text-xs font-bold uppercase tracking-widest text-secondary">Pro Tip</span>
             </div>
-            <p className={`text-[11px] text-secondary leading-relaxed italic ${loadingTip ? 'animate-pulse' : ''}`}>
+            <p className="text-sm text-secondary leading-relaxed italic">
               "{proTip}"
             </p>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

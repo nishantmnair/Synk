@@ -1,14 +1,18 @@
 
 import React, { useState, useEffect } from 'react';
-import { coupleApi, couplingCodeApi } from '../services/djangoApi';
-import { User } from '../services/djangoAuth';
+import { coupleApi, couplingCodeApi, accountApi } from '../services/djangoApi';
+import { User, djangoAuthService } from '../services/djangoAuth';
 import { getDisplayName, getEmailOrUsername } from '../utils/userDisplay';
+import DeleteAccountModal from './DeleteAccountModal';
 
 interface SettingsViewProps {
   currentUser: User | null;
+  showToast?: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
+  showConfirm?: (config: any) => void;
+  onLogout?: () => void;
 }
 
-const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
+const SettingsView: React.FC<SettingsViewProps> = ({ currentUser, showToast, showConfirm, onLogout }) => {
   const [anniversary, setAnniversary] = useState(() => {
     return localStorage.getItem('synk_anniversary') || '2024-01-15';
   });
@@ -18,6 +22,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
   const [notifications, setNotifications] = useState(() => {
     return localStorage.getItem('synk_notifications') !== 'false';
   });
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   
   // Coupling state
   const [isCoupled, setIsCoupled] = useState(false);
@@ -90,7 +95,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
       await couplingCodeApi.use(joinCode.trim().toUpperCase());
       await loadCoupleStatus();
       setJoinCode('');
-      alert('Successfully coupled! You can now see your partner\'s data.');
+      showToast?.('Successfully coupled! You can now see your partner\'s data.', 'success');
     } catch (error: any) {
       setCouplingError(error.message || 'Invalid or expired code');
     } finally {
@@ -99,21 +104,60 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
   };
 
   const handleUncouple = async () => {
-    const confirmUncouple = window.confirm('Are you sure you want to uncouple? You will no longer share data with your partner.');
-    if (!confirmUncouple) return;
-    
+    if (showConfirm) {
+      showConfirm({
+        title: 'Uncouple Account',
+        message: 'Are you sure you want to uncouple? You will no longer share data with your partner.',
+        confirmText: 'Uncouple',
+        confirmVariant: 'danger' as const,
+        onConfirm: async () => {
+          try {
+            setIsLoadingCode(true);
+            setCouplingError('');
+            await coupleApi.uncouple();
+            setIsCoupled(false);
+            setPartner(null);
+            await loadCouplingCodes();
+            showToast?.('Successfully uncoupled.', 'success');
+          } catch (error: any) {
+            setCouplingError(error.message || 'Failed to uncouple');
+          } finally {
+            setIsLoadingCode(false);
+          }
+        }
+      });
+    } else {
+      const confirmUncouple = window.confirm('Are you sure you want to uncouple? You will no longer share data with your partner.');
+      if (!confirmUncouple) return;
+      
+      try {
+        setIsLoadingCode(true);
+        setCouplingError('');
+        await coupleApi.uncouple();
+        setIsCoupled(false);
+        setPartner(null);
+        await loadCouplingCodes();
+        alert('Successfully uncoupled.');
+      } catch (error: any) {
+        setCouplingError(error.message || 'Failed to uncouple');
+      } finally {
+        setIsLoadingCode(false);
+      }
+    }
+  };
+
+  const handleDeleteAccount = async (password: string) => {
     try {
-      setIsLoadingCode(true);
-      setCouplingError('');
-      await coupleApi.uncouple();
-      setIsCoupled(false);
-      setPartner(null);
-      await loadCouplingCodes();
-      alert('Successfully uncoupled.');
+      await accountApi.deleteAccount(password);
+      showToast?.('Account successfully deleted.', 'success');
+      
+      // Clear auth state and logout
+      await djangoAuthService.logout();
+      if (onLogout) {
+        onLogout();
+      }
     } catch (error: any) {
-      setCouplingError(error.message || 'Failed to uncouple');
-    } finally {
-      setIsLoadingCode(false);
+      throw error;
     }
   };
 
@@ -172,7 +216,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
                       <button
                         onClick={() => {
                           navigator.clipboard.writeText(couplingCode);
-                          alert('Code copied to clipboard!');
+                          showToast?.('Code copied to clipboard!', 'success');
                         }}
                         className="text-xs text-accent hover:underline"
                       >
@@ -295,10 +339,13 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
         <section className="space-y-4 pt-6">
           <h3 className="text-xs font-bold uppercase tracking-widest text-red-400 px-2">Danger Zone</h3>
           <div className="bg-red-400/5 border border-red-400/20 rounded-2xl p-6">
-            <button className="text-xs font-bold text-red-400 hover:text-red-300 transition-colors uppercase tracking-widest">
-              Delete Shared Space
+            <button 
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="text-xs font-bold text-red-400 hover:text-red-300 transition-colors uppercase tracking-widest"
+            >
+              Delete Account
             </button>
-            <p className="text-[10px] text-red-400/60 mt-2 uppercase">This action is irreversible and deletes all memories.</p>
+            <p className="text-[10px] text-red-400/60 mt-2 uppercase">This action is irreversible and permanently removes your account and data.</p>
           </div>
         </section>
 
@@ -308,7 +355,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
                localStorage.setItem('synk_anniversary', anniversary);
                localStorage.setItem('synk_is_private', isPrivate.toString());
                localStorage.setItem('synk_notifications', notifications.toString());
-               alert('Settings saved successfully!');
+               showToast?.('Settings saved successfully!', 'success');
              }}
              className="bg-accent text-white px-8 py-2.5 rounded-full text-xs font-bold hover:scale-105 active:scale-95 transition-all shadow-lg shadow-accent/20"
            >
@@ -316,6 +363,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
            </button>
         </div>
       </div>
+
+      <DeleteAccountModal 
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteAccount}
+      />
     </div>
   );
 };

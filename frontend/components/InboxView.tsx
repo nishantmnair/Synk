@@ -7,9 +7,11 @@ interface InboxViewProps {
   onAccept: (task: Task) => void;
   onSave: () => void;
   onDecline: (id: string) => void;
+  showToast?: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
+  showConfirm?: (config: any) => void;
 }
 
-const InboxView: React.FC<InboxViewProps> = ({ suggestions, onAccept, onSave, onDecline }) => {
+const InboxView: React.FC<InboxViewProps> = ({ suggestions, onAccept, onSave, onDecline, showToast, showConfirm }) => {
   const [selectedId, setSelectedId] = useState(suggestions[0]?.id);
   const [excitement, setExcitement] = useState(50);
   const selected = suggestions.find(s => s.id === selectedId) || suggestions[0];
@@ -42,16 +44,32 @@ const InboxView: React.FC<InboxViewProps> = ({ suggestions, onAccept, onSave, on
   const handleSave = () => {
     // Save to a "saved for later" list - could be implemented with a separate state
     onSave();
-    alert('Suggestion saved for later!');
+    showToast?.('Suggestion saved for later!', 'success');
   };
 
   const handleDecline = () => {
     if (!selected) return;
-    if (window.confirm('Are you sure you want to decline this suggestion?')) {
-      onDecline(selected.id);
-      if (suggestions.length > 1) {
-        const nextSuggestion = suggestions.find(s => s.id !== selected.id);
-        if (nextSuggestion) setSelectedId(nextSuggestion.id);
+    if (showConfirm) {
+      showConfirm({
+        title: 'Decline Suggestion',
+        message: 'Are you sure you want to decline this suggestion?',
+        confirmText: 'Decline',
+        confirmVariant: 'danger' as const,
+        onConfirm: () => {
+          onDecline(selected.id);
+          if (suggestions.length > 1) {
+            const nextSuggestion = suggestions.find(s => s.id !== selected.id);
+            if (nextSuggestion) setSelectedId(nextSuggestion.id);
+          }
+        }
+      });
+    } else {
+      if (window.confirm('Are you sure you want to decline this suggestion?')) {
+        onDecline(selected.id);
+        if (suggestions.length > 1) {
+          const nextSuggestion = suggestions.find(s => s.id !== selected.id);
+          if (nextSuggestion) setSelectedId(nextSuggestion.id);
+        }
       }
     }
   };

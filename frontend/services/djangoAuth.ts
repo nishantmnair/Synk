@@ -87,7 +87,9 @@ class DjangoAuthService {
       const user: User = await signupResponse.json();
       
       // Automatically log in after signup. Use username (not email): JWT /api/token/ expects username.
-      return await this.login(user.username, password);
+      // Fall back to email-derived username if not in response
+      const loginIdentifier = user.username || emailToUsername(email);
+      return await this.login(loginIdentifier, password);
     } catch (error: any) {
       console.error('Signup error:', error);
       // Re-throw with better error message if it's not already an Error object
@@ -101,6 +103,9 @@ class DjangoAuthService {
   async login(identifier: string, password: string): Promise<User> {
     try {
       // JWT /api/token/ expects username. Form uses "email"; support both email and username.
+      if (!identifier || typeof identifier !== 'string') {
+        throw new Error('Invalid login: identifier must be a non-empty string');
+      }
       const username = identifier.includes('@') ? emailToUsername(identifier) : identifier.trim();
       const tokenResponse = await fetch(`${API_BASE_URL}/api/token/`, {
         method: 'POST',

@@ -22,6 +22,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
   const [preferencesId, setPreferencesId] = useState<number | null>(null);
   const [isLoadingPreferences, setIsLoadingPreferences] = useState(true);
   
+  // Track originally loaded values to detect changes
+  const [loadedAnniversary, setLoadedAnniversary] = useState('2024-01-15');
+  const [loadedIsPrivate, setLoadedIsPrivate] = useState(true);
+  const [loadedNotifications, setLoadedNotifications] = useState(true);
+  
   // Coupling state
   const [isCoupled, setIsCoupled] = useState(false);
   const [partner, setPartner] = useState<User | null>(null);
@@ -42,8 +47,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
   useEffect(() => {
     const handlePreferencesUpdate = (data: any) => {
       setAnniversary(data.anniversary || anniversary);
+      setLoadedAnniversary(data.anniversary || anniversary);
       setIsPrivate(data.is_private ?? isPrivate);
+      setLoadedIsPrivate(data.is_private ?? isPrivate);
       setNotifications(data.notifications ?? notifications);
+      setLoadedNotifications(data.notifications ?? notifications);
+      setSaveStatus('saved');
       showToast?.('Anniversary date updated by your partner', 'info');
     };
 
@@ -55,18 +64,15 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
 
   // Check if there are unsaved changes
   useEffect(() => {
-    const prefs = localStorage.getItem('synk_preferences_loaded');
-    if (prefs) {
-      const parsed = JSON.parse(prefs);
-      const hasChanges = 
-        parsed.anniversary !== anniversary ||
-        parsed.is_private !== isPrivate ||
-        parsed.notifications !== notifications;
-      if (hasChanges) {
-        setSaveStatus('unsaved');
-      }
+    const hasChanges = 
+      loadedAnniversary !== anniversary ||
+      loadedIsPrivate !== isPrivate ||
+      loadedNotifications !== notifications;
+    
+    if (hasChanges && !isLoadingPreferences) {
+      setSaveStatus('unsaved');
     }
-  }, [anniversary, isPrivate, notifications]);
+  }, [anniversary, isPrivate, notifications, isLoadingPreferences, loadedAnniversary, loadedIsPrivate, loadedNotifications]);
 
   // Save preferences to backend
   const savePreferences = async () => {
@@ -79,11 +85,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
         notifications,
       });
       setSaveStatus('saved');
-      localStorage.setItem('synk_preferences_loaded', JSON.stringify({
-        anniversary,
-        is_private: isPrivate,
-        notifications,
-      }));
+      // Update loaded values to match current values
+      setLoadedAnniversary(anniversary);
+      setLoadedIsPrivate(isPrivate);
+      setLoadedNotifications(notifications);
       showToast?.('Settings saved successfully', 'success');
     } catch (error) {
       console.error('Failed to save preferences:', error);
@@ -98,16 +103,19 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
       setIsLoadingPreferences(true);
       const prefs = await preferencesApi.get() as any;
       if (prefs) {
-        setAnniversary(prefs.anniversary || '2024-01-15');
-        setIsPrivate(prefs.is_private ?? true);
-        setNotifications(prefs.notifications ?? true);
+        const anniv = prefs.anniversary || '2024-01-15';
+        const isPriv = prefs.is_private ?? true;
+        const notifs = prefs.notifications ?? true;
+        
+        setAnniversary(anniv);
+        setIsPrivate(isPriv);
+        setNotifications(notifs);
         setPreferencesId(prefs.id);
-        // Store loaded state to track changes
-        localStorage.setItem('synk_preferences_loaded', JSON.stringify({
-          anniversary: prefs.anniversary || '2024-01-15',
-          is_private: prefs.is_private ?? true,
-          notifications: prefs.notifications ?? true,
-        }));
+        
+        // Set loaded values to match current values
+        setLoadedAnniversary(anniv);
+        setLoadedIsPrivate(isPriv);
+        setLoadedNotifications(notifs);
       }
     } catch (error) {
       console.error('Failed to load preferences:', error);

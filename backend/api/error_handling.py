@@ -78,7 +78,7 @@ def synk_exception_handler(exc, context):
         response_data, status_code = format_error_response(
             error_code=exc.error_code,
             message=str(exc.detail),
-            field_errors=exc.field_errors if exc.field_errors else None,
+            field_errors=exc.field_errors or None,
             status_code=exc.status_code
         )
         return Response(response_data, status=status_code)

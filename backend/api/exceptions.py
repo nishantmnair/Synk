@@ -22,10 +22,7 @@ class SynkException(APIException):
             error_code: Specific error code (e.g., 'DUPLICATE_EMAIL')
             field_errors: Dict of field-level validation errors
         """
-        if detail:
-            self.detail = detail
-        else:
-            self.detail = self.default_detail
+        self.detail = detail or self.default_detail
             
         self.code = code or self.default_code
         self.error_code = error_code or code or self.default_code

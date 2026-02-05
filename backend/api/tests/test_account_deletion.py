@@ -131,7 +131,9 @@ class TestAccountDeletionEndpoint:
         response = client.post(url, {}, format='json')
         
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert 'password' in response.data
+        assert response.data['status'] == 'error'
+        assert response.data['error_code'] == 'password_validation_error'
+        assert 'password' in response.data.get('errors', {})
         assert User.objects.filter(id=user_id).exists()
     
     def test_delete_account_cascades_to_tasks(self, user, client):

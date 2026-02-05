@@ -1,10 +1,13 @@
 """
 Django signals for API app
 """
-from django.db.models.signals import post_save
+from contextlib import suppress
+from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 from django.contrib.auth.models import User
-from .models import UserProfile
+from .models import UserProfile, Couple
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 
 @receiver(post_save, sender=User)
@@ -34,10 +37,46 @@ def save_user_profile(sender, instance, **kwargs):
     Save the user's profile whenever the user is saved.
     This keeps the profile's email_normalized in sync with the user's email.
     """
-    try:
+    with suppress(Exception):
         if hasattr(instance, 'profile'):
             instance.profile.save()
-    except Exception as e:
-        # Log error but don't break user save
-        pass
+
+
+@receiver(pre_delete, sender=Couple)
+def notify_partner_on_uncouple(sender, instance, **kwargs):
+    """
+    When a couple relationship is deleted (either directly or via cascade when a user is deleted),
+    notify the remaining partner in real-time.
+    """
+    # Determine which user is being deleted and which remains
+    # Both users might still exist (direct uncouple), or one might be deleted (cascade)
+    # We'll notify whoever is still there
+    partner = None
+    
+    # Try to get user1
+    with suppress(User.DoesNotExist):
+        user1 = User.objects.get(pk=instance.user1.pk)
+        partner = user1
+    
+    # If user1 doesn't exist, notify user2
+    if not partner:
+        with suppress(User.DoesNotExist):
+            user2 = User.objects.get(pk=instance.user2.pk)
+            partner = user2
+    
+    # Send real-time notification to the remaining partner
+    if partner:
+        with suppress(Exception):
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f"user_{partner.id}",
+                {
+                    "type": "send_message",
+                    "event": "couple:uncoupled",
+                    "data": {
+                        "message": "Your partner has deleted their account. You have been uncoupled."
+                    }
+                }
+            )
+
 

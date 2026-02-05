@@ -87,7 +87,7 @@ def synk_exception_handler(exc, context):
     if isinstance(exc, AuthenticationFailed):
         response_data, status_code = format_error_response(
             error_code='invalid_credentials',
-            message='Invalid credentials provided.',
+            message='The credentials provided are invalid. Please check your username.',
             status_code=status.HTTP_401_UNAUTHORIZED
         )
         return Response(response_data, status=status_code)
@@ -113,10 +113,23 @@ def synk_exception_handler(exc, context):
     # Handle DRF validation errors
     if isinstance(exc, DRFValidationError):
         # Validation errors are always 400, even for token endpoint
+        field_errors = exc.detail if isinstance(exc.detail, dict) else None
+        
+        # Create a user-friendly message based on field errors
+        message = 'Validation failed. Please check the errors below.'
+        if field_errors:
+            # Try to create a more helpful message from the first field error
+            if 'email' in field_errors:
+                message = 'This email is already registered. Please use a different email.'
+            elif 'password' in field_errors:
+                message = 'Password does not meet requirements. Please choose a stronger password.'
+            elif 'username' in field_errors:
+                message = 'This username is already taken. Please choose a different username.'
+        
         response_data, status_code = format_error_response(
             error_code='validation_error',
-            message='Validation failed. Please check the errors below.',
-            field_errors=exc.detail if isinstance(exc.detail, dict) else None,
+            message=message,
+            field_errors=field_errors,
             status_code=status.HTTP_400_BAD_REQUEST
         )
         return Response(response_data, status=status_code)

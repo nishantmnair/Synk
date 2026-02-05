@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getActionErrorMessage } from '../utils/errorMessages';
 
 interface DeleteAccountModalProps {
   isOpen: boolean;
@@ -15,7 +16,7 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({ isOpen, onClose
     e.preventDefault();
     
     if (!password) {
-      setError('Password is required');
+      setError('Please enter your password to confirm deletion');
       return;
     }
 
@@ -25,7 +26,8 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({ isOpen, onClose
       await onConfirm(password);
       // onConfirm handles logout and redirect
     } catch (err: any) {
-      setError(err.message || 'Failed to delete account');
+      const errorMsg = getActionErrorMessage('delete_account', err);
+      setError(errorMsg);
       setIsDeleting(false);
     }
   };

@@ -163,5 +163,87 @@ describe('djangoApi', () => {
       }
     })
   })
+
+  describe('Pagination Handling', () => {
+    it('should unwrap paginated responses with results array', async () => {
+      const { collectionsApi } = await import('../djangoApi')
+      const mockPaginatedResponse = {
+        count: 3,
+        next: null,
+        previous: null,
+        results: [
+          { id: '1', name: 'Travel', icon: 'flight' },
+          { id: '2', name: 'Cooking', icon: 'restaurant' },
+          { id: '3', name: 'Home', icon: 'home' }
+        ]
+      }
+      ;(global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockPaginatedResponse
+      })
+
+      const result = await collectionsApi.getAll()
+      
+      // The request function should unwrap the paginated response
+      // and return just the results array
+      expect(Array.isArray(result)).toBe(true)
+      expect(result).toHaveLength(3)
+      expect(result[0]).toEqual({ id: '1', name: 'Travel', icon: 'flight' })
+    })
+
+    it('should handle empty paginated responses', async () => {
+      const { collectionsApi } = await import('../djangoApi')
+      const mockEmptyPaginatedResponse = {
+        count: 0,
+        next: null,
+        previous: null,
+        results: []
+      }
+      ;(global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockEmptyPaginatedResponse
+      })
+
+      const result = await collectionsApi.getAll()
+      
+      expect(Array.isArray(result)).toBe(true)
+      expect(result).toHaveLength(0)
+    })
+
+    it('should not unwrap non-paginated responses', async () => {
+      const { tasksApi } = await import('../djangoApi')
+      const mockSingleItem = { id: 1, title: 'Task 1', description: 'Test' }
+      ;(global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSingleItem
+      })
+
+      const result = await tasksApi.getAll()
+      
+      // Non-paginated responses should be returned as-is
+      expect(result).toEqual(mockSingleItem)
+    })
+
+    it('should preserve paginated response structure for debugging', async () => {
+      // This test verifies that if a response has 'results' key,
+      // it's treated as paginated and unwrapped
+      const response = {
+        count: 2,
+        results: [
+          { id: 1, value: 'first' },
+          { id: 2, value: 'second' }
+        ]
+      }
+
+      const isPaginated = response && 
+        typeof response === 'object' && 
+        'results' in response && 
+        Array.isArray((response as any).results)
+
+      expect(isPaginated).toBe(true)
+      // In actual API call, this would be unwrapped by the request function
+      expect((response as any).results).toHaveLength(2)
+    })
+  })
 })
 

@@ -387,3 +387,107 @@ class TestErrorMessageUserFriendliness:
             all(isinstance(msg, str) and len(msg) > 0 for msg in field_errors)
             for field_errors in errors.values()
         )
+
+
+@pytest.mark.django_db
+class TestUserFriendlyErrorMessages:
+    """Test that error messages are user-friendly and helpful"""
+    
+    def setup_method(self):
+        self.client = APIClient()
+    
+    def test_invalid_credentials_error_is_user_friendly(self):
+        """Test invalid credentials error message is helpful"""
+        # Create valid user
+        User.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='ValidPassword123!'
+        )
+        
+        # Try with wrong password
+        response = self.client.post('/api/token/', {
+            'username': 'testuser',
+            'password': 'WrongPassword123!'
+        })
+        
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        data = response.json()
+        message = data.get('message', '').lower()
+        # Should mention password or credentials, not internal errors
+        assert 'password' in message or 'credentials' in message or 'incorrect' in message
+        assert 'traceback' not in str(data)
+        assert 'exception' not in str(data).lower()
+    
+    def test_duplicate_email_error_is_user_friendly(self):
+        """Test duplicate email error offers helpful guidance"""
+        # Create user with email
+        User.objects.create_user(
+            username='testuser',
+            email='existing@example.com',
+            password='ValidPassword123!'
+        )
+        
+        # Try to register with same email
+        response = self.client.post('/api/register/', {
+            'email': 'existing@example.com',
+            'username': 'newuser',
+            'password': 'ValidPassword123!',
+            'password_confirm': 'ValidPassword123!'
+        })
+        
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        data = response.json()
+        message = data.get('message', '').lower()
+        
+        # Error should be helpful
+        assert 'email' in message or 'registered' in message
+        # Should not expose internal Django details
+        assert not message.startswith('{')
+        assert not message.startswith('[')
+    
+    def test_weak_password_error_provides_guidance(self):
+        """Test weak password error explains requirements"""
+        response = self.client.post('/api/register/', {
+            'email': 'test@example.com',
+            'username': 'testuser',
+            'password': 'weak',
+            'password_confirm': 'weak'
+        })
+        
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        data = response.json()
+        assert 'password' in data.get('errors', {})
+        password_errors = data['errors']['password']
+        msg = ' '.join(password_errors).lower()
+        # Should explain what's needed
+        assert '8' in msg or 'character' in msg or 'uppercase' in msg or 'lowercase' in msg or 'number' in msg
+    
+    def test_authentication_required_error_is_helpful(self):
+        """Test authentication required error tells user to login"""
+        response = self.client.get('/api/users/me/')
+        
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        data = response.json()
+        message = data.get('message', '').lower()
+        
+        # Should suggest logging in
+        assert 'authentication' in message or 'login' in message or 'credentials' in message
+    
+    def test_not_found_error_is_user_friendly(self):
+        """Test 404 error is clear about what's missing"""
+        user = User.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='ValidPassword123!'
+        )
+        self.client.force_authenticate(user=user)
+        
+        response = self.client.get('/api/tasks/99999/')
+        
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        data = response.json()
+        message = data.get('message', '').lower()
+        
+        # Should be clear about what wasn't found
+        assert 'not found' in message or 'requested' in message

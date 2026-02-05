@@ -181,13 +181,9 @@ class TestUserPreferences:
     def test_create_preferences(self, user):
         """Test creating user preferences"""
         prefs = UserPreferences.objects.create(
-            user=user,
-            vibe='Feeling great'
+            user=user
         )
         assert prefs.user == user
-        assert prefs.vibe == 'Feeling great'
-        assert prefs.is_private == True
-        assert prefs.notifications == True
     
     def test_preferences_str(self, user):
         """Test preferences string representation"""

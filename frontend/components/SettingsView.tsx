@@ -4,6 +4,7 @@ import { coupleApi, couplingCodeApi, accountApi, preferencesApi } from '../servi
 import { User, djangoAuthService } from '../services/djangoAuth';
 import { djangoRealtimeService } from '../services/djangoRealtime';
 import { getDisplayName, getEmailOrUsername } from '../utils/userDisplay';
+import { getActionErrorMessage, extractErrorMessage } from '../utils/errorMessages';
 import DeleteAccountModal from './DeleteAccountModal';
 
 interface SettingsViewProps {
@@ -15,8 +16,6 @@ interface SettingsViewProps {
 
 const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onLogout }) => {
   const [anniversary, setAnniversary] = useState('2024-01-15');
-  const [isPrivate, setIsPrivate] = useState(true);
-  const [notifications, setNotifications] = useState(true);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'unsaved' | 'saving'>('saved');
   const [preferencesId, setPreferencesId] = useState<number | null>(null);
@@ -24,8 +23,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
   
   // Track originally loaded values to detect changes
   const [loadedAnniversary, setLoadedAnniversary] = useState('2024-01-15');
-  const [loadedIsPrivate, setLoadedIsPrivate] = useState(true);
-  const [loadedNotifications, setLoadedNotifications] = useState(true);
   
   // Coupling state
   const [isCoupled, setIsCoupled] = useState(false);
@@ -43,36 +40,37 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
     loadCouplingCodes();
   }, []);
 
-  // Set up real-time listeners for preference updates
+  // Set up real-time listeners for preference updates and uncoupling
   useEffect(() => {
     const handlePreferencesUpdate = (data: any) => {
       setAnniversary(data.anniversary || anniversary);
       setLoadedAnniversary(data.anniversary || anniversary);
-      setIsPrivate(data.is_private ?? isPrivate);
-      setLoadedIsPrivate(data.is_private ?? isPrivate);
-      setNotifications(data.notifications ?? notifications);
-      setLoadedNotifications(data.notifications ?? notifications);
       setSaveStatus('saved');
       showToast?.('Anniversary date updated by your partner', 'info');
     };
 
+    const handleUncoupled = (data: any) => {
+      setIsCoupled(false);
+      setPartner(null);
+      showToast?.(data.message || 'You have been uncoupled.', 'info');
+    };
+
     djangoRealtimeService.on('preferences:updated', handlePreferencesUpdate);
+    djangoRealtimeService.on('couple:uncoupled', handleUncoupled);
     return () => {
       djangoRealtimeService.off('preferences:updated', handlePreferencesUpdate);
+      djangoRealtimeService.off('couple:uncoupled', handleUncoupled);
     };
-  }, [anniversary, isPrivate, notifications, showToast]);
+  }, [anniversary, showToast]);
 
   // Check if there are unsaved changes
   useEffect(() => {
-    const hasChanges = 
-      loadedAnniversary !== anniversary ||
-      loadedIsPrivate !== isPrivate ||
-      loadedNotifications !== notifications;
+    const hasChanges = loadedAnniversary !== anniversary;
     
     if (hasChanges && !isLoadingPreferences) {
       setSaveStatus('unsaved');
     }
-  }, [anniversary, isPrivate, notifications, isLoadingPreferences, loadedAnniversary, loadedIsPrivate, loadedNotifications]);
+  }, [anniversary, isLoadingPreferences, loadedAnniversary]);
 
   // Save preferences to backend
   const savePreferences = async () => {
@@ -81,19 +79,16 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
       setSaveStatus('saving');
       await preferencesApi.update(preferencesId, {
         anniversary,
-        is_private: isPrivate,
-        notifications,
       });
       setSaveStatus('saved');
       // Update loaded values to match current values
       setLoadedAnniversary(anniversary);
-      setLoadedIsPrivate(isPrivate);
-      setLoadedNotifications(notifications);
-      showToast?.('Settings saved successfully', 'success');
+      showToast?.('Anniversary date saved successfully', 'success');
     } catch (error) {
       console.error('Failed to save preferences:', error);
       setSaveStatus('unsaved');
-      showToast?.('Failed to save settings', 'error');
+      const errorMsg = getActionErrorMessage('save_settings', error);
+      showToast?.(errorMsg, 'error');
     }
   };
 
@@ -104,21 +99,17 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
       const prefs = await preferencesApi.get() as any;
       if (prefs) {
         const anniv = prefs.anniversary || '2024-01-15';
-        const isPriv = prefs.is_private ?? true;
-        const notifs = prefs.notifications ?? true;
         
         setAnniversary(anniv);
-        setIsPrivate(isPriv);
-        setNotifications(notifs);
         setPreferencesId(prefs.id);
         
         // Set loaded values to match current values
         setLoadedAnniversary(anniv);
-        setLoadedIsPrivate(isPriv);
-        setLoadedNotifications(notifs);
       }
     } catch (error) {
       console.error('Failed to load preferences:', error);
+      const errorMsg = extractErrorMessage(error);
+      showToast?.(errorMsg, 'error');
     } finally {
       setIsLoadingPreferences(false);
     }
@@ -161,8 +152,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
       const codeData = await couplingCodeApi.create() as any;
       setCouplingCode(codeData.code);
       setCodeExpiresAt(codeData.expires_at);
+      showToast?.('Coupling code generated! Share it with your partner.', 'success');
     } catch (error: any) {
-      setCouplingError(error.message || 'Failed to generate code');
+      const errorMsg = getActionErrorMessage('generate_code', error);
+      setCouplingError(errorMsg);
     } finally {
       setIsLoadingCode(false);
     }
@@ -170,7 +163,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
 
   const useCouplingCode = async () => {
     if (!joinCode.trim()) {
-      setCouplingError('Please enter a coupling code');
+      setCouplingError('Please enter an 8-character coupling code');
+      return;
+    }
+
+    if (joinCode.length !== 8) {
+      setCouplingError('Coupling code must be 8 characters long');
       return;
     }
     
@@ -180,9 +178,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
       await couplingCodeApi.use(joinCode.trim().toUpperCase());
       await loadCoupleStatus();
       setJoinCode('');
-      showToast?.('Successfully coupled! You can now see your partner\'s data.', 'success');
+      showToast?.('Connected successfully! You can now share your couple space with your partner.', 'success');
     } catch (error: any) {
-      setCouplingError(error.message || 'Invalid or expired code');
+      const errorMsg = getActionErrorMessage('use_code', error);
+      setCouplingError(errorMsg);
     } finally {
       setIsLoadingCode(false);
     }
@@ -191,9 +190,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
   const handleUncouple = async () => {
     if (showConfirm) {
       showConfirm({
-        title: 'Uncouple Account',
-        message: 'Are you sure you want to uncouple? You will no longer share data with your partner.',
-        confirmText: 'Uncouple',
+        title: 'Disconnect Partner',
+        message: 'You will no longer be able to share your couple space with your partner. They will be notified immediately.',
+        confirmText: 'Disconnect',
         confirmVariant: 'danger' as const,
         onConfirm: async () => {
           try {
@@ -203,9 +202,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
             setIsCoupled(false);
             setPartner(null);
             await loadCouplingCodes();
-            showToast?.('Successfully uncoupled.', 'success');
+            showToast?.('Disconnected from your partner.', 'success');
           } catch (error: any) {
-            setCouplingError(error.message || 'Failed to uncouple');
+            const errorMsg = getActionErrorMessage('uncouple', error);
+            setCouplingError(errorMsg);
           } finally {
             setIsLoadingCode(false);
           }
@@ -222,7 +222,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
         setIsCoupled(false);
         setPartner(null);
         await loadCouplingCodes();
-        alert('Successfully uncoupled.');
+        showToast?.('Successfully disconnected from your partner', 'success');
       } catch (error: any) {
         setCouplingError(error.message || 'Failed to uncouple');
       } finally {
@@ -259,18 +259,18 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
           <h3 className="text-xs font-bold uppercase tracking-widest text-secondary px-2">Partner Connection</h3>
           {isCoupled && partner ? (
             <div className="bg-card border border-romantic/20 rounded-2xl p-6 space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-romantic/20 flex items-center justify-center text-romantic">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-romantic/20 flex items-center justify-center text-romantic flex-shrink-0">
                   <span className="material-symbols-outlined text-2xl">favorite</span>
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold">Connected with {getDisplayName(partner)}</p>
                   <p className="text-[11px] text-secondary">{getEmailOrUsername(partner) ?? '—'}</p>
                 </div>
                 <button
                   onClick={handleUncouple}
                   disabled={isLoadingCode}
-                  className="px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-xs font-semibold hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                  className="w-full md:w-auto px-4 py-2.5 md:py-2 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-xs font-semibold hover:bg-red-500/20 transition-colors disabled:opacity-50 active:scale-95 min-h-10 flex items-center justify-center"
                 >
                   {isLoadingCode ? 'Uncoupling...' : 'Uncouple'}
                 </button>
@@ -361,7 +361,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
         <section className="space-y-4">
           <h3 className="text-xs font-bold uppercase tracking-widest text-secondary px-2">Couple Details</h3>
           <div className="bg-card border border-subtle rounded-2xl p-6 space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-medium">Anniversary Date</p>
                 <p className="text-[11px] text-secondary">We'll notify you both a week before.</p>
@@ -371,53 +371,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
                 value={anniversary}
                 onChange={(e) => setAnniversary(e.target.value)}
                 disabled={isLoadingPreferences}
-                className="bg-white/5 border border-subtle rounded-lg px-3 py-1.5 text-xs focus:ring-1 focus:ring-accent outline-none disabled:opacity-50"
+                className="w-full md:w-auto bg-white/5 border border-subtle rounded-lg px-3 py-2.5 text-xs focus:ring-1 focus:ring-accent outline-none disabled:opacity-50 min-h-10"
               />
             </div>
 
             <div className="h-px bg-subtle"></div>
-
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium">Space Privacy</p>
-                <p className="text-[11px] text-secondary">Require PIN to open the app on shared devices.</p>
-              </div>
-              <button 
-                onClick={() => setIsPrivate(!isPrivate)}
-                className={`w-10 h-5 rounded-full transition-colors relative ${isPrivate ? 'bg-accent' : 'bg-zinc-700'}`}
-              >
-                <div className={`absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-transform ${isPrivate ? 'translate-x-5' : ''}`}></div>
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* Preferences Section */}
-        <section className="space-y-4">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-secondary px-2">Preferences</h3>
-          <div className="bg-card border border-subtle rounded-2xl p-6 space-y-6">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium">Enable Notifications</p>
-                <p className="text-[11px] text-secondary">Get alerts when your partner adds or likes an idea.</p>
-              </div>
-              <button 
-                onClick={() => setNotifications(!notifications)}
-                className={`w-10 h-5 rounded-full transition-colors relative ${notifications ? 'bg-romantic' : 'bg-zinc-700'}`}
-              >
-                <div className={`absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-transform ${notifications ? 'translate-x-5' : ''}`}></div>
-              </button>
-            </div>
-            
-            <div className="h-px bg-subtle"></div>
-
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium">Vibe Themes</p>
-                <p className="text-[11px] text-secondary">Auto-adjust interface based on your current vibe.</p>
-              </div>
-              <span className="material-symbols-outlined text-secondary text-sm">chevron_right</span>
-            </div>
           </div>
         </section>
 
@@ -427,7 +385,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
           <div className="bg-red-400/5 border border-red-400/20 rounded-2xl p-6 space-y-4">
             <button 
               onClick={() => setIsDeleteModalOpen(true)}
-              className="px-4 py-2 bg-red-500/20 border border-red-400 text-red-400 hover:bg-red-500/30 hover:border-red-300 hover:text-red-300 active:bg-red-500/40 transition-colors text-xs font-bold uppercase tracking-widest rounded-lg"
+              className="w-full px-4 py-2.5 bg-red-500/20 border border-red-400 text-red-400 hover:bg-red-500/30 hover:border-red-300 hover:text-red-300 active:bg-red-500/40 transition-colors text-xs font-bold uppercase tracking-widest rounded-lg active:scale-95 min-h-10 flex items-center justify-center"
             >
               Delete Account
             </button>
@@ -435,24 +393,16 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
           </div>
         </section>
 
-        <div className="text-center pt-8 space-y-4">
+        <div className="text-center pt-8 space-y-4 flex justify-center">
           {saveStatus === 'unsaved' && (
             <button
               onClick={savePreferences}
               disabled={saveStatus === 'saving' || isLoadingPreferences}
-              className="px-6 py-2 bg-accent text-white rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2.5 bg-accent text-white rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 min-h-10 flex items-center justify-center"
             >
               {saveStatus === 'saving' ? 'Saving...' : 'Save Changes'}
             </button>
           )}
-           <div className="flex items-center justify-center gap-2 text-xs">
-             <span className={`w-2 h-2 rounded-full transition-colors ${
-               saveStatus === 'saved' ? 'bg-green-400' : saveStatus === 'saving' ? 'bg-yellow-400 animate-pulse' : 'bg-gray-400'
-             }`}></span>
-             <span className="text-secondary">
-               {isLoadingPreferences ? 'Loading preferences...' : saveStatus === 'saved' ? 'All changes saved' : saveStatus === 'saving' ? 'Saving...' : 'You have unsaved changes'}
-             </span>
-           </div>
         </div>
       </div>
 

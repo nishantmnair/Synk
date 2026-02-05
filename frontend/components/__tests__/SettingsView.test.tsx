@@ -45,10 +45,7 @@ describe('SettingsView', () => {
     vi.mocked(djangoApi.accountApi.deleteAccount).mockResolvedValue({ detail: 'Account successfully deleted.' })
     vi.mocked(djangoApi.preferencesApi.get).mockResolvedValue({ 
       id: 1, 
-      anniversary: '2024-01-15', 
-      is_private: true, 
-      notifications: true,
-      vibe: 'Feeling adventurous'
+      anniversary: '2024-01-15'
     } as any)
     vi.mocked(djangoApi.preferencesApi.update).mockResolvedValue({ success: true } as any)
   })
@@ -164,6 +161,67 @@ describe('SettingsView', () => {
     
     // Modal should still be accessible for retry
     expect(screen.getByTestId('delete-account-modal')).toBeInTheDocument()
+  })
+
+  it('displays user-friendly error when coupling code generation fails', async () => {
+    const errorMsg = 'Could not generate a coupling code. Please try again.'
+    vi.mocked(djangoApi.couplingCodeApi.create).mockRejectedValue(new Error(errorMsg))
+    
+    render(<SettingsView currentUser={mockUser as any} showToast={mockShowToast} />)
+    
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Generate Code/i })).toBeInTheDocument()
+    })
+    
+    const generateButton = screen.getByRole('button', { name: /Generate Code/i })
+    await userEvent.click(generateButton)
+    
+    await waitFor(() => {
+      expect(screen.getByText(new RegExp(errorMsg.split('(')[0].trim()), 'i')).toBeInTheDocument()
+    })
+  })
+
+  it('displays user-friendly error when coupling code use fails', async () => {
+    const user = userEvent.setup()
+    const errorMsg = 'Could not connect accounts. The code may be expired or invalid.'
+    vi.mocked(djangoApi.couplingCodeApi.use).mockRejectedValue(new Error(errorMsg))
+    
+    render(<SettingsView currentUser={mockUser as any} showToast={mockShowToast} />)
+    
+    await waitFor(() => {
+      const codeInput = screen.getByPlaceholderText(/Enter 8-character code/i)
+      expect(codeInput).toBeInTheDocument()
+    })
+    
+    const codeInput = screen.getByPlaceholderText(/Enter 8-character code/i)
+    await user.type(codeInput, 'TESTCODE')
+    
+    const connectButton = screen.getByRole('button', { name: /Connect/i })
+    await user.click(connectButton)
+    
+    await waitFor(() => {
+      expect(screen.getByText(new RegExp(errorMsg.split('(')[0].trim(), 'i'))).toBeInTheDocument()
+    })
+  })
+
+  it('displays button with responsive width class', async () => {
+    render(<SettingsView currentUser={mockUser as any} showToast={mockShowToast} />)
+    
+    await waitFor(() => {
+      const deleteButton = screen.getByRole('button', { name: /Delete Account/i })
+      expect(deleteButton).toHaveClass('w-full')
+    })
+  })
+
+  it('displays anniversary input with responsive width', async () => {
+    render(<SettingsView currentUser={mockUser as any} />)
+    
+    await waitFor(() => {
+      const inputs = screen.getAllByDisplayValue(/2024-01-15/)
+      expect(inputs.length).toBeGreaterThan(0)
+      const anniversaryInput = inputs[0]
+      expect(anniversaryInput).toHaveClass('md:w-auto')
+    })
   })
 })
 

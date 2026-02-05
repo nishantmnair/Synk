@@ -81,4 +81,33 @@ describe('AuthView', () => {
       expect(mockOnLogin).toHaveBeenCalledWith('test@example.com', 'testpass123')
     })
   })
+
+  it('displays user-friendly error message on login failure', async () => {
+    mockOnLogin.mockRejectedValueOnce(new Error('Incorrect username or password. Please try again.'))
+    renderAuthView()
+    fireEvent.change(screen.getByPlaceholderText(/email or username/i), { target: { value: 'test@example.com' } })
+    fireEvent.change(screen.getByPlaceholderText(/^password$/i), { target: { value: 'wrongpass' } })
+    fireEvent.submit(screen.getByPlaceholderText(/email or username/i).closest('form')!)
+    await waitFor(() => {
+      expect(screen.getByText(/Incorrect username or password/i)).toBeInTheDocument()
+    })
+  })
+
+  it('displays user-friendly error message on signup failure', async () => {
+    mockOnSignup.mockRejectedValueOnce(new Error('A user with this email already exists'))
+    renderAuthView()
+    const toggles = screen.getAllByRole('button', { name: /Sign Up/i })
+    fireEvent.click(toggles[0])
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/enter your email/i)).toBeInTheDocument()
+    })
+    fireEvent.change(screen.getByPlaceholderText(/enter your email/i), { target: { value: 'existing@example.com' } })
+    fireEvent.change(screen.getByPlaceholderText(/at least 8 characters/i), { target: { value: 'ValidPass123' } })
+    fireEvent.change(screen.getByPlaceholderText(/confirm password/i), { target: { value: 'ValidPass123' } })
+    fireEvent.submit(screen.getByPlaceholderText(/enter your email/i).closest('form')!)
+    await waitFor(() => {
+      expect(mockOnSignup).toHaveBeenCalled()
+      expect(screen.getByText(/already exists|Signup/i)).toBeInTheDocument()
+    })
+  })
 })

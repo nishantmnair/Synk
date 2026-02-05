@@ -38,7 +38,7 @@ class CollectionAdmin(admin.ModelAdmin):
 
 @admin.register(UserPreferences)
 class UserPreferencesAdmin(admin.ModelAdmin):
-    list_display = ['user', 'vibe', 'is_private', 'notifications']
+    list_display = ['user']
 
 
 @admin.register(Couple)

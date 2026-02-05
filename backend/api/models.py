@@ -106,7 +106,7 @@ class Activity(models.Model):
     action = models.CharField(max_length=100)
     item = models.CharField(max_length=200)
     timestamp = models.CharField(max_length=50)
-    avatar = models.URLField()
+    avatar = models.TextField()  # Supports both HTTP URLs and data URLs (SVG avatars)
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
@@ -155,7 +155,7 @@ class UserPreferences(models.Model):
     anniversary = models.DateField(blank=True, null=True)
     is_private = models.BooleanField(default=True)
     notifications = models.BooleanField(default=True)
-    vibe = models.CharField(max_length=200, default='Feeling adventurous')
+    vibe = models.CharField(default='Feeling adventurous', max_length=200, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:

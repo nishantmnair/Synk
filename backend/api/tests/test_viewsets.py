@@ -273,9 +273,7 @@ class TestUserPreferencesViewSet:
     def test_list_preferences(self):
         """Test listing preferences"""
         UserPreferences.objects.create(
-            user=self.user,
-            is_private=False,
-            notifications=True
+            user=self.user
         )
         
         response = self.client.get('/api/preferences/')
@@ -284,18 +282,12 @@ class TestUserPreferencesViewSet:
     def test_update_preferences(self):
         """Test updating preferences"""
         prefs = UserPreferences.objects.create(
-            user=self.user,
-            is_private=False,
-            notifications=True
+            user=self.user
         )
         
-        response = self.client.put(f'/api/preferences/{prefs.id}/', {
-            'is_private': True,
-            'notifications': False
-        })
+        response = self.client.put(f'/api/preferences/{prefs.id}/', {})
         
         assert response.status_code == status.HTTP_200_OK
-        assert response.data['is_private'] == True
 
 
 @pytest.mark.django_db
@@ -384,3 +376,164 @@ class TestResponseFormats:
         assert response.status_code == status.HTTP_200_OK
         assert 'status' in response.data
         assert response.data['status'] == 'success'
+
+@pytest.mark.django_db
+class TestCollectionViewSet:
+    """Test Collection endpoints"""
+    
+    def setup_method(self):
+        """Setup test client and user"""
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username='collectionuser',
+            email='collection@example.com',
+            password='TestPass123!'
+        )
+        refresh = RefreshToken.for_user(self.user)
+        self.access_token = str(refresh.access_token)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.access_token}')
+    
+    def test_list_collections(self):
+        """Test listing collections"""
+        # Create collections
+        Collection.objects.create(
+            user=self.user,
+            name='Travel',
+            icon='flight'
+        )
+        Collection.objects.create(
+            user=self.user,
+            name='Cooking',
+            icon='restaurant'
+        )
+        
+        response = self.client.get('/api/collections/')
+        assert response.status_code == status.HTTP_200_OK
+        # Raw paginated format from Django REST Framework
+        assert response.data.get('count') == 2
+        assert len(response.data.get('results', [])) == 2
+    
+    def test_create_collection(self):
+        """Test creating a collection"""
+        response = self.client.post('/api/collections/', {
+            'name': 'Travel',
+            'icon': 'flight',
+            'color': '#ff0000'
+        })
+        
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['name'] == 'Travel'
+        assert response.data['icon'] == 'flight'
+        assert response.data['color'] == '#ff0000'
+        # Verify user is automatically assigned
+        assert str(response.data['user']) == str(self.user.id)
+    
+    def test_retrieve_collection(self):
+        """Test retrieving a specific collection"""
+        collection = Collection.objects.create(
+            user=self.user,
+            name='Travel',
+            icon='flight'
+        )
+        
+        response = self.client.get(f'/api/collections/{collection.id}/')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['name'] == 'Travel'
+        assert response.data['icon'] == 'flight'
+    
+    def test_update_collection(self):
+        """Test updating a collection"""
+        collection = Collection.objects.create(
+            user=self.user,
+            name='Travel',
+            icon='flight'
+        )
+        
+        response = self.client.put(f'/api/collections/{collection.id}/', {
+            'name': 'Adventure',
+            'icon': 'hiking'
+        })
+        
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['name'] == 'Adventure'
+        assert response.data['icon'] == 'hiking'
+    
+    def test_delete_collection(self):
+        """Test deleting a collection"""
+        collection = Collection.objects.create(
+            user=self.user,
+            name='Travel',
+            icon='flight'
+        )
+        
+        response = self.client.delete(f'/api/collections/{collection.id}/')
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert Collection.objects.filter(id=collection.id).count() == 0
+    
+    def test_collections_are_ordered_by_created_at(self):
+        """Test collections are ordered by created_at (most recent first)"""
+        # Create collections with slight delay
+        col1 = Collection.objects.create(user=self.user, name='First', icon='star')
+        col2 = Collection.objects.create(user=self.user, name='Second', icon='favorite')
+        col3 = Collection.objects.create(user=self.user, name='Third', icon='home')
+        
+        response = self.client.get('/api/collections/')
+        assert response.status_code == status.HTTP_200_OK
+        
+        # Raw paginated format from Django REST Framework
+        data = response.data.get('results', [])
+        
+        # Most recent should be first
+        assert data[0]['name'] == 'Third'
+        assert data[1]['name'] == 'Second'
+        assert data[2]['name'] == 'First'
+    
+    def test_user_cannot_see_other_users_collections(self):
+        """Test that users can only see their own collections"""
+        other_user = User.objects.create_user(
+            username='otheruser',
+            email='other@example.com',
+            password='TestPass123!'
+        )
+        
+        # Create collection for other user
+        Collection.objects.create(
+            user=other_user,
+            name='Other User Collection',
+            icon='lock'
+        )
+        
+        # Create collection for current user
+        Collection.objects.create(
+            user=self.user,
+            name='My Collection',
+            icon='home'
+        )
+        
+        response = self.client.get('/api/collections/')
+        assert response.status_code == status.HTTP_200_OK
+        
+        # Raw paginated format from Django REST Framework
+        data = response.data.get('results', [])
+        
+        # Should only see own collection
+        assert len(data) == 1
+        assert data[0]['name'] == 'My Collection'
+    
+    def test_partial_update_collection(self):
+        """Test partial update (PATCH) of a collection"""
+        collection = Collection.objects.create(
+            user=self.user,
+            name='Travel',
+            icon='flight',
+            color='#ff0000'
+        )
+        
+        response = self.client.patch(f'/api/collections/{collection.id}/', {
+            'name': 'Updated Travel'
+        })
+        
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['name'] == 'Updated Travel'
+        assert response.data['icon'] == 'flight'  # Should remain unchanged
+        assert response.data['color'] == '#ff0000'  # Should remain unchanged

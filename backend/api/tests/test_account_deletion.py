@@ -196,8 +196,7 @@ class TestAccountDeletionEndpoint:
         
         # Create preferences
         UserPreferences.objects.create(
-            user=user,
-            vibe='Feeling adventurous'
+            user=user
         )
         
         assert UserPreferences.objects.filter(user_id=user.id).exists()

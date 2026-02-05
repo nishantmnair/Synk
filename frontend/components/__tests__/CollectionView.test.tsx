@@ -38,7 +38,6 @@ const renderWithRouter = (collectionId: string, tasks = defaultTasks, collection
 describe('CollectionView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.stubGlobal('prompt', vi.fn())
   })
 
   it('renders collection not found when collectionId does not match', () => {
@@ -80,26 +79,41 @@ describe('CollectionView', () => {
     expect(screen.getByText(/1 shared items/)).toBeInTheDocument()
   })
 
-  it('Quick Add Idea button opens prompt and calls onAddTask when title entered', () => {
-    const promptMock = vi.mocked(global.prompt)
-    promptMock.mockReturnValue('New idea')
+  it('Quick Add Idea button opens modal and calls onAddTask when title entered', () => {
     renderWithRouter('1')
     fireEvent.click(screen.getByRole('button', { name: /Quick Add Idea/i }))
-    expect(promptMock).toHaveBeenCalled()
+    
+    // Modal should be visible
+    expect(screen.getByPlaceholderText(/What.*idea do you have/i)).toBeInTheDocument()
+    
+    // Enter text in the input
+    const input = screen.getByPlaceholderText(/What.*idea do you have/i) as HTMLInputElement
+    fireEvent.change(input, { target: { value: 'New hiking idea' } })
+    
+    // Click the Add button
+    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }))
+    
+    // Verify onAddTask was called
     expect(mockOnAddTask).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: 'New idea',
+        title: 'New hiking idea',
         category: 'Adventure',
         status: TaskStatus.BACKLOG,
       })
     )
   })
 
-  it('Quick Add Idea does not call onAddTask when prompt cancelled', () => {
-    const promptMock = vi.mocked(global.prompt)
-    promptMock.mockReturnValue(null)
+  it('Quick Add Idea modal closes when Cancel button is clicked', () => {
     renderWithRouter('1')
     fireEvent.click(screen.getByRole('button', { name: /Quick Add Idea/i }))
+    
+    // Modal input should be visible
+    expect(screen.getByPlaceholderText(/What.*idea do you have/i)).toBeInTheDocument()
+    
+    // Click Cancel
+    fireEvent.click(screen.getByRole('button', { name: /Cancel/i }))
+    
+    // Verify onAddTask was not called
     expect(mockOnAddTask).not.toHaveBeenCalled()
   })
 })

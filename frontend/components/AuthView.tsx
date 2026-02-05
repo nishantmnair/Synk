@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getActionErrorMessage } from '../utils/errorMessages';
 
 interface AuthViewProps {
   onLogin: (email: string, password: string) => Promise<void>;
@@ -70,7 +71,11 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup }) => {
         await onLogin(email, password);
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : (isSignup ? 'Signup failed.' : 'Login failed.'));
+      const errorMsg = getActionErrorMessage(
+        isSignup ? 'signup' : 'login',
+        err
+      );
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -127,31 +132,31 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup }) => {
                     placeholder="Enter your email"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label htmlFor="first-name" className="block text-sm text-secondary mb-1">First name</label>
-                    <input
-                      id="first-name"
-                      type="text"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      className="w-full bg-white/5 border border-subtle rounded-lg px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent"
-                      placeholder="First name"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label htmlFor="first-name" className="block text-sm text-secondary mb-1">First name</label>
+                      <input
+                        id="first-name"
+                        type="text"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="w-full bg-white/5 border border-subtle rounded-lg px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent"
+                        placeholder="First name"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="last-name" className="block text-sm text-secondary mb-1">Last name</label>
+                      <input
+                        id="last-name"
+                        type="text"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="w-full bg-white/5 border border-subtle rounded-lg px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent"
+                        placeholder="Last name"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label htmlFor="last-name" className="block text-sm text-secondary mb-1">Last name</label>
-                    <input
-                      id="last-name"
-                      type="text"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      className="w-full bg-white/5 border border-subtle rounded-lg px-3 py-2 text-primary text-sm focus:outline-none focus:border-accent"
-                      placeholder="Last name"
-                    />
-                  </div>
-                </div>
-              </>
+                </>
             )}
 
             {!isSignup && (

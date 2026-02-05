@@ -108,3 +108,51 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Mobile-first responsive utilities */
+@media (max-width: 767px) {
+  /* Ensure touch targets are at least 44x44px on mobile */
+  button, a[role="button"], .btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Prevent horizontal scrolling on mobile */
+  body, html {
+    overflow-x: hidden;
+  }
+
+  /* Improve readability on mobile */
+  body {
+    font-size: 16px; /* Prevents zoom on iOS input focus */
+  }
+
+  input, textarea, select {
+    font-size: 16px; /* Prevents zoom on iOS input focus */
+  }
+}
+
+/* Tablet breakpoint (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* Optimize spacing for tablet */
+  .p-6 {
+    @apply p-4;
+  }
+  
+  .md\:p-12 {
+    @apply p-8;
+  }
+}
+
+/* Desktop breakpoint and above (1024px+) */
+@media (min-width: 1024px) {
+  /* Optimize for desktop viewing */
+}
+
+/* Landscape mobile devices */
+@media (max-height: 500px) and (orientation: landscape) {
+  /* Reduce vertical padding on short screens */
+  .p-6 {
+    @apply p-3;
+  }
+}

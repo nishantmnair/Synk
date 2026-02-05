@@ -3,6 +3,15 @@ import { djangoAuthService } from './djangoAuth';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+interface ApiError {
+  message?: string;
+  detail?: string;
+  error?: string;
+  errors?: Record<string, string[]>;
+  error_code?: string;
+  status?: string;
+}
+
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   let token = await djangoAuthService.getAccessToken();
   
@@ -36,11 +45,23 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   }
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'Request failed' })) as { detail?: string; error?: string };
-    throw new Error(error.detail || error.error || `HTTP error! status: ${response.status}`);
+    const errorData = await response.json().catch(() => ({ detail: 'Request failed' })) as ApiError;
+    
+    // Create a custom error with the full response data
+    const error = new Error(errorData.message || errorData.detail || errorData.error || 'Request failed');
+    // Attach the full error response for better error handling
+    Object.assign(error, { data: errorData, status: response.status });
+    throw error;
   }
 
-  return response.json();
+  const data = await response.json();
+  
+  // Handle paginated responses from DRF - extract results array if present
+  if (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results)) {
+    return data.results as T;
+  }
+  
+  return data;
 }
 
 // Tasks API

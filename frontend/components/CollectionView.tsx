@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Task, Collection, TaskStatus } from '../types';
 
@@ -11,6 +11,8 @@ interface CollectionViewProps {
 
 const CollectionView: React.FC<CollectionViewProps> = ({ tasks, collections, onAddTask }) => {
   const { collectionId } = useParams<{ collectionId: string }>();
+  const [isAddingTask, setIsAddingTask] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
   const collection = collections.find(c => c.id === collectionId);
   
   if (!collection) {
@@ -24,6 +26,25 @@ const CollectionView: React.FC<CollectionViewProps> = ({ tasks, collections, onA
   }
 
   const filteredTasks = tasks.filter(t => t.category.toLowerCase() === collection.name.toLowerCase());
+
+  const handleAddTask = () => {
+    if (!newTaskTitle.trim()) return;
+    onAddTask({
+        id: Math.random().toString(36).substr(2, 9),
+        title: newTaskTitle,
+        category: collection.name,
+        priority: 'medium',
+        status: TaskStatus.BACKLOG,
+        liked: false,
+        fired: false,
+        progress: 0,
+        alexProgress: 0,
+        samProgress: 0,
+        avatars: []
+    });
+    setNewTaskTitle('');
+    setIsAddingTask(false);
+  };
 
   return (
     <div className="h-full overflow-y-auto custom-scrollbar p-6 md:p-10">
@@ -41,24 +62,7 @@ const CollectionView: React.FC<CollectionViewProps> = ({ tasks, collections, onA
           </div>
           
           <button 
-            onClick={() => {
-                const title = prompt(`What ${collection.name} idea do you have?`);
-                if (title) {
-                    onAddTask({
-                        id: Math.random().toString(36).substr(2, 9),
-                        title,
-                        category: collection.name,
-                        priority: 'medium',
-                        status: TaskStatus.BACKLOG,
-                        liked: false,
-                        fired: false,
-                        progress: 0,
-                        alexProgress: 0,
-                        samProgress: 0,
-                        avatars: []
-                    });
-                }
-            }}
+            onClick={() => setIsAddingTask(true)}
             className="bg-white/5 border border-subtle hover:bg-white/10 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all"
           >
             <span className="material-symbols-outlined text-base text-accent">add</span>
@@ -130,6 +134,49 @@ const CollectionView: React.FC<CollectionViewProps> = ({ tasks, collections, onA
           </div>
         )}
       </div>
+
+      {/* Add Task Modal */}
+      {isAddingTask && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setIsAddingTask(false)}></div>
+          <div className="relative bg-card border border-subtle rounded-2xl w-full max-w-lg overflow-hidden">
+            <div className="p-4 border-b border-subtle flex items-center justify-between">
+              <h3 className="text-sm font-bold">Add to {collection.name}</h3>
+              <button onClick={() => setIsAddingTask(false)} className="material-symbols-outlined text-secondary text-lg">close</button>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); handleAddTask(); }} className="p-4 space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="task-title" className="text-xs font-bold text-secondary uppercase">What is your idea?</label>
+                <input
+                  id="task-title"
+                  autoFocus
+                  type="text"
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  placeholder={`What ${collection.name} idea do you have?`}
+                  className="w-full bg-white/5 border border-subtle rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddingTask(false)}
+                  className="flex-1 px-4 py-2 bg-white/5 border border-subtle rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-white/10 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!newTaskTitle.trim()}
+                  className="flex-1 px-4 py-2 bg-accent text-white rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Add
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

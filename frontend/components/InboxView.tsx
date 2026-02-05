@@ -63,13 +63,11 @@ const InboxView: React.FC<InboxViewProps> = ({ suggestions, onAccept, onSave, on
           }
         }
       });
-    } else {
-      if (window.confirm('Are you sure you want to decline this suggestion?')) {
-        onDecline(selected.id);
-        if (suggestions.length > 1) {
-          const nextSuggestion = suggestions.find(s => s.id !== selected.id);
-          if (nextSuggestion) setSelectedId(nextSuggestion.id);
-        }
+    } else if (window.confirm('Are you sure you want to decline this suggestion?')) {
+      onDecline(selected.id);
+      if (suggestions.length > 1) {
+        const nextSuggestion = suggestions.find(s => s.id !== selected.id);
+        if (nextSuggestion) setSelectedId(nextSuggestion.id);
       }
     }
   };
@@ -94,9 +92,9 @@ const InboxView: React.FC<InboxViewProps> = ({ suggestions, onAccept, onSave, on
   }, [selectedId, excitement]);
 
   return (
-    <div className="h-full flex overflow-hidden">
-      {/* List */}
-      <div className="w-96 border-r border-subtle flex flex-col shrink-0 overflow-y-auto custom-scrollbar bg-main/20">
+    <div className="h-full flex flex-col md:flex-row overflow-hidden">
+      {/* List - Stack on mobile, side-by-side on desktop */}
+      <div className="w-full md:w-96 border-b md:border-b-0 md:border-r border-subtle flex flex-col shrink-0 overflow-y-auto custom-scrollbar bg-main/20 max-h-96 md:max-h-full">
         <div className="p-4 space-y-1">
           <div className="px-2 py-2 text-[10px] font-bold text-secondary uppercase tracking-widest">Partner Suggestions</div>
           {suggestions.map(s => (

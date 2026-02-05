@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Task, Milestone, Suggestion, Activity, TaskStatus, Collection } from './types';
 import BoardView from './components/BoardView';
@@ -39,14 +39,34 @@ const App: React.FC = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
-  const [vibe, setVibe] = useState('Feeling adventurous');
-  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
-  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    // Check localStorage first, otherwise use window width as default
+    try {
+      const saved = localStorage.getItem('synk_rightSidebar');
+      if (saved !== null) return JSON.parse(saved);
+    } catch {
+      // localStorage not available
+    }
+    return window.innerWidth >= 1024; // Only open by default on desktop (lg breakpoint)
+  });
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    // Check localStorage first, otherwise use window width as default
+    try {
+      const saved = localStorage.getItem('synk_leftSidebar');
+      if (saved !== null) return JSON.parse(saved);
+    } catch {
+      // localStorage not available
+    }
+    return window.innerWidth >= 1024; // Only open by default on desktop (lg breakpoint)
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [theme, setTheme] = useState<'light' | 'dark'>(() =>
     (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'light') ? 'light' : 'dark'
   );
-
+  // Track if real-time listeners have been registered
+  const listenersRegisteredRef = useRef(false);
   // Notification helpers
   const showToast = (message: string, type: ToastType = 'success') => {
     setToast({ message, type });
@@ -55,6 +75,23 @@ const App: React.FC = () => {
   const showConfirm = (config: Omit<ConfirmDialogProps, 'onConfirm' | 'onCancel'> & { onConfirm: () => void }) => {
     setConfirmDialog(config);
   };
+
+  // Persist sidebar states to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('synk_rightSidebar', JSON.stringify(isRightSidebarOpen));
+    } catch {
+      // localStorage not available
+    }
+  }, [isRightSidebarOpen]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('synk_leftSidebar', JSON.stringify(isLeftSidebarOpen));
+    } catch {
+      // localStorage not available
+    }
+  }, [isLeftSidebarOpen]);
 
   // Transform Django snake_case to frontend camelCase
   const transformTask = (task: any): Task => ({
@@ -116,28 +153,42 @@ const App: React.FC = () => {
   const loadData = async () => {
     try {
       const [tasksData, milestonesData, activitiesData, suggestionsData, collectionsData, preferencesData] = await Promise.all([
-        tasksApi.getAll().catch(() => []),
-        milestonesApi.getAll().catch(() => []),
-        activitiesApi.getAll(50).catch(() => []),
-        suggestionsApi.getAll().catch(() => []),
-        collectionsApi.getAll().catch(() => []),
-        preferencesApi.get().catch(() => null),
+        tasksApi.getAll().catch((err) => {
+          console.error('[DEBUG] Error loading tasks:', err);
+          return [];
+        }),
+        milestonesApi.getAll().catch((err) => {
+          console.error('[DEBUG] Error loading milestones:', err);
+          return [];
+        }),
+        activitiesApi.getAll(50).catch((err) => {
+          console.error('[DEBUG] Error loading activities:', err);
+          return [];
+        }),
+        suggestionsApi.getAll().catch((err) => {
+          console.error('[DEBUG] Error loading suggestions:', err);
+          return [];
+        }),
+        collectionsApi.getAll().catch((err) => {
+          console.error('[DEBUG] Error loading collections:', err, err?.data);
+          return [];
+        }),
+        preferencesApi.get().catch((err) => {
+          console.error('[DEBUG] Error loading preferences:', err);
+          return null;
+        }),
       ]);
+
+      console.log('[DEBUG] Collections fetched from API:', collectionsData);
 
       // Only set data if arrays are returned (not empty errors)
       setTasks((tasksData as any[]).length > 0 ? (tasksData as any[]).map(transformTask) : []);
       setMilestones((milestonesData as any[]).length > 0 ? (milestonesData as any[]).map(transformMilestone) : []);
       setActivities((activitiesData as any[]).length > 0 ? (activitiesData as any[]).map(transformActivity) : []);
       setSuggestions((suggestionsData as any[]).length > 0 ? (suggestionsData as any[]).map(transformSuggestion) : []);
-      setCollections((collectionsData as any[]).length > 0 ? (collectionsData as any[]).map(transformCollection) : []);
-      
-      if (preferencesData) {
-        const prefs = preferencesData as { vibe?: string };
-        setVibe(prefs.vibe || 'Feeling adventurous');
-      } else {
-        // Set default vibe if no preferences exist
-        setVibe('Feeling adventurous');
-      }
+      const transformedCollections = (collectionsData as any[]).length > 0 ? (collectionsData as any[]).map(transformCollection) : [];
+      console.log('[DEBUG] Transformed collections:', transformedCollections);
+      setCollections(transformedCollections);
     } catch (error) {
       console.error('Error loading data:', error);
     }
@@ -145,7 +196,9 @@ const App: React.FC = () => {
 
   // Set up real-time listeners
   useEffect(() => {
-    if (!isLoggedIn) return;
+    if (!isLoggedIn || listenersRegisteredRef.current) return;
+
+    listenersRegisteredRef.current = true;
 
     const setupRealtimeListeners = () => {
       djangoRealtimeService.on('task:created', (data: any) => {
@@ -188,7 +241,12 @@ const App: React.FC = () => {
       });
 
       djangoRealtimeService.on('collection:created', (data: any) => {
-        setCollections(prev => [transformCollection(data), ...prev]);
+        setCollections(prev => {
+          // Prevent duplicates by checking if collection already exists
+          const exists = prev.some(c => c.id === String(data.id));
+          if (exists) return prev;
+          return [transformCollection(data), ...prev];
+        });
       });
       djangoRealtimeService.on('collection:updated', (data: any) => {
         setCollections(prev => prev.map(c => c.id === String(data.id) ? transformCollection(data) : c));
@@ -197,17 +255,27 @@ const App: React.FC = () => {
         const collectionId = typeof data.id === 'number' ? data.id.toString() : data.id;
         setCollections(prev => prev.filter(c => c.id !== collectionId));
       });
-
-      djangoRealtimeService.on('preferences:updated', (data: any) => {
-        const prefs = data as { vibe?: string };
-        if (prefs.vibe) setVibe(prefs.vibe);
-      });
     };
 
     setupRealtimeListeners();
 
     return () => {
-      // Cleanup listeners if needed
+      // Cleanup only on logout
+      if (!isLoggedIn) {
+        listenersRegisteredRef.current = false;
+        djangoRealtimeService.off('task:created');
+        djangoRealtimeService.off('task:updated');
+        djangoRealtimeService.off('task:deleted');
+        djangoRealtimeService.off('milestone:created');
+        djangoRealtimeService.off('milestone:updated');
+        djangoRealtimeService.off('milestone:deleted');
+        djangoRealtimeService.off('activity:created');
+        djangoRealtimeService.off('suggestion:created');
+        djangoRealtimeService.off('suggestion:deleted');
+        djangoRealtimeService.off('collection:created');
+        djangoRealtimeService.off('collection:updated');
+        djangoRealtimeService.off('collection:deleted');
+      }
     };
   }, [isLoggedIn]);
 
@@ -215,6 +283,7 @@ const App: React.FC = () => {
   useEffect(() => {
     // Check if user is already logged in
     djangoAuthService.getCurrentUser().then(async (user) => {
+      console.log('[DEBUG] Current user check result:', user);
       if (user) {
         setCurrentUser(user);
         setIsLoggedIn(true);
@@ -228,6 +297,7 @@ const App: React.FC = () => {
 
     // Listen for auth state changes
     const unsubscribe = djangoAuthService.onAuthStateChange(async (user) => {
+      console.log('[DEBUG] Auth state changed:', user);
       if (user) {
         setCurrentUser(user);
         setIsLoggedIn(true);
@@ -243,7 +313,6 @@ const App: React.FC = () => {
         setActivities([]);
         setSuggestions([]);
         setCollections([]);
-        setVibe('Feeling adventurous');
         // Clear the hash when logging out
         window.location.hash = '';
       }
@@ -362,20 +431,17 @@ const App: React.FC = () => {
         timestamp: 'Just now',
         avatar: getUserAvatar(currentUser)
       };
-      const created = await activitiesApi.create(newActivity);
-      setActivities(prev => [transformActivity(created), ...prev]);
+      await activitiesApi.create(newActivity);
     } catch (error) {
+      // Log detailed error information for debugging
+      if (error instanceof Error && (error as any).data) {
+        const errorData = (error as any).data;
+        if (errorData.errors) {
+          console.error('Validation errors:', errorData.errors);
+        }
+      }
       console.error('Error creating activity:', error);
-      const userName = activityUser || getDisplayName(currentUser);
-      const newActivity: Activity = {
-        id: Math.random().toString(),
-        user: userName,
-        action,
-        item,
-        timestamp: 'Just now',
-        avatar: getUserAvatar(currentUser)
-      };
-      setActivities(prev => [newActivity, ...prev]);
+      // Don't show error to user as activity logging is secondary
     }
   };
 
@@ -402,14 +468,11 @@ const App: React.FC = () => {
         location: newTask.location,
         avatars: taskAvatars,
       };
-      const created = await tasksApi.create(djangoTask);
-      setTasks(prev => [...prev, transformTask(created)]);
+      await tasksApi.create(djangoTask);
       await addActivity('added', `${newTask.title} to ${newTask.status}`);
     } catch (error) {
       console.error('Error creating task:', error);
-      // Fallback to local state
-      setTasks(prev => [...prev, newTask]);
-      addActivity('added', `${newTask.title} to ${newTask.status}`);
+      showToast?.('Failed to add task', 'error');
     }
   };
 
@@ -424,20 +487,14 @@ const App: React.FC = () => {
       delete djangoUpdates.alexProgress;
       delete djangoUpdates.samProgress;
       
-      const updated = await tasksApi.update(taskIdNum, djangoUpdates);
-      setTasks(prev => prev.map(t => t.id === taskId ? transformTask(updated) : t));
+      await tasksApi.update(taskIdNum, djangoUpdates);
       if (updates.status) {
         const task = tasks.find(t => t.id === taskId);
         if (task) await addActivity('moved', `${task.title} to ${updates.status}`);
       }
     } catch (error) {
       console.error('Error updating task:', error);
-      // Fallback to local state
-      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
-      if (updates.status) {
-        const task = tasks.find(t => t.id === taskId);
-        if (task) addActivity('moved', `${task.title} to ${updates.status}`);
-      }
+      showToast?.('Failed to update task', 'error');
     }
   };
 
@@ -447,34 +504,48 @@ const App: React.FC = () => {
       if (isNaN(taskIdNum)) throw new Error('Invalid task ID');
       const task = tasks.find(t => t.id === taskId);
       await tasksApi.delete(taskIdNum);
-      setTasks(prev => prev.filter(t => t.id !== taskId));
       if (task) await addActivity('removed', task.title);
     } catch (error) {
       console.error('Error deleting task:', error);
-      // Fallback to local state
-      const task = tasks.find(t => t.id === taskId);
-      if (task) {
-        setTasks(prev => prev.filter(t => t.id !== taskId));
-        addActivity('removed', task.title);
-      }
+      showToast?.('Failed to delete task', 'error');
     }
   };
 
   const addCollection = async (name: string, icon: string) => {
     try {
       const newCol = { name, icon };
-      const created = await collectionsApi.create(newCol);
-      setCollections(prev => [...prev, transformCollection(created)]);
+      await collectionsApi.create(newCol);
       await addActivity('created', `the ${name} collection`);
     } catch (error) {
       console.error('Error creating collection:', error);
-      // Fallback to local state
-      const id = name.toLowerCase().replace(/\s+/g, '-');
-      if (collections.find(c => c.id === id)) return;
-      const newCol: Collection = { id, name, icon };
-      setCollections([...collections, newCol]);
-      addActivity('created', `the ${name} collection`);
+      showToast?.('Failed to create collection', 'error');
     }
+  };
+
+  const deleteCollection = async (collectionId: string) => {
+    const collectionToDelete = collections.find(c => c.id === collectionId);
+    if (!collectionToDelete) return;
+
+    // Show confirmation dialog
+    showConfirm({
+      title: 'Delete Collection?',
+      message: `Are you sure you want to delete "${collectionToDelete.name}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      isDangerous: true,
+      onConfirm: async () => {
+        try {
+          const collectionIdNum = parseInt(collectionId);
+          if (isNaN(collectionIdNum)) throw new Error('Invalid collection ID');
+          await collectionsApi.delete(collectionIdNum);
+          await addActivity('deleted', `the ${collectionToDelete.name} collection`);
+          showToast('Collection deleted successfully', 'success');
+        } catch (error) {
+          console.error('Error deleting collection:', error);
+          showToast('Failed to delete collection', 'error');
+        }
+      }
+    });
   };
 
   const addSuggestionFromIdea = async (payload: {
@@ -488,11 +559,11 @@ const App: React.FC = () => {
     tags: string[];
   }) => {
     try {
-      const created = await suggestionsApi.create(payload);
-      setSuggestions(prev => [transformSuggestion(created), ...prev]);
+      await suggestionsApi.create(payload);
       await addActivity('suggested', payload.title);
     } catch (error) {
       console.error('Error saving date idea to inbox:', error);
+      showToast?.('Failed to save suggestion', 'error');
     }
   };
 
@@ -545,9 +616,9 @@ const App: React.FC = () => {
         <div className={`transition-all duration-300 ease-in-out border-r border-subtle bg-sidebar overflow-hidden shrink-0 ${isLeftSidebarOpen ? 'w-60' : 'w-0 border-r-0'}`}>
           <div className="w-60 h-full">
             <Sidebar 
-              vibe={vibe} 
               collections={collections} 
-              onAddCollection={addCollection} 
+              onAddCollection={addCollection}
+              onDeleteCollection={deleteCollection}
               onToggle={toggleLeftSidebar}
               suggestionsCount={suggestions.length}
             />
@@ -557,8 +628,6 @@ const App: React.FC = () => {
         <div className="flex-1 flex flex-col min-w-0 bg-main">
           <Header 
             currentUser={currentUser}
-            vibe={vibe}
-            onVibeChange={(v) => setVibe(v)}
             onToggleRightSidebar={toggleRightSidebar} 
             isRightSidebarOpen={isRightSidebarOpen} 
             onToggleLeftSidebar={toggleLeftSidebar}
@@ -574,8 +643,8 @@ const App: React.FC = () => {
           
           <main className="flex-1 overflow-hidden relative">
             <Routes>
-              <Route path="/" element={<TodayView tasks={tasks} vibe={vibe} onShareAnswer={() => addActivity('answered', "today's connection prompt")} />} />
-              <Route path="/today" element={<TodayView tasks={tasks.filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.category.toLowerCase().includes(searchQuery.toLowerCase()))} vibe={vibe} onShareAnswer={() => addActivity('answered', "today's connection prompt")} />} />
+              <Route path="/" element={<TodayView tasks={tasks} onShareAnswer={() => addActivity('answered', "today's connection prompt")} />} />
+              <Route path="/today" element={<TodayView tasks={tasks.filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.category.toLowerCase().includes(searchQuery.toLowerCase()))} onShareAnswer={() => addActivity('answered', "today's connection prompt")} />} />
               <Route path="/board" element={<BoardView tasks={tasks.filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.category.toLowerCase().includes(searchQuery.toLowerCase()))} setTasks={setTasks} onAction={addActivity} onAddTask={addTask} onUpdateTask={updateTask} onDeleteTask={deleteTask} showConfirm={showConfirm} />} />
               <Route path="/milestones" element={<MilestonesView milestones={milestones} />} />
               <Route path="/inbox" element={<InboxView suggestions={suggestions} onAccept={addTask} onSave={() => {}} onDecline={(id) => setSuggestions(prev => prev.filter(s => s.id !== id))} showToast={showToast} showConfirm={showConfirm} />} />

@@ -251,7 +251,12 @@ class CollectionSerializer(serializers.ModelSerializer):
         return data
     
     def create(self, validated_data):
-        validated_data['user'] = self.context['request'].user
+        # Always set the user from the request context
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['user'] = request.user
+        elif 'user' not in validated_data:
+            raise serializers.ValidationError("User is required to create a collection")
         return super().create(validated_data)
 
 
@@ -262,7 +267,7 @@ class UserPreferencesSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserPreferences
         fields = [
-            'id', 'anniversary', 'is_private', 'notifications', 'vibe', 'updated_at'
+            'id', 'anniversary', 'updated_at'
         ]
         read_only_fields = ['id', 'updated_at']
     

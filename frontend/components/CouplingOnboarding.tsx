@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { coupleApi, couplingCodeApi } from '../services/djangoApi';
 import { User } from '../services/djangoAuth';
 import { getDisplayName } from '../utils/userDisplay';
+import { getActionErrorMessage } from '../utils/errorMessages';
 
 interface CouplingOnboardingProps {
   currentUser: User | null;
@@ -19,11 +20,32 @@ const CouplingOnboarding: React.FC<CouplingOnboardingProps> = ({ onComplete, sho
   const [error, setError] = useState('');
   const [isCoupled, setIsCoupled] = useState(false);
   const [partner, setPartner] = useState<User | null>(null);
+  const [successfullyJoined, setSuccessfullyJoined] = useState(false);
 
   // Check if already coupled
   useEffect(() => {
     checkCoupleStatus();
   }, []);
+
+  // Handle auto-completion after coupling
+  useEffect(() => {
+    if (isCoupled && partner) {
+      const timer = setTimeout(() => {
+        onComplete();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isCoupled, partner, onComplete]);
+
+  // Handle completion after successfully joining with a code
+  useEffect(() => {
+    if (successfullyJoined) {
+      const timer = setTimeout(() => {
+        onComplete();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [successfullyJoined, onComplete]);
 
   const checkCoupleStatus = async () => {
     try {
@@ -31,10 +53,6 @@ const CouplingOnboarding: React.FC<CouplingOnboardingProps> = ({ onComplete, sho
       if (coupleData.is_coupled && coupleData.partner) {
         setIsCoupled(true);
         setPartner(coupleData.partner);
-        // Auto-complete if already coupled
-        setTimeout(() => {
-          onComplete();
-        }, 2000);
       }
     } catch (error) {
       // Not coupled, continue with onboarding
@@ -50,7 +68,8 @@ const CouplingOnboarding: React.FC<CouplingOnboardingProps> = ({ onComplete, sho
       setCodeExpiresAt(codeData.expires_at);
       setStep('generate');
     } catch (error: any) {
-      setError(error.message || 'Failed to generate code');
+      const errorMsg = getActionErrorMessage('generate_code', error);
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -58,7 +77,12 @@ const CouplingOnboarding: React.FC<CouplingOnboardingProps> = ({ onComplete, sho
 
   const useCouplingCode = async () => {
     if (!joinCode.trim()) {
-      setError('Please enter a coupling code');
+      setError('Please enter an 8-character coupling code');
+      return;
+    }
+
+    if (joinCode.length !== 8) {
+      setError('Coupling code must be 8 characters long');
       return;
     }
     
@@ -69,12 +93,11 @@ const CouplingOnboarding: React.FC<CouplingOnboardingProps> = ({ onComplete, sho
       await checkCoupleStatus();
       setJoinCode('');
       setIsCoupled(true);
-      // Complete onboarding after successful coupling
-      setTimeout(() => {
-        onComplete();
-      }, 1500);
+      setSuccessfullyJoined(true);
+      showToast?.('Connected! You can now share your couple space.', 'success');
     } catch (error: any) {
-      setError(error.message || 'Invalid or expired code');
+      const errorMsg = getActionErrorMessage('use_code', error);
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }

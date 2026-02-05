@@ -42,7 +42,7 @@ const AnswerModal: React.FC<AnswerModalProps> = ({ prompt, isOpen, onClose, onSu
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="bg-romantic/5 border border-romantic/10 rounded-lg p-4">
             <p className="text-sm text-secondary italic leading-relaxed">
-              &ldquo;{prompt}&rdquo;
+              "{prompt}"
             </p>
           </div>
 

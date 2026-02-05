@@ -206,8 +206,8 @@ class CollectionViewSet(PartnerResolutionMixin, BroadcastMixin, viewsets.ModelVi
         # Get collections for user and their partner if coupled
         partner = self.get_partner(user)
         if partner:
-            return Collection.objects.filter(user__in=[user, partner])
-        return Collection.objects.filter(user=user)
+            return Collection.objects.filter(user__in=[user, partner]).order_by('-created_at')
+        return Collection.objects.filter(user=user).order_by('-created_at')
     
     def perform_create(self, serializer):
         collection = serializer.save()
@@ -247,8 +247,21 @@ class UserPreferencesViewSet(viewsets.ModelViewSet):
         preferences = serializer.save()
         self._broadcast('preferences:updated', UserPreferencesSerializer(preferences).data)
     
+    def _get_partner(self, user):
+        """Helper to get user's partner if coupled"""
+        try:
+            couple = Couple.objects.get(user1=user)
+            return couple.user2
+        except Couple.DoesNotExist:
+            try:
+                couple = Couple.objects.get(user2=user)
+                return couple.user1
+            except Couple.DoesNotExist:
+                return None
+    
     def _broadcast(self, event_type, data):
         channel_layer = get_channel_layer()
+        # Broadcast to current user
         async_to_sync(channel_layer.group_send)(
             f"user_{self.request.user.id}",
             {
@@ -257,6 +270,16 @@ class UserPreferencesViewSet(viewsets.ModelViewSet):
                 "data": data
             }
         )
+        # Broadcast to partner if coupled
+        if partner := self._get_partner(self.request.user):
+            async_to_sync(channel_layer.group_send)(
+                f"user_{partner.id}",
+                {
+                    "type": "send_message",
+                    "event": event_type,
+                    "data": data
+                }
+            )
 
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):

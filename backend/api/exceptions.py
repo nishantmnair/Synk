@@ -80,7 +80,7 @@ class InvalidCredentialsError(SynkException):
     
     def __init__(self):
         super().__init__(
-            detail="Invalid username or password",
+            detail="Incorrect username or password. Please try again.",
             code="invalid_credentials",
             error_code="invalid_credentials"
         )
@@ -143,8 +143,8 @@ class WeakPasswordError(ValidationError):
     """Raised when password doesn't meet strength requirements"""
     def __init__(self):
         super().__init__(
-            detail="Password is too weak",
+            detail="Password is too weak. Use at least 8 characters including uppercase, lowercase, and numbers.",
             code="weak_password",
             error_code="weak_password",
-            field_errors={"password": ["Password must be at least 8 characters long"]}
+            field_errors={"password": ["Password must be at least 8 characters long with uppercase, lowercase, and numbers"]}
         )

@@ -8,15 +8,13 @@ import { getDisplayName, getEmailOrUsername } from '../utils/userDisplay';
 
 interface HeaderProps {
   currentUser: User | null;
-  vibe: string;
-  onVibeChange?: (v: string) => void;
   onToggleRightSidebar: () => void;
   isRightSidebarOpen: boolean;
   onToggleLeftSidebar: () => void;
   isLeftSidebarOpen: boolean;
   onLogout: () => void;
   searchQuery: string;
-  onSearchChange: (query: string) => void;
+  onSearchChange: (query: string) => string;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   showConfirm: (config: any) => void;
@@ -24,8 +22,6 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ 
   currentUser,
-  vibe,
-  onVibeChange,
   onToggleRightSidebar, 
   isRightSidebarOpen, 
   onToggleLeftSidebar, 
@@ -42,78 +38,6 @@ const Header: React.FC<HeaderProps> = ({
   const navigate = useNavigate();
 
   const toggleProfile = () => setIsProfileOpen(!isProfileOpen);
-
-  // Vibe slot-roller (vertical slot-machine style)
-  const presetVibes = [
-    'Feeling adventurous',
-    'Cozy night in',
-    'Spontaneous',
-    'Romantic',
-    'Feeling curious',
-    'Energetic',
-    'Relaxed',
-    'Playful',
-    'Looking to explore',
-  ];
-
-  const repeats = 20; // how many times to repeat list for smooth rolling
-  const baseRepeatOffset = presetVibes.length * Math.floor(repeats / 2);
-  const initialIndex = baseRepeatOffset + (presetVibes.indexOf(vibe) >= 0 ? presetVibes.indexOf(vibe) : 0);
-
-  const [rollIndex, setRollIndex] = useState<number>(initialIndex);
-  const [transitionMs, setTransitionMs] = useState<number>(120);
-  const rollerRef = React.useRef<number | null>(null);
-  const stopTimerRef = React.useRef<number | null>(null);
-  const finalTargetRef = React.useRef<number | null>(null);
-
-  const startVibeRoll = () => {
-    if (rollerRef.current) return;
-    // choose final target now (start) so it's independent of stop timing
-    finalTargetRef.current = Math.floor(Math.random() * presetVibes.length);
-    setTransitionMs(120);
-    rollerRef.current = window.setInterval(() => {
-      setRollIndex((i) => i + 1);
-    }, 80);
-    // auto-stop after 0.75 seconds
-    stopTimerRef.current = window.setTimeout(() => {
-      stopVibeRoll(true);
-    }, 750);
-  };
-
-  const stopVibeRoll = (commit = true) => {
-    if (!rollerRef.current) return;
-    clearInterval(rollerRef.current);
-    rollerRef.current = null;
-    if (stopTimerRef.current) {
-      clearTimeout(stopTimerRef.current);
-      stopTimerRef.current = null;
-    }
-
-    const len = presetVibes.length;
-    const targetMod = finalTargetRef.current ?? Math.floor(Math.random() * len);
-    finalTargetRef.current = null;
-
-    // compute normalized landing index (center repeat) for the chosen target
-    const normalized = baseRepeatOffset + targetMod;
-    // ensure we spin several cycles before landing for a pleasing effect
-    const cycles = 8;
-    const finalIndex = normalized + cycles * len;
-
-    // animate to finalIndex (slow)
-    setTransitionMs(800);
-    setRollIndex(finalIndex);
-
-    // after animation completes, snap to the normalized index without transition
-    window.setTimeout(() => {
-      setTransitionMs(0);
-      setRollIndex(normalized);
-      // small timeout to ensure DOM updates, then restore transitions
-      window.setTimeout(() => setTransitionMs(120), 50);
-
-      const chosen = presetVibes[targetMod];
-      if (commit && onVibeChange) onVibeChange(chosen);
-    }, 820);
-  };
 
   const handleAction = (action: string) => {
     setIsProfileOpen(false);
@@ -174,40 +98,12 @@ const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center gap-3 ml-4">
         <button
           onClick={onToggleTheme}
-          className="material-symbols-outlined text-secondary hover:text-primary transition-colors text-[20px] w-8 h-8 flex items-center justify-center rounded-md hover:bg-white/5"
+          className="material-symbols-outlined text-secondary hover:text-primary transition-colors text-[20px] w-10 h-10 flex items-center justify-center rounded-md hover:bg-white/5 active:scale-95"
           title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >
           {theme === 'dark' ? 'light_mode' : 'dark_mode'}
         </button>
-        <div className="hidden lg:flex items-center gap-3 px-3 py-1.5 rounded-full bg-card border border-subtle text-sm">
-          <span className="text-base">🤗</span>
-          <div
-            onMouseEnter={startVibeRoll}
-            onMouseLeave={() => stopVibeRoll(true)}
-            onClick={() => stopVibeRoll(true)}
-            title="I'm feeling..."
-            className="overflow-hidden h-5 leading-5 text-xs text-secondary font-medium line-clamp-1 max-w-[180px] text-left"
-            style={{ cursor: 'pointer' }}
-          >
-            <div
-              style={{
-                transform: `translateY(-${rollIndex * 1.25}rem)`,
-                transition: `transform ${transitionMs}ms cubic-bezier(0.22, 1, 0.36, 1)`,
-                willChange: 'transform'
-              }}
-            >
-              {/* render repeated list for smooth rolling */}
-              {Array.from({ length: repeats }).map((_, r) => (
-                <div key={r} className="flex flex-col">
-                  {presetVibes.map((p, i) => (
-                    <div key={i} className="h-5 leading-5 truncate px-1">{p}</div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
         
 
         <div className="relative flex items-center gap-2">

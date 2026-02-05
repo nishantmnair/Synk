@@ -4,18 +4,20 @@ import { Link, useLocation } from 'react-router-dom';
 import { Collection } from '../types';
 
 interface SidebarProps {
-  vibe: string;
   collections: Collection[];
   onAddCollection: (name: string, icon: string) => void;
+  onDeleteCollection?: (collectionId: string) => Promise<void>;
   onToggle: () => void;
   suggestionsCount?: number;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ vibe, collections, onAddCollection, onToggle, suggestionsCount = 0 }) => {
+const Sidebar: React.FC<SidebarProps> = ({ collections, onAddCollection, onDeleteCollection, onToggle, suggestionsCount = 0 }) => {
   const location = useLocation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newColName, setNewColName] = useState('');
   const [newColIcon, setNewColIcon] = useState('folder');
+  const [isLoading, setIsLoading] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; collectionId: string } | null>(null);
 
   const activePath = location.pathname === '/' ? '/today' : location.pathname;
 
@@ -41,12 +43,33 @@ const Sidebar: React.FC<SidebarProps> = ({ vibe, collections, onAddCollection, o
     );
   };
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newColName.trim()) return;
-    onAddCollection(newColName, newColIcon);
-    setNewColName('');
-    setIsModalOpen(false);
+    if (!newColName.trim() || isLoading) return;
+    setIsLoading(true);
+    try {
+      await onAddCollection(newColName, newColIcon);
+      setNewColName('');
+      setIsModalOpen(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent, collectionId: string) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, collectionId });
+  };
+
+  const handleDeleteCollection = async (collectionId: string) => {
+    if (onDeleteCollection) {
+      try {
+        await onDeleteCollection(collectionId);
+        setContextMenu(null);
+      } catch (error) {
+        console.error('Error deleting collection:', error);
+      }
+    }
   };
 
   const ICONS = ['restaurant', 'hiking', 'home', 'movie', 'flight', 'palette', 'fitness_center', 'pets'];
@@ -90,19 +113,15 @@ const Sidebar: React.FC<SidebarProps> = ({ vibe, collections, onAddCollection, o
             </button>
         </div>
         {collections.map(col => (
-            <NavLink key={col.id} to={`/collection/${col.id}`} icon={col.icon} label={col.name} />
+            <div
+              key={col.id}
+              onContextMenu={(e) => handleContextMenu(e, col.id)}
+              className="relative"
+            >
+              <NavLink to={`/collection/${col.id}`} icon={col.icon} label={col.name} />
+            </div>
         ))}
       </nav>
-
-      <div className="p-4 mt-auto">
-        <div className="bg-card/50 border border-subtle rounded-lg p-3">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] text-secondary font-medium uppercase">Vibe</p>
-            <span className="text-xs">✨</span>
-          </div>
-          <p className="text-[11px] text-primary/80 line-clamp-2">{vibe}</p>
-        </div>
-      </div>
 
       {/* Create Collection Modal */}
       {isModalOpen && (
@@ -142,13 +161,36 @@ const Sidebar: React.FC<SidebarProps> = ({ vibe, collections, onAddCollection, o
                 </div>
                 <button 
                     type="submit"
-                    className="w-full bg-accent text-white py-2 rounded-md text-xs font-bold uppercase tracking-wider hover:bg-indigo-500 transition-colors"
+                    disabled={isLoading || !newColName.trim()}
+                    className="w-full bg-accent text-white py-2 rounded-md text-xs font-bold uppercase tracking-wider hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                    Create
+                    {isLoading ? 'Creating...' : 'Create'}
                 </button>
              </form>
           </div>
         </div>
+      )}
+
+      {/* Context Menu for Collections */}
+      {contextMenu && (
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setContextMenu(null)}
+          />
+          <div
+            className="fixed z-50 bg-card border border-subtle rounded-lg shadow-lg py-1 min-w-[150px]"
+            style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}
+          >
+            <button
+              onClick={() => handleDeleteCollection(contextMenu.collectionId)}
+              className="w-full px-4 py-2 text-left text-sm text-romantic hover:bg-white/5 flex items-center gap-2 transition-colors"
+            >
+              <span className="material-symbols-outlined text-base">delete</span>
+              Delete
+            </button>
+          </div>
+        </>
       )}
     </aside>
   );

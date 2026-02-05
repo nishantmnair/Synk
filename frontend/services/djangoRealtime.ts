@@ -90,7 +90,12 @@ class DjangoRealtimeService {
     this.listeners.get(event)!.add(callback);
   };
 
-  off = (event: string, callback: Function) => {
+  off = (event: string, callback?: Function) => {
+    if (!callback) {
+      // Remove all listeners for this event if no callback provided
+      this.listeners.delete(event);
+      return;
+    }
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {
       eventListeners.delete(callback);

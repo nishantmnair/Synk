@@ -58,7 +58,7 @@ describe('DeleteAccountModal', () => {
     const submitButton = screen.getByRole('button', { name: /Delete Account/i })
     await user.click(submitButton)
     
-    expect(screen.getByText('Password is required')).toBeInTheDocument()
+    expect(screen.getByText('Please enter your password to confirm deletion')).toBeInTheDocument()
     expect(mockOnConfirm).not.toHaveBeenCalled()
   })
 
@@ -86,14 +86,14 @@ describe('DeleteAccountModal', () => {
     // First show error
     const submitButton = screen.getByRole('button', { name: /Delete Account/i })
     await user.click(submitButton)
-    expect(screen.getByText('Password is required')).toBeInTheDocument()
+    expect(screen.getByText('Please enter your password to confirm deletion')).toBeInTheDocument()
     
     // Then type in password field
     const passwordInput = screen.getByPlaceholderText('Enter your password')
     await user.type(passwordInput, 'T')
     
     // Error should be cleared
-    expect(screen.queryByText('Password is required')).not.toBeInTheDocument()
+    expect(screen.queryByText('Please enter your password to confirm deletion')).not.toBeInTheDocument()
   })
 
   it('displays error message from API', async () => {
@@ -110,7 +110,7 @@ describe('DeleteAccountModal', () => {
     await user.click(submitButton)
     
     await waitFor(() => {
-      expect(screen.getByText(errorMessage)).toBeInTheDocument()
+      expect(screen.getByText(/Could not delete your account/i)).toBeInTheDocument()
     })
   })
 

@@ -12,11 +12,10 @@ function timeBasedGreeting(): string {
 
 interface TodayViewProps {
   tasks: Task[];
-  vibe: string;
   onShareAnswer?: () => void;
 }
 
-const TodayView: React.FC<TodayViewProps> = ({ tasks, vibe, onShareAnswer }) => {
+const TodayView: React.FC<TodayViewProps> = ({ tasks, onShareAnswer }) => {
   const [prompt, setPrompt] = useState<string>('Loading your connection prompt...');
   const [shared, setShared] = useState(false);
   const [loadingSkip, setLoadingSkip] = useState(false);
@@ -73,7 +72,7 @@ const TodayView: React.FC<TodayViewProps> = ({ tasks, vibe, onShareAnswer }) => 
               Daily Connection
             </span>
             <h2 className="text-xl md:text-2xl font-medium leading-relaxed italic">
-              &ldquo;{prompt}&rdquo;
+              "{prompt}"
             </h2>
             <div className="flex justify-center gap-4 pt-2">
               <button
@@ -129,19 +128,6 @@ const TodayView: React.FC<TodayViewProps> = ({ tasks, vibe, onShareAnswer }) => 
                   </button>
                 </div>
               )}
-            </div>
-          </div>
-
-          <div className="bg-card border border-subtle rounded-2xl p-6 space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-secondary flex items-center gap-2">
-              <span className="material-symbols-outlined text-sm">mood</span>
-              Today&apos;s Vibe
-            </h3>
-            <div className="flex items-center gap-3 pt-2">
-              <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent">
-                <span className="material-symbols-outlined text-xl">sentiment_satisfied</span>
-              </div>
-              <p className="text-[11px] text-secondary line-clamp-2">{vibe}</p>
             </div>
           </div>
         </div>

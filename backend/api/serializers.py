@@ -262,9 +262,9 @@ class UserPreferencesSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserPreferences
         fields = [
-            'anniversary', 'is_private', 'notifications', 'vibe', 'updated_at'
+            'id', 'anniversary', 'is_private', 'notifications', 'vibe', 'updated_at'
         ]
-        read_only_fields = ['updated_at']
+        read_only_fields = ['id', 'updated_at']
     
     def create(self, validated_data):
         validated_data['user'] = self.context['request'].user

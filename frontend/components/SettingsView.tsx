@@ -92,7 +92,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
       showToast?.('Settings saved successfully', 'success');
     } catch (error) {
       console.error('Failed to save preferences:', error);
-      setSaveStatus('saved');
+      setSaveStatus('unsaved');
       showToast?.('Failed to save settings', 'error');
     }
   };

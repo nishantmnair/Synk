@@ -244,6 +244,8 @@ const App: React.FC = () => {
         setSuggestions([]);
         setCollections([]);
         setVibe('Feeling adventurous');
+        // Clear the hash when logging out
+        window.location.hash = '';
       }
       setIsLoading(false);
     });
@@ -296,6 +298,10 @@ const App: React.FC = () => {
 
   const handleLogin = async (email: string, password: string): Promise<void> => {
     try {
+      // Clear any existing toast before logging in
+      setToast(null);
+      // Set the hash first before any state updates
+      window.location.hash = '#/today';
       const user = await djangoAuthService.login(email, password);
       setCurrentUser(user);
       setIsLoggedIn(true);
@@ -310,6 +316,10 @@ const App: React.FC = () => {
 
   const handleSignup = async (email: string, password: string, passwordConfirm: string, firstName?: string, lastName?: string, couplingCode?: string): Promise<void> => {
     try {
+      // Clear any existing toast before signing up
+      setToast(null);
+      // Set the hash first before any state updates
+      window.location.hash = '#/today';
       const user = await djangoAuthService.signup(email, password, passwordConfirm, firstName, lastName, couplingCode);
       setCurrentUser(user);
       setIsLoggedIn(true);
@@ -506,7 +516,19 @@ const App: React.FC = () => {
   }
 
   if (!isLoggedIn) {
-    return <AuthView onLogin={handleLogin} onSignup={handleSignup} />;
+    return (
+      <>
+        <AuthView onLogin={handleLogin} onSignup={handleSignup} />
+        {/* Toast for logout message */}
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )}
+      </>
+    );
   }
 
   return (

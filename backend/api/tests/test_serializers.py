@@ -100,94 +100,62 @@ class TestActivitySerializer:
 class TestUserRegistrationSerializer:
     """Test UserRegistrationSerializer"""
     
+    def _create_registration_data(self, username='testuser', email='test@example.com', 
+                                  password='testpass123', password_confirm='testpass123',
+                                  first_name='Test', last_name='User'):
+        """Helper method to create registration test data"""
+        return {
+            'username': username,
+            'email': email,
+            'password': password,
+            'password_confirm': password_confirm,
+            'first_name': first_name,
+            'last_name': last_name
+        }
+    
+    def _assert_invalid_registration_data(self, registration_data, expected_error_field):
+        """Helper to test registration data is invalid with expected error field"""
+        serializer = UserRegistrationSerializer(data=registration_data)
+        assert not serializer.is_valid()
+        assert expected_error_field in serializer.errors
+    
     def test_validate_passwords_match(self):
         """Test password validation"""
-        data = {
-            'username': 'testuser',
-            'email': 'test@example.com',
-            'password': 'testpass123',
-            'password_confirm': 'wrongpass',
-            'first_name': 'Test',
-            'last_name': 'User'
-        }
-        serializer = UserRegistrationSerializer(data=data)
-        assert not serializer.is_valid()
-        assert 'password' in serializer.errors
+        data = self._create_registration_data(password_confirm='wrongpass')
+        self._assert_invalid_registration_data(data, 'password')
     
     def test_validate_username(self):
         """Test username validation"""
         # Username too short
-        data = {
-            'username': 'ab',
-            'email': 'test@example.com',
-            'password': 'testpass123',
-            'password_confirm': 'testpass123'
-        }
-        serializer = UserRegistrationSerializer(data=data)
-        assert not serializer.is_valid()
-        assert 'username' in serializer.errors
+        data = self._create_registration_data(username='ab')
+        self._assert_invalid_registration_data(data, 'username')
 
     def test_validate_username_empty(self):
         """Test username cannot be empty or whitespace"""
-        data = {
-            'username': '   ',
-            'email': 'test@example.com',
-            'password': 'testpass123',
-            'password_confirm': 'testpass123'
-        }
-        serializer = UserRegistrationSerializer(data=data)
-        assert not serializer.is_valid()
-        assert 'username' in serializer.errors
+        data = self._create_registration_data(username='   ')
+        self._assert_invalid_registration_data(data, 'username')
 
     def test_validate_username_duplicate(self):
         """Test username duplicate"""
         User.objects.create_user(username='taken', email='taken@example.com', password='pass')
-        data = {
-            'username': 'taken',
-            'email': 'new@example.com',
-            'password': 'testpass123',
-            'password_confirm': 'testpass123'
-        }
-        serializer = UserRegistrationSerializer(data=data)
-        assert not serializer.is_valid()
-        assert 'username' in serializer.errors
+        data = self._create_registration_data(username='taken', email='new@example.com')
+        self._assert_invalid_registration_data(data, 'username')
     
     def test_validate_email(self):
         """Test email validation"""
         # Duplicate email
         User.objects.create_user(username='existing', email='test@example.com', password='pass')
-        data = {
-            'username': 'newuser',
-            'email': 'test@example.com',
-            'password': 'testpass123',
-            'password_confirm': 'testpass123'
-        }
-        serializer = UserRegistrationSerializer(data=data)
-        assert not serializer.is_valid()
-        assert 'email' in serializer.errors
+        data = self._create_registration_data(username='newuser', email='test@example.com')
+        self._assert_invalid_registration_data(data, 'email')
 
     def test_validate_email_empty(self):
         """Test email cannot be empty"""
-        data = {
-            'username': 'newuser',
-            'email': '',
-            'password': 'testpass123',
-            'password_confirm': 'testpass123'
-        }
-        serializer = UserRegistrationSerializer(data=data)
-        assert not serializer.is_valid()
-        assert 'email' in serializer.errors
+        data = self._create_registration_data(username='newuser', email='')
+        self._assert_invalid_registration_data(data, 'email')
     
     def test_create_user(self):
         """Test creating user from serializer"""
-        data = {
-            'username': 'newuser',
-            'email': 'newuser@example.com',
-            'password': 'testpass123',
-            'password_confirm': 'testpass123',
-            'first_name': 'New',
-            'last_name': 'User'
-        }
+        data = self._create_registration_data(username='newuser', email='newuser@example.com')
         serializer = UserRegistrationSerializer(data=data)
         assert serializer.is_valid()
         user = serializer.save()
@@ -197,26 +165,19 @@ class TestUserRegistrationSerializer:
 
     def test_create_user_empty_optional_names(self):
         """Test creating user with empty first_name/last_name - serializer converts to None (may raise if DB rejects)"""
-        data = {
-            'username': 'newuser2',
-            'email': 'newuser2@example.com',
-            'password': 'testpass123',
-            'password_confirm': 'testpass123',
-            'first_name': '',
-            'last_name': ''
-        }
+        data = self._create_registration_data(username='newuser2', email='newuser2@example.com',
+                                               first_name='', last_name='')
         serializer = UserRegistrationSerializer(data=data)
         assert serializer.is_valid()
         try:
             user = serializer.save()
-            assert user.first_name in ('', None) and user.last_name in ('', None)
+            assert user.first_name in ('', None)
+            assert user.last_name in ('', None)
         except Exception as e:
             # Some DBs (e.g. SQLite) have NOT NULL on first_name/last_name; serializer raises ValidationError
             from rest_framework.exceptions import ValidationError
-            if isinstance(e, ValidationError):
-                assert 'detail' in e.detail
-            else:
-                raise
+            assert isinstance(e, ValidationError)
+            assert 'detail' in e.detail
 
 
 @pytest.mark.django_db

@@ -86,10 +86,10 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             # Additional safety net for database-level constraints
             error_str = str(e).lower()
             if 'username' in error_str or 'unique constraint' in error_str:
-                raise serializers.ValidationError({'username': 'A user with this username already exists.'})
+                raise serializers.ValidationError({'username': 'A user with this username already exists.'}) from e
             elif 'email' in error_str:
-                raise serializers.ValidationError({'email': 'A user with this email already exists.'})
-            raise serializers.ValidationError({'detail': 'Failed to create user. Please try again.'})
+                raise serializers.ValidationError({'email': 'A user with this email already exists.'}) from e
+            raise serializers.ValidationError({'detail': 'Failed to create user. Please try again.'}) from e
         
         return user
 
@@ -128,10 +128,8 @@ class CoupleSerializer(serializers.ModelSerializer):
 
     def get_partner(self, obj):
         request = self.context.get('request')
-        if request and request.user:
-            partner = obj.get_partner(request.user)
-            if partner:
-                return UserSerializer(partner).data
+        if request and request.user and (partner := obj.get_partner(request.user)):
+            return UserSerializer(partner).data
         return None
 
 
@@ -167,6 +165,23 @@ class MilestoneSerializer(serializers.ModelSerializer):
 
 
 class ActivitySerializer(serializers.ModelSerializer):
+    """
+    Serializes Activity model with field mapping for frontend compatibility.
+    
+    Field Mapping:
+        Request: 'user' field → Model: 'activity_user' field
+            (The name of the person who performed the action, e.g., "Sam" or "Alex")
+        Response: Model 'activity_user' → Response 'user' field
+            (For consistent frontend API - clients always use 'user' field)
+    
+    This allows the frontend to use 'user' consistently, while the model stores
+    it as 'activity_user' to avoid confusion with the ForeignKey 'user' field.
+    
+    Example:
+        Frontend sends: {"user": "Sam", "action": "added", "item": "Task Title"}
+        Stored in DB as: Activity(activity_user="Sam", action="added", item="Task Title", user=<User object>)
+        Frontend receives: {"user": "Sam", "action": "added", "item": "Task Title"}
+    """
     id = serializers.CharField(read_only=True)
     user = serializers.CharField(write_only=True, required=False)  # Accept 'user' for activity_user on write
     user_display = serializers.SerializerMethodField(read_only=True)  # Display activity_user as 'user' on read
@@ -269,10 +284,8 @@ class CoupleSerializer(serializers.ModelSerializer):
     def get_partner(self, obj):
         """Return partner info based on current user"""
         request = self.context.get('request')
-        if request and request.user:
-            partner = obj.get_partner(request.user)
-            if partner:
-                return UserSerializer(partner).data
+        if request and request.user and (partner := obj.get_partner(request.user)):
+            return UserSerializer(partner).data
         return None
 
 

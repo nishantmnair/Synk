@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 from api.models import (
     Task, Milestone, Activity, Suggestion, Collection, 
-    UserPreferences, Couple, CouplingCode
+    UserPreferences, Couple
 )
 
 @pytest.fixture

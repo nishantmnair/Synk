@@ -216,7 +216,7 @@ class TestCouple:
         )
         assert couple.get_partner(user) == user2
         assert couple.get_partner(user2) == user
-        assert couple.get_partner(User()) == None
+        assert couple.get_partner(User()) is None
     
     def test_couple_str(self, user, user2):
         """Test couple string representation"""
@@ -241,8 +241,8 @@ class TestCouplingCode:
         )
         assert code.created_by == user
         assert code.code == 'TESTCODE'
-        assert code.used_by == None
-        assert code.is_valid() == True
+        assert code.used_by is None
+        assert code.is_valid() is True
     
     def test_coupling_code_generate(self):
         """Test generating unique coupling code"""

@@ -28,6 +28,46 @@ class TestUserRegistration:
         """Setup test client"""
         self.client = APIClient()
     
+    def _register_user(self, username='testuser', email='test@example.com', 
+                       password='SecurePass123!', coupling_code=None):
+        """Helper method to register a user"""
+        data = {
+            'username': username,
+            'email': email,
+            'password': password,
+            'password_confirm': password
+        }
+        if coupling_code:
+            data['coupling_code'] = coupling_code
+        return self.client.post('/api/register/', data)
+    
+    def _create_user_with_coupling_code(self, username='user1', email='user1@example.com',
+                                        code='TESTCODE', expires_delta=timedelta(hours=24)):
+        """Helper to create a user and a coupling code"""
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password='SecurePass123!'
+        )
+        coupling_code = CouplingCode.objects.create(
+            created_by=user,
+            code=code,
+            expires_at=timezone.now() + expires_delta
+        )
+        return user, coupling_code
+    
+    def _verify_registration_result(self, response, expect_coupled=None, user1=None, user2_username='user2'):
+        """Helper to verify registration response and coupling status"""
+        assert response.status_code == status.HTTP_201_CREATED
+        user2 = User.objects.get(username=user2_username)
+        if expect_coupled is not None:
+            if expect_coupled:
+                couple = Couple.objects.get(user1=user1, user2=user2)
+                assert couple is not None
+            else:
+                assert not Couple.objects.filter(user2=user2).exists()
+        return user2
+    
     def test_register_new_user_success(self):
         """Test successful user registration with all fields"""
         response = self.client.post('/api/register/', {
@@ -176,34 +216,18 @@ class TestUserRegistration:
     def test_register_with_coupling_code_valid(self):
         """Test registration with valid coupling code"""
         # Create a user with a coupling code
-        user1 = User.objects.create_user(
-            username='user1',
-            email='user1@example.com',
-            password='SecurePass123!'
-        )
-        
-        # Create valid coupling code
-        coupling_code = CouplingCode.objects.create(
-            created_by=user1,
-            code='TESTCODE123',
-            expires_at=timezone.now() + timedelta(hours=24)
+        user1, coupling_code = self._create_user_with_coupling_code(
+            code='TESTCODE123'
         )
         
         # Register with coupling code
-        response = self.client.post('/api/register/', {
-            'username': 'user2',
-            'email': 'user2@example.com',
-            'password': 'SecurePass123!',
-            'password_confirm': 'SecurePass123!',
-            'coupling_code': 'TESTCODE123'
-        })
+        response = self._register_user(
+            username='user2',
+            email='user2@example.com',
+            coupling_code='TESTCODE123'
+        )
         
-        assert response.status_code == status.HTTP_201_CREATED
-        
-        # Verify users are coupled
-        user2 = User.objects.get(username='user2')
-        couple = Couple.objects.get(user1=user1, user2=user2)
-        assert couple is not None
+        user2 = self._verify_registration_result(response, expect_coupled=True, user1=user1)
         
         # Verify code was marked as used
         coupling_code.refresh_from_db()
@@ -212,47 +236,30 @@ class TestUserRegistration:
     
     def test_register_with_invalid_coupling_code(self):
         """Test registration with invalid coupling code (should still create user)"""
-        response = self.client.post('/api/register/', {
-            'username': 'user1',
-            'email': 'user1@example.com',
-            'password': 'SecurePass123!',
-            'password_confirm': 'SecurePass123!',
-            'coupling_code': 'INVALIDCODE'
-        })
+        response = self._register_user(
+            username='user1',
+            email='user1@example.com',
+            coupling_code='INVALIDCODE'
+        )
         
-        assert response.status_code == status.HTTP_201_CREATED
-        # User is created even if code is invalid
-        user = User.objects.get(username='user1')
-        assert user is not None
+        self._verify_registration_result(response, user2_username='user1')
     
     def test_register_with_expired_coupling_code(self):
         """Test registration with expired coupling code"""
-        user1 = User.objects.create_user(
-            username='user1',
-            email='user1@example.com',
-            password='SecurePass123!'
-        )
-        
-        # Create expired coupling code
-        CouplingCode.objects.create(
-            created_by=user1,
+        user1, coupling_code = self._create_user_with_coupling_code(
             code='EXPIREDCODE',
-            expires_at=timezone.now() - timedelta(hours=1)
+            expires_delta=timedelta(hours=-1)
         )
         
         # Try to register with expired code
-        response = self.client.post('/api/register/', {
-            'username': 'user2',
-            'email': 'user2@example.com',
-            'password': 'SecurePass123!',
-            'password_confirm': 'SecurePass123!',
-            'coupling_code': 'EXPIREDCODE'
-        })
+        response = self._register_user(
+            username='user2',
+            email='user2@example.com',
+            coupling_code='EXPIREDCODE'
+        )
         
         # User is created but not coupled
-        assert response.status_code == status.HTTP_201_CREATED
-        user2 = User.objects.get(username='user2')
-        assert not Couple.objects.filter(user2=user2).exists()
+        self._verify_registration_result(response, expect_coupled=False)
 
 
 @pytest.mark.django_db

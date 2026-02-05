@@ -3,10 +3,14 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
+from contextlib import suppress
 from django.db import models as django_models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.core.mail import send_mail
 from datetime import timedelta
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 from .models import (
     Task, Milestone, Activity, Suggestion, Collection, UserPreferences,
     Couple, CouplingCode
@@ -17,8 +21,7 @@ from .serializers import (
     UserSerializer, UserRegistrationSerializer, CoupleSerializer, CouplingCodeSerializer,
     UserDetailSerializer, UserProfileSerializer
 )
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
+from .mixins import PartnerResolutionMixin, BroadcastMixin
 
 
 
@@ -128,56 +131,33 @@ class TaskViewSet(viewsets.ModelViewSet):
         )
 
 
-class MilestoneViewSet(viewsets.ModelViewSet):
+class MilestoneViewSet(PartnerResolutionMixin, BroadcastMixin, viewsets.ModelViewSet):
     serializer_class = MilestoneSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
         user = self.request.user
         # Get milestones for user and their partner if coupled
-        partner = self._get_partner(user)
+        partner = self.get_partner(user)
         if partner:
             return Milestone.objects.filter(user__in=[user, partner])
         return Milestone.objects.filter(user=user)
     
-    def _get_partner(self, user):
-        """Helper to get user's partner if coupled"""
-        try:
-            couple = Couple.objects.get(user1=user)
-            return couple.user2
-        except Couple.DoesNotExist:
-            try:
-                couple = Couple.objects.get(user2=user)
-                return couple.user1
-            except Couple.DoesNotExist:
-                return None
-    
     def perform_create(self, serializer):
         milestone = serializer.save()
-        self._broadcast('milestone:created', MilestoneSerializer(milestone).data)
+        self.broadcast('milestone:created', MilestoneSerializer(milestone).data)
     
     def perform_update(self, serializer):
         milestone = serializer.save()
-        self._broadcast('milestone:updated', MilestoneSerializer(milestone).data)
+        self.broadcast('milestone:updated', MilestoneSerializer(milestone).data)
     
     def perform_destroy(self, instance):
         milestone_id = instance.id
         instance.delete()
-        self._broadcast('milestone:deleted', {'id': milestone_id})
-    
-    def _broadcast(self, event_type, data):
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            f"user_{self.request.user.id}",
-            {
-                "type": "send_message",
-                "event": event_type,
-                "data": data
-            }
-        )
+        self.broadcast('milestone:deleted', {'id': milestone_id})
 
 
-class ActivityViewSet(viewsets.ModelViewSet):
+class ActivityViewSet(PartnerResolutionMixin, BroadcastMixin, viewsets.ModelViewSet):
     serializer_class = ActivitySerializer
     permission_classes = [IsAuthenticated]
     
@@ -185,131 +165,62 @@ class ActivityViewSet(viewsets.ModelViewSet):
         user = self.request.user
         limit = int(self.request.query_params.get('limit', 50))
         # Get activities for user and their partner if coupled
-        partner = self._get_partner(user)
+        partner = self.get_partner(user)
         if partner:
             return Activity.objects.filter(user__in=[user, partner])[:limit]
         return Activity.objects.filter(user=user)[:limit]
     
-    def _get_partner(self, user):
-        """Helper to get user's partner if coupled"""
-        try:
-            couple = Couple.objects.get(user1=user)
-            return couple.user2
-        except Couple.DoesNotExist:
-            try:
-                couple = Couple.objects.get(user2=user)
-                return couple.user1
-            except Couple.DoesNotExist:
-                return None
-    
     def perform_create(self, serializer):
         activity = serializer.save()
-        self._broadcast('activity:created', ActivitySerializer(activity).data)
-    
-    def _broadcast(self, event_type, data):
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            f"user_{self.request.user.id}",
-            {
-                "type": "send_message",
-                "event": event_type,
-                "data": data
-            }
-        )
+        self.broadcast('activity:created', ActivitySerializer(activity).data)
 
 
-class SuggestionViewSet(viewsets.ModelViewSet):
+class SuggestionViewSet(PartnerResolutionMixin, BroadcastMixin, viewsets.ModelViewSet):
     serializer_class = SuggestionSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
         user = self.request.user
         # Get suggestions for user and their partner if coupled
-        partner = self._get_partner(user)
+        partner = self.get_partner(user)
         if partner:
             return Suggestion.objects.filter(user__in=[user, partner])
         return Suggestion.objects.filter(user=user)
     
-    def _get_partner(self, user):
-        """Helper to get user's partner if coupled"""
-        try:
-            couple = Couple.objects.get(user1=user)
-            return couple.user2
-        except Couple.DoesNotExist:
-            try:
-                couple = Couple.objects.get(user2=user)
-                return couple.user1
-            except Couple.DoesNotExist:
-                return None
-    
     def perform_create(self, serializer):
         suggestion = serializer.save()
-        self._broadcast('suggestion:created', SuggestionSerializer(suggestion).data)
+        self.broadcast('suggestion:created', SuggestionSerializer(suggestion).data)
     
     def perform_destroy(self, instance):
         suggestion_id = instance.id
         instance.delete()
-        self._broadcast('suggestion:deleted', {'id': suggestion_id})
-    
-    def _broadcast(self, event_type, data):
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            f"user_{self.request.user.id}",
-            {
-                "type": "send_message",
-                "event": event_type,
-                "data": data
-            }
-        )
+        self.broadcast('suggestion:deleted', {'id': suggestion_id})
 
 
-class CollectionViewSet(viewsets.ModelViewSet):
+class CollectionViewSet(PartnerResolutionMixin, BroadcastMixin, viewsets.ModelViewSet):
     serializer_class = CollectionSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
         user = self.request.user
         # Get collections for user and their partner if coupled
-        partner = self._get_partner(user)
+        partner = self.get_partner(user)
         if partner:
             return Collection.objects.filter(user__in=[user, partner])
         return Collection.objects.filter(user=user)
     
-    def _get_partner(self, user):
-        """Helper to get user's partner if coupled"""
-        try:
-            couple = Couple.objects.get(user1=user)
-            return couple.user2
-        except Couple.DoesNotExist:
-            try:
-                couple = Couple.objects.get(user2=user)
-                return couple.user1
-            except Couple.DoesNotExist:
-                return None
-    
     def perform_create(self, serializer):
         collection = serializer.save()
-        self._broadcast('collection:created', CollectionSerializer(collection).data)
+        self.broadcast('collection:created', CollectionSerializer(collection).data)
     
     def perform_update(self, serializer):
         collection = serializer.save()
-        self._broadcast('collection:updated', CollectionSerializer(collection).data)
+        self.broadcast('collection:updated', CollectionSerializer(collection).data)
     
     def perform_destroy(self, instance):
         collection_id = instance.id
         instance.delete()
-        self._broadcast('collection:deleted', {'id': collection_id})
-    
-    def _broadcast(self, event_type, data):
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            f"user_{self.request.user.id}",
-            {
-                "type": "send_message",
-                "event": event_type,
-                "data": data
-            }
-        )
+        self.broadcast('collection:deleted', {'id': collection_id})
 
 
 class UserPreferencesViewSet(viewsets.ModelViewSet):
@@ -408,12 +319,10 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             user.save()
             
             # Update UserProfile email_normalized
-            try:
+            with suppress(Exception):
                 user.profile.email_normalized = user.email.lower()
                 user.profile.updated_at = timezone.now()
                 user.profile.save(update_fields=['email_normalized', 'updated_at'])
-            except:
-                pass
             
             serializer = UserDetailSerializer(user)
             return Response({
@@ -427,12 +336,17 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     def delete_account(self, request):
         """Delete user account and all associated data"""
         from .serializers import AccountDeletionSerializer
+        from .exceptions import ValidationError as SynkValidationError
         from django.core.mail import send_mail
         
         serializer = AccountDeletionSerializer(data=request.data, context={'request': request})
         if not serializer.is_valid():
-            # Return field errors at top level (e.g., {'password': [...]})
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            # Use custom exception to ensure standardized error response format
+            raise SynkValidationError(
+                detail="Password validation failed",
+                code="password_validation_error",
+                field_errors=serializer.errors
+            )
         
         user = request.user
         email = user.email
@@ -440,7 +354,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         
         try:
             # Send confirmation email before deletion
-            try:
+            with suppress(Exception):
                 send_mail(
                     subject='Your Synk Account Has Been Deleted',
                     message=f'Your account "{username}" and all associated data have been permanently deleted from Synk.',
@@ -448,9 +362,6 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
                     recipient_list=[email],
                     fail_silently=True,
                 )
-            except Exception as e:
-                # Email failure shouldn't prevent account deletion
-                pass
             
             # Delete all associated data (cascading deletes handled by Django models)
             user.delete()
@@ -495,55 +406,41 @@ class UserRegistrationViewSet(viewsets.GenericViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)  # Let error handler deal with validation errors
         
-        try:
-            user = serializer.save()
-            
-            # If a coupling code is provided, try to couple the accounts
-            coupling_code = request.data.get('coupling_code', '').strip().upper()
-            if coupling_code:
-                try:
-                    code_obj = CouplingCode.objects.get(
-                        code=coupling_code,
-                        used_by__isnull=True,
-                        expires_at__gt=timezone.now()
-                    )
-                    # Create couple relationship
-                    couple = Couple.objects.create(
-                        user1=code_obj.created_by,
-                        user2=user
-                    )
-                    # Mark code as used
-                    code_obj.used_by = user
-                    code_obj.used_at = timezone.now()
-                    code_obj.save()
-                except CouplingCode.DoesNotExist:
-                    # Invalid or expired code - user is created but not coupled
-                    pass
-            
-            # Update UserProfile with last login
-            try:
-                user.profile.last_login_at = timezone.now()
-                user.profile.save(update_fields=['last_login_at'])
-            except:
-                pass  # Profile should exist due to signal, but handle gracefully
-            
-            # Return standardized success response (frontend logs in separately to get tokens)
-            return Response(
-                {
-                    'status': 'success',
-                    'message': 'User account created successfully.',
-                    'data': UserSerializer(user).data
-                },
-                status=status.HTTP_201_CREATED
-            )
-        except Exception as e:
-            return Response(
-                {
-                    'status': 'error',
-                    'message': f'Registration failed: {str(e)}'
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        # Let exceptions propagate to global handler for consistent error formatting
+        user = serializer.save()
+        
+        # If a coupling code is provided, try to couple the accounts
+        if coupling_code := request.data.get('coupling_code', '').strip().upper():
+            with suppress(CouplingCode.DoesNotExist):
+                code_obj = CouplingCode.objects.get(
+                    code=coupling_code,
+                    used_by__isnull=True,
+                    expires_at__gt=timezone.now()
+                )
+                # Create couple relationship
+                couple = Couple.objects.create(
+                    user1=code_obj.created_by,
+                    user2=user
+                )
+                # Mark code as used
+                code_obj.used_by = user
+                code_obj.used_at = timezone.now()
+                code_obj.save()
+        
+        # Update UserProfile with last login
+        with suppress(Exception):
+            user.profile.last_login_at = timezone.now()
+            user.profile.save(update_fields=['last_login_at'])
+        
+        # Return standardized success response (frontend logs in separately to get tokens)
+        return Response(
+            {
+                'status': 'success',
+                'message': 'User account created successfully.',
+                'data': UserSerializer(user).data
+            },
+            status=status.HTTP_201_CREATED
+        )
 
 
 class CoupleViewSet(viewsets.ModelViewSet):

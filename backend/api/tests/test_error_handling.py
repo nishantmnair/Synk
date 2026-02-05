@@ -138,53 +138,43 @@ class TestValidationErrorDetails:
     def setup_method(self):
         self.client = APIClient()
     
+    def _assert_registration_error_field_present(self, register_data, expected_field):
+        """Helper to test registration error contains expected field"""
+        response = self.client.post('/api/register/', register_data)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        data = response.json()
+        assert 'errors' in data
+        assert expected_field in data['errors']
+        return data
+    
     def test_password_mismatch_field_error(self):
         """Test password mismatch shows field-level error"""
-        response = self.client.post('/api/register/', {
+        self._assert_registration_error_field_present({
             'email': 'test@example.com',
             'username': 'testuser',
             'password': 'ValidPassword123!',
             'password_confirm': 'DifferentPassword123!'
-        })
-        
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        data = response.json()
-        assert 'errors' in data
-        # Should have error about password mismatch
-        assert any(
-            'password' in str(key).lower()
-            for key in data['errors'].keys()
-        )
+        }, 'password')
     
     def test_weak_password_field_error(self):
         """Test weak password shows field-level error"""
-        response = self.client.post('/api/register/', {
+        data = self._assert_registration_error_field_present({
             'email': 'test@example.com',
             'username': 'testuser',
             'password': 'weak',
             'password_confirm': 'weak'
-        })
-        
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        data = response.json()
-        assert 'errors' in data
-        assert 'password' in data['errors']
+        }, 'password')
         # Password error message should exist (can be about length or strength)
         assert len(data['errors']['password']) > 0
     
     def test_invalid_email_format_error(self):
         """Test invalid email format shows field-level error"""
-        response = self.client.post('/api/register/', {
+        self._assert_registration_error_field_present({
             'email': 'not-an-email',
             'username': 'testuser',
             'password': 'ValidPassword123!',
             'password_confirm': 'ValidPassword123!'
-        })
-        
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        data = response.json()
-        assert 'errors' in data
-        assert 'email' in data['errors']
+        }, 'email')
 
 
 @pytest.mark.django_db
@@ -258,13 +248,13 @@ class TestServerErrorHandling:
         # Simulate an error response
         response = self.client.get('/api/tasks/invalid-id/')
         
-        if response.status_code >= 400:
-            data = response.json()
-            assert 'error_code' in data
-            assert data['status'] == 'error'
-            # Should not expose internal details
-            assert 'traceback' not in str(data)
-            assert 'exception' not in str(data).lower()
+        assert response.status_code >= 400
+        data = response.json()
+        assert 'error_code' in data
+        assert data['status'] == 'error'
+        # Should not expose internal details
+        assert 'traceback' not in str(data)
+        assert 'exception' not in str(data).lower()
 
 
 @pytest.mark.django_db
@@ -386,10 +376,14 @@ class TestErrorMessageUserFriendliness:
             'password_confirm': 'weak'
         })
         
-        if 'errors' in response.json():
-            errors = response.json()['errors']
-            for field, messages in errors.items():
-                assert isinstance(messages, list)
-                for msg in messages:
-                    assert isinstance(msg, str)
-                    assert len(msg) > 0
+        data = response.json()
+        assert 'errors' in data
+        errors = data['errors']
+        # Check that each error field has a non-empty list of string messages
+        assert len(errors) > 0
+        assert all(
+            isinstance(field_errors, list) and
+            len(field_errors) > 0 and
+            all(isinstance(msg, str) and len(msg) > 0 for msg in field_errors)
+            for field_errors in errors.values()
+        )

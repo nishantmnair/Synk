@@ -378,14 +378,14 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
         {/* Danger Zone */}
         <section className="space-y-4 pt-6">
           <h3 className="text-xs font-bold uppercase tracking-widest text-red-400 px-2">Danger Zone</h3>
-          <div className="bg-red-400/5 border border-red-400/20 rounded-2xl p-6">
+          <div className="bg-red-400/5 border border-red-400/20 rounded-2xl p-6 space-y-4">
             <button 
               onClick={() => setIsDeleteModalOpen(true)}
-              className="text-xs font-bold text-red-400 hover:text-red-300 transition-colors uppercase tracking-widest"
+              className="px-4 py-2 bg-red-500/20 border border-red-400 text-red-400 hover:bg-red-500/30 hover:border-red-300 hover:text-red-300 active:bg-red-500/40 transition-colors text-xs font-bold uppercase tracking-widest rounded-lg"
             >
               Delete Account
             </button>
-            <p className="text-[10px] text-red-400/60 mt-2 uppercase">This action is irreversible and permanently removes your account and data.</p>
+            <p className="text-[10px] text-red-400/60 uppercase">This action is irreversible and permanently removes your account and data.</p>
           </div>
         </section>
 

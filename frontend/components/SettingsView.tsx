@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { coupleApi, couplingCodeApi, accountApi } from '../services/djangoApi';
+import { coupleApi, couplingCodeApi, accountApi, preferencesApi } from '../services/djangoApi';
 import { User, djangoAuthService } from '../services/djangoAuth';
+import { djangoRealtimeService } from '../services/djangoRealtime';
 import { getDisplayName, getEmailOrUsername } from '../utils/userDisplay';
 import DeleteAccountModal from './DeleteAccountModal';
 
@@ -13,17 +14,13 @@ interface SettingsViewProps {
 }
 
 const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onLogout }) => {
-  const [anniversary, setAnniversary] = useState(() => {
-    return localStorage.getItem('synk_anniversary') || '2024-01-15';
-  });
-  const [isPrivate, setIsPrivate] = useState(() => {
-    return localStorage.getItem('synk_is_private') !== 'false';
-  });
-  const [notifications, setNotifications] = useState(() => {
-    return localStorage.getItem('synk_notifications') !== 'false';
-  });
+  const [anniversary, setAnniversary] = useState('2024-01-15');
+  const [isPrivate, setIsPrivate] = useState(true);
+  const [notifications, setNotifications] = useState(true);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'unsaved' | 'saving'>('saved');
+  const [preferencesId, setPreferencesId] = useState<number | null>(null);
+  const [isLoadingPreferences, setIsLoadingPreferences] = useState(true);
   
   // Coupling state
   const [isCoupled, setIsCoupled] = useState(false);
@@ -34,50 +31,68 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
   const [isLoadingCode, setIsLoadingCode] = useState(false);
   const [couplingError, setCouplingError] = useState('');
 
-  // Load couple status on mount
+  // Load preferences and couple status on mount
   useEffect(() => {
+    loadPreferences();
     loadCoupleStatus();
     loadCouplingCodes();
   }, []);
 
-  // Auto-save anniversary changes
+  // Set up real-time listeners for preference updates
   useEffect(() => {
-    const timer = setTimeout(() => {
-      localStorage.setItem('synk_anniversary', anniversary);
-      setSaveStatus('saved');
+    const handlePreferencesUpdate = (data: any) => {
+      setAnniversary(data.anniversary || anniversary);
+      setIsPrivate(data.is_private ?? isPrivate);
+      setNotifications(data.notifications ?? notifications);
+      showToast?.('Anniversary date updated by your partner', 'info');
+    };
+
+    djangoRealtimeService.on('preferences:updated', handlePreferencesUpdate);
+    return () => {
+      djangoRealtimeService.off('preferences:updated', handlePreferencesUpdate);
+    };
+  }, [anniversary, isPrivate, notifications, showToast]);
+
+  // Auto-save preferences to backend
+  useEffect(() => {
+    if (!preferencesId) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        setSaveStatus('saving');
+        await preferencesApi.update(preferencesId, {
+          anniversary,
+          is_private: isPrivate,
+          notifications,
+        });
+        setSaveStatus('saved');
+      } catch (error) {
+        console.error('Failed to save preferences:', error);
+        setSaveStatus('saved');
+      }
     }, 500);
 
     setSaveStatus('unsaved');
     return () => clearTimeout(timer);
-  }, [anniversary]);
+  }, [anniversary, isPrivate, notifications, preferencesId]);
 
-  // Auto-save isPrivate changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      localStorage.setItem('synk_is_private', isPrivate.toString());
-      setSaveStatus('saved');
-    }, 500);
-
-    setSaveStatus('unsaved');
-    return () => clearTimeout(timer);
-  }, [isPrivate]);
-
-  // Auto-save notifications changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      localStorage.setItem('synk_notifications', notifications.toString());
-      setSaveStatus('saved');
-    }, 500);
-
-    setSaveStatus('unsaved');
-    return () => clearTimeout(timer);
-  }, [notifications]);
-
-  // Load couple status on mount
-  useEffect(() => {
-    loadCoupleStatus();
-    loadCouplingCodes();
-  }, []);
+  // Load preferences from backend
+  const loadPreferences = async () => {
+    try {
+      setIsLoadingPreferences(true);
+      const prefs = await preferencesApi.get() as any;
+      if (prefs) {
+        setAnniversary(prefs.anniversary || '2024-01-15');
+        setIsPrivate(prefs.is_private ?? true);
+        setNotifications(prefs.notifications ?? true);
+        setPreferencesId(prefs.id);
+      }
+    } catch (error) {
+      console.error('Failed to load preferences:', error);
+    } finally {
+      setIsLoadingPreferences(false);
+    }
+  };
 
   const loadCoupleStatus = async () => {
     try {
@@ -325,7 +340,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
                 type="date" 
                 value={anniversary}
                 onChange={(e) => setAnniversary(e.target.value)}
-                className="bg-white/5 border border-subtle rounded-lg px-3 py-1.5 text-xs focus:ring-1 focus:ring-accent outline-none"
+                disabled={isLoadingPreferences}
+                className="bg-white/5 border border-subtle rounded-lg px-3 py-1.5 text-xs focus:ring-1 focus:ring-accent outline-none disabled:opacity-50"
               />
             </div>
 
@@ -395,7 +411,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
                saveStatus === 'saved' ? 'bg-green-400' : saveStatus === 'saving' ? 'bg-yellow-400 animate-pulse' : 'bg-gray-400'
              }`}></span>
              <span className="text-secondary">
-               {saveStatus === 'saved' ? 'All changes saved automatically' : saveStatus === 'saving' ? 'Saving...' : 'Unsaved changes'}
+               {isLoadingPreferences ? 'Loading preferences...' : saveStatus === 'saved' ? 'All changes saved automatically' : saveStatus === 'saving' ? 'Saving...' : 'Unsaved changes'}
              </span>
            </div>
         </div>

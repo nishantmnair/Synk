@@ -11,6 +11,14 @@ vi.mock('../../services/djangoApi', () => ({
   coupleApi: { get: vi.fn() },
   couplingCodeApi: { create: vi.fn(), use: vi.fn(), getAll: vi.fn() },
   accountApi: { deleteAccount: vi.fn() },
+  preferencesApi: { get: vi.fn(), update: vi.fn() },
+}))
+
+vi.mock('../../services/djangoRealtime', () => ({
+  djangoRealtimeService: {
+    on: vi.fn(),
+    off: vi.fn(),
+  },
 }))
 
 vi.mock('../DeleteAccountModal', () => ({
@@ -35,6 +43,14 @@ describe('SettingsView', () => {
     vi.mocked(djangoApi.coupleApi.get).mockResolvedValue({ is_coupled: false, partner: null } as any)
     vi.mocked(djangoApi.couplingCodeApi.getAll).mockResolvedValue([])
     vi.mocked(djangoApi.accountApi.deleteAccount).mockResolvedValue({ detail: 'Account successfully deleted.' })
+    vi.mocked(djangoApi.preferencesApi.get).mockResolvedValue({ 
+      id: 1, 
+      anniversary: '2024-01-15', 
+      is_private: true, 
+      notifications: true,
+      vibe: 'Feeling adventurous'
+    } as any)
+    vi.mocked(djangoApi.preferencesApi.update).mockResolvedValue({ success: true } as any)
   })
 
   it('renders settings header', async () => {

@@ -53,28 +53,44 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
     };
   }, [anniversary, isPrivate, notifications, showToast]);
 
-  // Auto-save preferences to backend
+  // Check if there are unsaved changes
   useEffect(() => {
-    if (!preferencesId) return;
-
-    const timer = setTimeout(async () => {
-      try {
-        setSaveStatus('saving');
-        await preferencesApi.update(preferencesId, {
-          anniversary,
-          is_private: isPrivate,
-          notifications,
-        });
-        setSaveStatus('saved');
-      } catch (error) {
-        console.error('Failed to save preferences:', error);
-        setSaveStatus('saved');
+    const prefs = localStorage.getItem('synk_preferences_loaded');
+    if (prefs) {
+      const parsed = JSON.parse(prefs);
+      const hasChanges = 
+        parsed.anniversary !== anniversary ||
+        parsed.is_private !== isPrivate ||
+        parsed.notifications !== notifications;
+      if (hasChanges) {
+        setSaveStatus('unsaved');
       }
-    }, 500);
+    }
+  }, [anniversary, isPrivate, notifications]);
 
-    setSaveStatus('unsaved');
-    return () => clearTimeout(timer);
-  }, [anniversary, isPrivate, notifications, preferencesId]);
+  // Save preferences to backend
+  const savePreferences = async () => {
+    if (!preferencesId) return;
+    try {
+      setSaveStatus('saving');
+      await preferencesApi.update(preferencesId, {
+        anniversary,
+        is_private: isPrivate,
+        notifications,
+      });
+      setSaveStatus('saved');
+      localStorage.setItem('synk_preferences_loaded', JSON.stringify({
+        anniversary,
+        is_private: isPrivate,
+        notifications,
+      }));
+      showToast?.('Settings saved successfully', 'success');
+    } catch (error) {
+      console.error('Failed to save preferences:', error);
+      setSaveStatus('saved');
+      showToast?.('Failed to save settings', 'error');
+    }
+  };
 
   // Load preferences from backend
   const loadPreferences = async () => {
@@ -86,6 +102,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
         setIsPrivate(prefs.is_private ?? true);
         setNotifications(prefs.notifications ?? true);
         setPreferencesId(prefs.id);
+        // Store loaded state to track changes
+        localStorage.setItem('synk_preferences_loaded', JSON.stringify({
+          anniversary: prefs.anniversary || '2024-01-15',
+          is_private: prefs.is_private ?? true,
+          notifications: prefs.notifications ?? true,
+        }));
       }
     } catch (error) {
       console.error('Failed to load preferences:', error);
@@ -405,13 +427,22 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
           </div>
         </section>
 
-        <div className="text-center pt-8">
+        <div className="text-center pt-8 space-y-4">
+          {saveStatus === 'unsaved' && (
+            <button
+              onClick={savePreferences}
+              disabled={saveStatus === 'saving' || isLoadingPreferences}
+              className="px-6 py-2 bg-accent text-white rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saveStatus === 'saving' ? 'Saving...' : 'Save Changes'}
+            </button>
+          )}
            <div className="flex items-center justify-center gap-2 text-xs">
              <span className={`w-2 h-2 rounded-full transition-colors ${
                saveStatus === 'saved' ? 'bg-green-400' : saveStatus === 'saving' ? 'bg-yellow-400 animate-pulse' : 'bg-gray-400'
              }`}></span>
              <span className="text-secondary">
-               {isLoadingPreferences ? 'Loading preferences...' : saveStatus === 'saved' ? 'All changes saved automatically' : saveStatus === 'saving' ? 'Saving...' : 'Unsaved changes'}
+               {isLoadingPreferences ? 'Loading preferences...' : saveStatus === 'saved' ? 'All changes saved' : saveStatus === 'saving' ? 'Saving...' : 'You have unsaved changes'}
              </span>
            </div>
         </div>

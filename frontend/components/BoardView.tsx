@@ -23,24 +23,15 @@ const BoardView: React.FC<BoardViewProps> = ({ tasks, setTasks, onAction, onAddT
   const [category, setCategory] = useState('');
   const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [description, setDescription] = useState('');
-  const [time, setTime] = useState('');
+  const [date, setDate] = useState('');
 
-  const columns = [
-    { title: 'Backlog', status: TaskStatus.BACKLOG, icon: 'inventory_2' },
-    { title: 'Planning', status: TaskStatus.PLANNING, icon: 'calendar_add_on' },
-    { title: 'Upcoming', status: TaskStatus.UPCOMING, icon: 'schedule', accent: 'text-green-500' }
+  // Default columns
+  const allColumns = [
+    { id: TaskStatus.BACKLOG, title: TaskStatus.BACKLOG, name: TaskStatus.BACKLOG, status: TaskStatus.BACKLOG, icon: 'inventory_2', order: 0 },
+    { id: TaskStatus.PLANNING, title: TaskStatus.PLANNING, name: TaskStatus.PLANNING, status: TaskStatus.PLANNING, icon: 'calendar_add_on', order: 1 },
+    { id: TaskStatus.UPCOMING, title: TaskStatus.UPCOMING, name: TaskStatus.UPCOMING, status: TaskStatus.UPCOMING, icon: 'schedule', order: 2, accent: 'text-green-500' },
+    { id: TaskStatus.COMPLETED, title: TaskStatus.COMPLETED, name: TaskStatus.COMPLETED, status: TaskStatus.COMPLETED, icon: 'task_alt', order: 3, accent: 'text-blue-500' }
   ];
-
-  const toggleTaskMeta = (id: string, key: 'liked' | 'fired') => {
-    setTasks(prev => prev.map(t => {
-      if (t.id === id) {
-        const newVal = !t[key];
-        if (newVal) onAction(key === 'liked' ? 'liked' : 'highlighted', t.title);
-        return { ...t, [key]: newVal };
-      }
-      return t;
-    }));
-  };
 
   const openAddModal = (status: TaskStatus) => {
     setModalStatus(status);
@@ -55,7 +46,7 @@ const BoardView: React.FC<BoardViewProps> = ({ tasks, setTasks, onAction, onAddT
     setCategory(task.category);
     setPriority(task.priority);
     setDescription(task.description || '');
-    setTime(task.time || '');
+    setDate(task.date || '');
     setModalStatus(task.status);
     setIsModalOpen(true);
   };
@@ -87,7 +78,7 @@ const BoardView: React.FC<BoardViewProps> = ({ tasks, setTasks, onAction, onAddT
         priority,
         status: modalStatus,
         description: description || undefined,
-        time: time || undefined
+        date: date || undefined
       });
     } else {
       const newTask: Task = {
@@ -103,7 +94,7 @@ const BoardView: React.FC<BoardViewProps> = ({ tasks, setTasks, onAction, onAddT
         samProgress: 0,
         avatars: [],
         description: description || undefined,
-        time: time || undefined
+        date: date || undefined
       };
       onAddTask(newTask);
     }
@@ -115,38 +106,47 @@ const BoardView: React.FC<BoardViewProps> = ({ tasks, setTasks, onAction, onAddT
     setCategory('');
     setPriority('medium');
     setDescription('');
-    setTime('');
+    setDate('');
     setEditingTask(null);
     setIsModalOpen(false);
   };
 
   return (
     <div className="h-full flex p-6 gap-6 overflow-x-auto custom-scrollbar relative">
-      {columns.map(col => (
+      {allColumns.map(col => {
+        // For default columns, use status; for custom columns, use name
+        const columnKey = (col.status || col.name);
+        const tasksInColumn = tasks.filter(t => t.status === columnKey);
+        
+        return (
         <div 
-          key={col.title} 
+          key={col.id || col.title} 
           className="w-80 flex flex-col shrink-0"
           onDragOver={handleDragOver}
-          onDrop={(e) => handleDrop(e, col.status)}
+          onDrop={(e) => handleDrop(e, columnKey)}
         >
           <div className="flex items-center justify-between mb-4 px-1">
             <div className="flex items-center gap-2">
               <span className={`material-symbols-outlined ${col.accent || 'text-secondary'} text-[18px]`}>{col.icon}</span>
-              <h3 className="text-sm font-semibold">{col.title}</h3>
+              <h3 className="text-sm font-semibold">{col.title || col.name}</h3>
               <span className="text-xs text-secondary bg-white/5 px-1.5 py-0.5 rounded">
-                {tasks.filter(t => t.status === col.status).length}
+                {tasksInColumn.length}
               </span>
             </div>
             <button 
-              onClick={() => openAddModal(col.status)}
-              className="material-symbols-outlined text-secondary hover:text-primary transition-colors text-[18px]"
+              onClick={() => {
+                const newStatus = col.status || col.name;
+                setModalStatus(newStatus as TaskStatus);
+                openAddModal(newStatus as TaskStatus);
+              }}
+              className="material-symbols-outlined text-secondary hover:text-primary transition-colors text-[18px] ml-auto"
             >
               add
             </button>
           </div>
 
           <div className="space-y-3 overflow-y-auto custom-scrollbar flex-1 pr-1">
-            {tasks.filter(t => t.status === col.status).map(task => (
+            {tasksInColumn.map(task => (
               <div 
                 key={task.id}
                 draggable
@@ -160,27 +160,13 @@ const BoardView: React.FC<BoardViewProps> = ({ tasks, setTasks, onAction, onAddT
                       {task.category}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span 
-                      onClick={(e) => { e.stopPropagation(); toggleTaskMeta(task.id, 'liked'); }}
-                      className={`text-sm cursor-pointer transition-opacity ${task.liked ? 'opacity-100' : 'opacity-40 hover:opacity-100'}`}
-                    >
-                      ❤️
-                    </span>
-                    <span 
-                      onClick={(e) => { e.stopPropagation(); toggleTaskMeta(task.id, 'fired'); }}
-                      className={`text-sm cursor-pointer transition-opacity ${task.fired ? 'opacity-100' : 'opacity-40 hover:opacity-100'}`}
-                    >
-                      🔥
-                    </span>
-                  </div>
                 </div>
 
                 <h4 className="text-sm font-medium mb-1">{task.title}</h4>
                 {task.description && <p className="text-xs text-secondary mb-3">{task.description}</p>}
-                {task.time && (
+                {task.date && (
                   <div className="flex items-center gap-2 mb-3">
-                    <span className="text-[10px] font-medium text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded">{task.time}</span>
+                    <span className="text-[10px] font-medium text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded">{task.date}</span>
                   </div>
                 )}
 
@@ -194,19 +180,13 @@ const BoardView: React.FC<BoardViewProps> = ({ tasks, setTasks, onAction, onAddT
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (showConfirm) {
-                          showConfirm({
-                            title: 'Delete Task',
-                            message: 'Are you sure you want to delete this task?',
-                            confirmText: 'Delete',
-                            confirmVariant: 'danger' as const,
-                            onConfirm: () => onDeleteTask(task.id)
-                          });
-                        } else {
-                          if (window.confirm('Are you sure you want to delete this task?')) {
-                            onDeleteTask(task.id);
-                          }
-                        }
+                        showConfirm({
+                          title: 'Delete Task',
+                          message: 'Are you sure you want to delete this task?',
+                          confirmText: 'Delete',
+                          confirmVariant: 'danger' as const,
+                          onConfirm: () => onDeleteTask(task.id)
+                        });
                       }}
                       className="opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-300"
                       title="Delete task"
@@ -229,18 +209,23 @@ const BoardView: React.FC<BoardViewProps> = ({ tasks, setTasks, onAction, onAddT
             ))}
 
             {/* Empty state within column */}
-            {tasks.filter(t => t.status === col.status).length === 0 && (
+            {tasksInColumn.length === 0 && (
               <button 
-                onClick={() => openAddModal(col.status)}
+                onClick={() => {
+                  const newStatus = col.status || col.name;
+                  setModalStatus(newStatus as TaskStatus);
+                  openAddModal(newStatus as TaskStatus);
+                }}
                 className="w-full py-8 border border-dashed border-subtle rounded-lg flex flex-col items-center justify-center gap-2 text-secondary hover:text-primary hover:border-accent/40 transition-all group"
               >
                 <span className="material-symbols-outlined text-2xl group-hover:scale-110 transition-transform">add_circle</span>
-                <span className="text-xs font-medium">Add to {col.title}</span>
+                <span className="text-xs font-medium">Add to {col.title || col.name}</span>
               </button>
             )}
           </div>
         </div>
-      ))}
+        );
+      })}
 
       {/* Add Task Modal */}
       {isModalOpen && (
@@ -313,14 +298,14 @@ const BoardView: React.FC<BoardViewProps> = ({ tasks, setTasks, onAction, onAddT
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="plan-time" className="text-[10px] font-bold uppercase tracking-widest text-secondary">Time (Optional)</label>
+                <label htmlFor="plan-date" className="text-[10px] font-bold uppercase tracking-widest text-secondary">Date (Optional)</label>
                 <input 
-                  id="plan-time"
-                  type="text"
-                  placeholder="e.g., 8:00 PM"
+                  id="plan-date"
+                  type="date"
+                  placeholder="YYYY-MM-DD"
                   className="w-full bg-white/5 border border-subtle rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-accent transition-all placeholder:text-secondary/40"
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
                 />
               </div>
 

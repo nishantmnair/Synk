@@ -2,7 +2,8 @@
 export enum TaskStatus {
   BACKLOG = 'Backlog',
   PLANNING = 'Planning',
-  UPCOMING = 'Upcoming'
+  UPCOMING = 'Upcoming',
+  COMPLETED = 'Completed'
 }
 
 export interface Task {
@@ -17,7 +18,7 @@ export interface Task {
   alexProgress: number; // 0-100
   samProgress: number; // 0-100
   description?: string;
-  time?: string;
+  date?: string; // YYYY-MM-DD format
   location?: string;
   avatars: string[];
 }
@@ -34,9 +35,22 @@ export interface Milestone {
   name: string;
   date: string;
   status: 'Upcoming' | 'Completed' | 'Dreaming';
-  samExcitement: number;
-  alexExcitement: number;
   icon: string;
+}
+
+export interface Memory {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  milestone?: string | null;
+  milestoneId?: string | null;
+  milestoneName?: string | null;
+  photos: string[];
+  tags: string[];
+  is_favorite: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Activity {
@@ -58,4 +72,39 @@ export interface Suggestion {
   category: string;
   excitement: number;
   tags: string[];
+}
+
+export interface DailyConnectionAnswer {
+  id: string;
+  connectionId: string;
+  userId: number;
+  userName: string;
+  answerText: string;
+  answeredAt: string;
+  updatedAt: string;
+}
+
+export interface DailyConnection {
+  id: string | null;
+  date: string;
+  prompt: string;
+  answers: DailyConnectionAnswer[];
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface InboxItem {
+  id: string;
+  itemType: 'connection_answer' | 'milestone_update' | 'task_shared' | 'message';
+  title: string;
+  description: string;
+  content: Record<string, any>;
+  senderName: string;
+  connectionAnswer?: DailyConnectionAnswer;
+  isRead: boolean;
+  hasReacted: boolean;
+  response: string;
+  respondedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }

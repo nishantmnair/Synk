@@ -11,11 +11,17 @@ const mockMilestones = [
     name: 'Trip to Japan',
     date: '2025-06-01',
     status: 'Upcoming',
-    samExcitement: 90,
-    alexExcitement: 85,
     icon: 'flight',
   },
 ]
+
+const mockCallbacks = {
+  onAddMilestone: vi.fn(),
+  onUpdateMilestone: vi.fn(),
+  onDeleteMilestone: vi.fn(),
+  showConfirm: vi.fn(),
+  showToast: vi.fn(),
+}
 
 describe('MilestonesView', () => {
   beforeEach(() => {
@@ -23,7 +29,7 @@ describe('MilestonesView', () => {
   })
 
   it('renders roadmap header and progress', async () => {
-    render(<MilestonesView milestones={mockMilestones} />)
+    render(<MilestonesView milestones={mockMilestones} {...mockCallbacks} />)
     await waitFor(() => {
       expect(screen.getByText('Our Milestones')).toBeInTheDocument()
     })

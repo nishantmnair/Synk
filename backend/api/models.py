@@ -41,6 +41,7 @@ class Task(models.Model):
         ('Backlog', 'Backlog'),
         ('Planning', 'Planning'),
         ('Upcoming', 'Upcoming'),
+        ('Completed', 'Completed'),
     ]
     
     PRIORITY_CHOICES = [
@@ -60,7 +61,7 @@ class Task(models.Model):
     alex_progress = models.IntegerField(default=0)  # 0-100
     sam_progress = models.IntegerField(default=0)  # 0-100
     description = models.TextField(blank=True, null=True)
-    time = models.CharField(max_length=50, blank=True, null=True)
+    date = models.DateField(blank=True, null=True)  # Date planned for this task
     location = models.CharField(max_length=200, blank=True, null=True)
     avatars = models.JSONField(default=list)  # List of avatar URLs
     created_at = models.DateTimeField(auto_now_add=True)
@@ -84,8 +85,6 @@ class Milestone(models.Model):
     name = models.CharField(max_length=200)
     date = models.CharField(max_length=100)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Upcoming')
-    sam_excitement = models.IntegerField(default=0)  # 0-100
-    alex_excitement = models.IntegerField(default=0)  # 0-100
     icon = models.CharField(max_length=50)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -299,6 +298,101 @@ class Project(models.Model):
     
     class Meta:
         ordering = ['-start_date']
+    
+    def __str__(self):
+        return self.title
+
+
+class DailyConnection(models.Model):
+    """Daily connection prompts that couples can share answers to"""
+    couple = models.ForeignKey(Couple, on_delete=models.CASCADE, related_name='daily_connections')
+    date = models.DateField(db_index=True)  # One prompt per day per couple
+    prompt = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-date']
+        unique_together = [['couple', 'date']]
+        verbose_name = 'Daily Connection'
+        verbose_name_plural = 'Daily Connections'
+    
+    def __str__(self):
+        return f"{self.couple} - {self.date}"
+
+
+class DailyConnectionAnswer(models.Model):
+    """Answer to a daily connection prompt"""
+    connection = models.ForeignKey(DailyConnection, on_delete=models.CASCADE, related_name='answers')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='connection_answers')
+    answer_text = models.TextField()
+    answered_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-answered_at']
+        unique_together = [['connection', 'user']]
+        verbose_name = 'Daily Connection Answer'
+        verbose_name_plural = 'Daily Connection Answers'
+    
+    def __str__(self):
+        return f"{self.connection} - {self.user.username}"
+
+
+class InboxItem(models.Model):
+    """Items that appear in a user's inbox"""
+    ITEM_TYPE_CHOICES = [
+        ('connection_answer', 'Connection Answer'),
+        ('milestone_update', 'Milestone Update'),
+        ('task_shared', 'Task Shared'),
+        ('message', 'Message'),
+    ]
+    
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='inbox_items')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_inbox_items')
+    item_type = models.CharField(max_length=20, choices=ITEM_TYPE_CHOICES)
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    content = models.JSONField(default=dict)  # Store the actual content (answer text, etc)
+    
+    # For linking to specific objects
+    connection_answer = models.ForeignKey(DailyConnectionAnswer, on_delete=models.CASCADE, null=True, blank=True, related_name='inbox_items')
+    
+    # Interaction fields
+    has_reacted = models.BooleanField(default=False)  # Whether recipient reacted with heart
+    response = models.TextField(blank=True)  # Recipient's response to the answer
+    responded_at = models.DateTimeField(null=True, blank=True)  # When the response was sent
+    
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['recipient', '-created_at']),
+            models.Index(fields=['recipient', 'is_read']),
+        ]
+    
+    def __str__(self):
+        return f"{self.title} - {self.recipient.username}"
+
+class Memory(models.Model):
+    """Shared memories for couples - photos and moments"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='memories')
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    date = models.DateField()  # When the memory was made
+    milestone = models.ForeignKey(Milestone, on_delete=models.SET_NULL, null=True, blank=True, related_name='memories')
+    photos = models.JSONField(default=list)  # List of photo URLs
+    tags = models.JSONField(default=list)  # List of tags for categorizing memories
+    is_favorite = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-date']
+        verbose_name_plural = 'Memories'
     
     def __str__(self):
         return self.title

@@ -35,7 +35,7 @@ describe('InboxView', () => {
 
   it('shows Accept / Save / Decline actions', () => {
     render(<InboxView suggestions={mockSuggestions} onAccept={noop} onSave={noop} onDecline={noop} />)
-    expect(screen.getByRole('button', { name: /Accept to Planning/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Accept to Backlog/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Decline/i })).toBeInTheDocument()
   })
 })

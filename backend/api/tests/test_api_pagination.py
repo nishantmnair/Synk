@@ -51,17 +51,25 @@ class TestAPIPaginationHandling:
         for i in range(1, count + 1):
             Collection.objects.create(user=self.user, name=f'Collection {i}', icon='star')
     
+    def assert_paginated_endpoint(self, endpoint: str, create_func, count: int, expected_count: int = None):
+        """Helper method to test a paginated endpoint with created items"""
+        if expected_count is None:
+            expected_count = count
+        
+        # Create items using provided function
+        create_func(count)
+        
+        # Get paginated response
+        response = self.get_with_200_status(endpoint)
+        
+        # Assert paginated structure
+        self.assert_paginated_response_structure(response)
+        assert response.data['count'] == expected_count
+        assert len(response.data['results']) <= 100  # Default page size
+    
     def test_paginated_response_structure(self):
         """Test that paginated responses have correct structure"""
-        # Create multiple items
-        self.create_tasks(5)
-        
-        response = self.get_with_200_status('/api/tasks/')
-        
-        # Raw response should be paginated
-        self.assert_paginated_response_structure(response)
-        assert response.data['count'] == 5
-        assert len(response.data['results']) <= 100  # Default page size
+        self.assert_paginated_endpoint('/api/tasks/', self.create_tasks, 5)
     
     def test_empty_paginated_response(self):
         """Test that empty responses are still paginated"""
@@ -74,49 +82,39 @@ class TestAPIPaginationHandling:
     
     def test_collections_paginated_response(self):
         """Test that collections endpoint returns paginated response"""
-        # Create multiple collections
-        self.create_collections(3)
-        
-        response = self.get_with_200_status('/api/collections/')
-        
-        # Should be paginated
-        self.assert_paginated_response_structure(response)
-        assert response.data['count'] == 3
-        assert len(response.data['results']) == 3
+        self.assert_paginated_endpoint('/api/collections/', self.create_collections, 3)
     
     def test_pagination_with_limit_parameter(self):
         """Test that pagination respects page size"""
         # Create multiple items
-        self.create_tasks(10)
+        create_count = 10
+        self.create_tasks(create_count)
         
         # DRF PageNumberPagination uses ?page parameter, not ?limit
         # The default page size is 100, so all items should be on page 1
         response = self.get_with_200_status('/api/tasks/?page=1')
         
         # Should return paginated response with all items on first page
-        assert response.data['count'] == 10
-        assert len(response.data['results']) == 10
+        assert response.data['count'] == create_count
+        assert len(response.data['results']) == create_count
         assert response.data['next'] is None  # All items fit on first page
     
     def test_pagination_with_page_parameter(self):
         """Test that pagination works with page parameter"""
         # Create multiple items
-        self.create_tasks(5)
+        create_count = 5
+        self.create_tasks(create_count)
         
         # First page
-        response1 = self.get_with_200_status('/api/tasks/?page=1')
-        first_page_data = response1.data['results']
+        response = self.get_with_200_status('/api/tasks/?page=1')
         
         # Total count should be consistent
-        assert response1.data['count'] == 5
+        assert response.data['count'] == create_count
     
     def test_response_contains_required_fields(self):
         """Test that paginated responses contain all required metadata"""
-        Collection.objects.create(
-            user=self.user,
-            name='Test',
-            icon='star'
-        )
+        create_count = 1
+        self.create_collections(create_count)
         
         response = self.get_with_200_status('/api/collections/')
         

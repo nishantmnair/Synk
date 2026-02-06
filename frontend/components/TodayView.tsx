@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Task, TaskStatus } from '../types';
+import { Task, TaskStatus, DailyConnection } from '../types';
 import AnswerModal from './AnswerModal';
+import { dailyConnectionApi } from '../services/djangoApi';
 
 function timeBasedGreeting(): string {
   const h = new Date().getHours();
@@ -13,42 +14,68 @@ function timeBasedGreeting(): string {
 interface TodayViewProps {
   tasks: Task[];
   onShareAnswer?: () => void;
+  showToast?: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
-const TodayView: React.FC<TodayViewProps> = ({ tasks, onShareAnswer }) => {
+const TodayView: React.FC<TodayViewProps> = ({ tasks, onShareAnswer, showToast }) => {
   const [prompt, setPrompt] = useState<string>('Loading your connection prompt...');
+  const [dailyConnection, setDailyConnection] = useState<DailyConnection | null>(null);
   const [shared, setShared] = useState(false);
   const [loadingSkip, setLoadingSkip] = useState(false);
   const [answerModalOpen, setAnswerModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const todayTasks = tasks.filter(t => t.status === TaskStatus.UPCOMING);
+  const todayDateString = new Date().toISOString().split('T')[0];
+  const todayTasks = tasks.filter(t => t.date === todayDateString && t.status !== TaskStatus.COMPLETED);
   const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', month: 'long', day: 'numeric' };
   const todayDate = new Date().toLocaleDateString('en-US', dateOptions);
 
-  const fetchPrompt = async () => {
-    setPrompt('Take a moment to share something meaningful with your partner.');
+  const fetchDailyConnection = async () => {
+    try {
+      const connection = await dailyConnectionApi.getToday() as DailyConnection;
+      setDailyConnection(connection);
+      setPrompt(connection.prompt);
+      // Check if current user has already answered
+      const userAnswered = connection.answers && connection.answers.length > 0;
+      setShared(userAnswered);
+    } catch (error) {
+      console.error('Error fetching daily connection:', error);
+      showToast?.('Could not load daily connection', 'error');
+      setPrompt('Take a moment to share something meaningful with your partner.');
+    }
   };
 
   useEffect(() => {
-    fetchPrompt();
+    fetchDailyConnection();
   }, []);
 
   const handleShare = () => {
     setAnswerModalOpen(true);
   };
 
-  const handleSubmitAnswer = (answer: string) => {
-    onShareAnswer?.();
-    // Here you could save the answer to the backend if needed
-    console.log('Shared answer:', answer);
-    setShared(true);
+  const handleSubmitAnswer = async (answer: string) => {
+    if (!dailyConnection || isSubmitting) return;
+    
+    try {
+      setIsSubmitting(true);
+      await dailyConnectionApi.submitAnswer(parseInt(dailyConnection.id) || 0, answer);
+      setShared(true);
+      setAnswerModalOpen(false);
+      onShareAnswer?.();
+      showToast?.('Your answer has been shared with your partner!', 'success');
+    } catch (error) {
+      console.error('Error submitting answer:', error);
+      showToast?.('Failed to share your answer', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSkip = async () => {
     if (loadingSkip) return;
     setLoadingSkip(true);
     setShared(false);
-    await fetchPrompt();
+    await fetchDailyConnection();
     setLoadingSkip(false);
   };
 
@@ -77,10 +104,10 @@ const TodayView: React.FC<TodayViewProps> = ({ tasks, onShareAnswer }) => {
             <div className="flex justify-center gap-4 pt-2">
               <button
                 onClick={handleShare}
-                disabled={shared}
+                disabled={shared || isSubmitting}
                 className="text-[11px] font-bold text-secondary hover:text-primary transition-colors uppercase tracking-widest disabled:opacity-50 disabled:cursor-default"
               >
-                {shared ? 'Shared' : 'Share Answer'}
+                {isSubmitting ? 'Sharing…' : shared ? 'Shared' : 'Share Answer'}
               </button>
               <span className="text-secondary/30">•</span>
               <button
@@ -111,7 +138,7 @@ const TodayView: React.FC<TodayViewProps> = ({ tasks, onShareAnswer }) => {
                       <div className="w-2 h-2 rounded-full bg-accent"></div>
                       <div>
                         <p className="text-sm font-medium">{task.title}</p>
-                        <p className="text-[10px] text-secondary">{task.time || 'All day'}</p>
+                        <p className="text-[10px] text-secondary">{task.date ? new Date(task.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No date'}</p>
                       </div>
                     </div>
                     <span className="material-symbols-outlined text-secondary text-lg">chevron_right</span>

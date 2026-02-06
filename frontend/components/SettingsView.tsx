@@ -188,47 +188,28 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
   };
 
   const handleUncouple = async () => {
-    if (showConfirm) {
-      showConfirm({
-        title: 'Disconnect Partner',
-        message: 'You will no longer be able to share your couple space with your partner. They will be notified immediately.',
-        confirmText: 'Disconnect',
-        confirmVariant: 'danger' as const,
-        onConfirm: async () => {
-          try {
-            setIsLoadingCode(true);
-            setCouplingError('');
-            await coupleApi.uncouple();
-            setIsCoupled(false);
-            setPartner(null);
-            await loadCouplingCodes();
-            showToast?.('Disconnected from your partner.', 'success');
-          } catch (error: any) {
-            const errorMsg = getActionErrorMessage('uncouple', error);
-            setCouplingError(errorMsg);
-          } finally {
-            setIsLoadingCode(false);
-          }
+    showConfirm({
+      title: 'Disconnect Partner',
+      message: 'You will no longer be able to share your couple space with your partner. They will be notified immediately.',
+      confirmText: 'Disconnect',
+      confirmVariant: 'danger' as const,
+      onConfirm: async () => {
+        try {
+          setIsLoadingCode(true);
+          setCouplingError('');
+          await coupleApi.uncouple();
+          setIsCoupled(false);
+          setPartner(null);
+          await loadCouplingCodes();
+          showToast?.('Disconnected from your partner.', 'success');
+        } catch (error: any) {
+          const errorMsg = getActionErrorMessage('uncouple', error);
+          setCouplingError(errorMsg);
+        } finally {
+          setIsLoadingCode(false);
         }
-      });
-    } else {
-      const confirmUncouple = window.confirm('Are you sure you want to uncouple? You will no longer share data with your partner.');
-      if (!confirmUncouple) return;
-      
-      try {
-        setIsLoadingCode(true);
-        setCouplingError('');
-        await coupleApi.uncouple();
-        setIsCoupled(false);
-        setPartner(null);
-        await loadCouplingCodes();
-        showToast?.('Successfully disconnected from your partner', 'success');
-      } catch (error: any) {
-        setCouplingError(error.message || 'Failed to uncouple');
-      } finally {
-        setIsLoadingCode(false);
       }
-    }
+    });
   };
 
   const handleDeleteAccount = async (password: string) => {

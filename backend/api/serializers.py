@@ -2,7 +2,8 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import (
     Task, Milestone, Activity, Suggestion, Collection, UserPreferences,
-    Couple, CouplingCode, UserProfile, Employment, Education, Skill, Project
+    Couple, CouplingCode, UserProfile, Employment, Education, Skill, Project,
+    DailyConnection, DailyConnectionAnswer, InboxItem, Memory
 )
 
 
@@ -101,7 +102,7 @@ class TaskSerializer(serializers.ModelSerializer):
         model = Task
         fields = [
             'id', 'title', 'category', 'priority', 'status', 'liked', 'fired',
-            'progress', 'alex_progress', 'sam_progress', 'description', 'time',
+            'progress', 'alex_progress', 'sam_progress', 'description', 'date',
             'location', 'avatars', 'created_at', 'updated_at', 'user'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'user']
@@ -114,6 +115,7 @@ class TaskSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['user'] = self.context['request'].user
         return super().create(validated_data)
+
 
 
 class CoupleSerializer(serializers.ModelSerializer):
@@ -146,8 +148,7 @@ class MilestoneSerializer(serializers.ModelSerializer):
     class Meta:
         model = Milestone
         fields = [
-            'id', 'name', 'date', 'status', 'sam_excitement', 'alex_excitement',
-            'icon', 'created_at', 'updated_at', 'user'
+            'id', 'name', 'date', 'status', 'icon', 'created_at', 'updated_at', 'user'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'user']
     
@@ -358,3 +359,47 @@ class UserDetailSerializer(serializers.ModelSerializer):
             'skills', 'projects'
         ]
         read_only_fields = ['id', 'username']
+
+
+class DailyConnectionAnswerSerializer(serializers.ModelSerializer):
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
+    user_name = serializers.CharField(source='user.username', read_only=True)
+    
+    class Meta:
+        model = DailyConnectionAnswer
+        fields = ['id', 'connection', 'user_id', 'user_name', 'answer_text', 'answered_at', 'updated_at']
+        read_only_fields = ['id', 'connection', 'answered_at', 'updated_at']
+
+
+class DailyConnectionSerializer(serializers.ModelSerializer):
+    answers = DailyConnectionAnswerSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = DailyConnection
+        fields = ['id', 'date', 'prompt', 'answers', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class InboxItemSerializer(serializers.ModelSerializer):
+    sender_name = serializers.CharField(source='sender.username', read_only=True)
+    connection_answer = DailyConnectionAnswerSerializer(read_only=True)
+    
+    class Meta:
+        model = InboxItem
+        fields = ['id', 'item_type', 'title', 'description', 'content', 'sender_name', 
+                  'connection_answer', 'is_read', 'has_reacted', 'response', 'responded_at',
+                  'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'sender_name', 'connection_answer']
+
+class MemorySerializer(serializers.ModelSerializer):
+    milestone_name = serializers.CharField(source='milestone.name', read_only=True)
+    
+    class Meta:
+        model = Memory
+        fields = ['id', 'title', 'description', 'date', 'milestone', 'milestone_name', 
+                  'photos', 'tags', 'is_favorite', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)

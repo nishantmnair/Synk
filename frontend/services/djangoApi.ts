@@ -29,16 +29,17 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     try {
       await djangoAuthService.refreshAccessToken();
       token = await djangoAuthService.getAccessToken();
-      if (token) {
-        response = await fetch(`${API_BASE_URL}${endpoint}`, {
-          ...options,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            ...options?.headers,
-          },
-        });
+      if (!token) {
+        throw new Error('Token refresh failed');
       }
+      response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...options?.headers,
+        },
+      });
     } catch (err) {
       console.error('[API] Token refresh failed:', err);
     }
@@ -54,14 +55,17 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     throw error;
   }
 
+  // Handle 204 No Content responses (e.g., from DELETE requests)
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   const data = await response.json();
   
   // Handle paginated responses from DRF - extract results array if present
-  if (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results)) {
-    return data.results as T;
-  }
-  
-  return data;
+  return (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results))
+    ? (data.results as T)
+    : data;
 }
 
 // Tasks API
@@ -161,10 +165,58 @@ export const couplingCodeApi = {
     body: JSON.stringify({ code }),
   }),
 };
+
 // Account API
 export const accountApi = {
   deleteAccount: (password: string) => request('/api/users/delete_account/', {
     method: 'POST',
     body: JSON.stringify({ password }),
+  }),
+};
+
+// Daily Connection API
+export const dailyConnectionApi = {
+  getAll: () => request('/api/daily-connections/'),
+  getToday: () => request('/api/daily-connections/today/'),
+  submitAnswer: (connectionId: number, answerText: string) => request(`/api/daily-connections/${connectionId}/answer/`, {
+    method: 'POST',
+    body: JSON.stringify({ answer_text: answerText }),
+  }),
+};
+
+// Inbox API
+export const inboxApi = {
+  getAll: () => request('/api/inbox/'),
+  getUnread: () => request('/api/inbox/unread/'),
+  markAsRead: (itemId: number) => request(`/api/inbox/${itemId}/mark_as_read/`, {
+    method: 'POST',
+  }),
+  markAllAsRead: () => request('/api/inbox/mark_all_as_read/', {
+    method: 'POST',
+  }),
+  react: (itemId: number) => request(`/api/inbox/${itemId}/react/`, {
+    method: 'POST',
+  }),
+  shareResponse: (itemId: number, response: string) => request(`/api/inbox/${itemId}/share_response/`, {
+    method: 'POST',
+    body: JSON.stringify({ response }),
+  }),
+};
+// Memories API
+export const memoriesApi = {
+  getAll: () => request('/api/memories/'),
+  create: (memory: any) => request('/api/memories/', {
+    method: 'POST',
+    body: JSON.stringify(memory),
+  }),
+  update: (id: number, updates: any) => request(`/api/memories/${id}/`, {
+    method: 'PUT',
+    body: JSON.stringify(updates),
+  }),
+  delete: (id: number) => request(`/api/memories/${id}/`, {
+    method: 'DELETE',
+  }),
+  toggleFavorite: (id: number) => request(`/api/memories/${id}/toggle_favorite/`, {
+    method: 'POST',
   }),
 };

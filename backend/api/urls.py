@@ -4,6 +4,7 @@ from .views import (
     TaskViewSet, MilestoneViewSet, ActivityViewSet,
     SuggestionViewSet, CollectionViewSet, UserPreferencesViewSet,
     UserViewSet, UserRegistrationViewSet, CoupleViewSet, CouplingCodeViewSet,
+    DailyConnectionViewSet, InboxItemViewSet, MemoryViewSet,
     PlanDateView, ProTipView, DailyPromptView, AuthLogoutView,
 )
 
@@ -18,6 +19,9 @@ router.register(r'users', UserViewSet, basename='user')
 router.register(r'register', UserRegistrationViewSet, basename='register')
 router.register(r'couple', CoupleViewSet, basename='couple')
 router.register(r'coupling-codes', CouplingCodeViewSet, basename='coupling-code')
+router.register(r'daily-connections', DailyConnectionViewSet, basename='daily-connection')
+router.register(r'inbox', InboxItemViewSet, basename='inbox')
+router.register(r'memories', MemoryViewSet, basename='memory')
 # Profile section endpoints
 
 urlpatterns = [

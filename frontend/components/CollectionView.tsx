@@ -2,17 +2,25 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Task, Collection, TaskStatus } from '../types';
+import { tasksApi } from '../services/djangoApi';
 
 interface CollectionViewProps {
   tasks: Task[];
   collections: Collection[];
   onAddTask: (task: Task) => void;
+  onDeleteTask?: (taskId: string) => void;
+  onUpdateTask?: (task: Task) => void;
+  showConfirm?: (config: any) => void;
+  showToast?: (message: string, type?: 'success' | 'error') => void;
 }
 
-const CollectionView: React.FC<CollectionViewProps> = ({ tasks, collections, onAddTask }) => {
+const CollectionView: React.FC<CollectionViewProps> = ({ tasks, collections, onAddTask, onDeleteTask, onUpdateTask, showConfirm, showToast }) => {
   const { collectionId } = useParams<{ collectionId: string }>();
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [taskNotes, setTaskNotes] = useState('');
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
   const collection = collections.find(c => c.id === collectionId);
   
   if (!collection) {
@@ -46,6 +54,54 @@ const CollectionView: React.FC<CollectionViewProps> = ({ tasks, collections, onA
     setIsAddingTask(false);
   };
 
+  const handleDeleteTask = () => {
+    if (!selectedTask || !onDeleteTask) return;
+    showConfirm({
+      title: 'Delete Idea?',
+      message: `Are you sure you want to delete "${selectedTask.title}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      confirmVariant: 'danger' as const,
+      onConfirm: () => {
+        onDeleteTask(selectedTask.id);
+        setSelectedTask(null);
+      }
+    });
+  };
+
+  const handleSaveNotes = async () => {
+    if (!selectedTask) return;
+    
+    // Only save if notes have changed
+    if (taskNotes === (selectedTask.description || '')) {
+      setSelectedTask(null);
+      return;
+    }
+
+    setIsSavingNotes(true);
+    try {
+      const taskId = parseInt(selectedTask.id);
+      if (isNaN(taskId)) throw new Error('Invalid task ID');
+      
+      await tasksApi.update(taskId, {
+        ...selectedTask,
+        description: taskNotes
+      });
+      
+      // Update parent component state
+      const updatedTask = { ...selectedTask, description: taskNotes };
+      onUpdateTask?.(updatedTask);
+      
+      showToast?.('Notes saved successfully', 'success');
+      setSelectedTask(null);
+    } catch (error) {
+      console.error('Error saving task notes:', error);
+      showToast?.('Failed to save notes', 'error');
+    } finally {
+      setIsSavingNotes(false);
+    }
+  };
+
   return (
     <div className="h-full overflow-y-auto custom-scrollbar p-6 md:p-10">
       <div className="max-w-5xl mx-auto space-y-8">
@@ -74,30 +130,7 @@ const CollectionView: React.FC<CollectionViewProps> = ({ tasks, collections, onA
         {filteredTasks.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredTasks.map(task => (
-              <div key={task.id} className="bg-card border border-subtle rounded-2xl p-5 hover:border-accent/30 transition-all group cursor-pointer shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Toggle liked state - visual feedback only
-                      }}
-                      className="text-sm hover:scale-110 transition-transform"
-                      title="Like"
-                    >
-                      ❤️
-                    </button>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Toggle fired state - visual feedback only
-                      }}
-                      className="text-sm hover:scale-110 transition-transform"
-                      title="Fire"
-                    >
-                      🔥
-                    </button>
-                </div>
-
+              <div key={task.id} className="bg-card border border-subtle rounded-2xl p-5 hover:border-accent/30 transition-all group shadow-sm relative">
                 <div className="flex items-center gap-2 mb-3">
                     <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-widest ${
                         task.status === TaskStatus.UPCOMING ? 'bg-green-500/10 text-green-400' : 
@@ -117,7 +150,16 @@ const CollectionView: React.FC<CollectionViewProps> = ({ tasks, collections, onA
                             <img key={idx} src={av} className="w-5 h-5 rounded-full border border-card" alt="user" />
                         ))}
                     </div>
-                    <span className="material-symbols-outlined text-secondary text-lg group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                    <button 
+                      onClick={() => {
+                        setSelectedTask(task);
+                        setTaskNotes(task.description || '');
+                      }}
+                      className="text-secondary hover:text-accent transition-colors group-hover:opacity-100 focus:outline-none"
+                      title="View details"
+                    >
+                      <span className="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                    </button>
                 </div>
               </div>
             ))}
@@ -174,6 +216,75 @@ const CollectionView: React.FC<CollectionViewProps> = ({ tasks, collections, onA
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Task Details Modal */}
+      {selectedTask && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setSelectedTask(null)}></div>
+          <div className="relative bg-card border border-subtle rounded-2xl w-full max-w-lg overflow-hidden">
+            <div className="p-4 border-b border-subtle flex items-center justify-between">
+              <h3 className="text-sm font-bold">Idea Details</h3>
+              <button onClick={() => setSelectedTask(null)} className="material-symbols-outlined text-secondary text-lg hover:text-primary transition-colors">close</button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <h2 className="text-lg font-bold mb-2">{selectedTask.title}</h2>
+                <div className="flex gap-2">
+                  <span className={`text-[9px] font-bold px-2 py-1 rounded uppercase tracking-widest ${
+                    selectedTask.status === TaskStatus.UPCOMING ? 'bg-green-500/10 text-green-400' : 
+                    selectedTask.status === TaskStatus.PLANNING ? 'bg-accent/10 text-accent' : 
+                    'bg-white/5 text-secondary'
+                  }`}>
+                    {selectedTask.status}
+                  </span>
+                  <span className="text-[9px] font-bold text-secondary uppercase tracking-widest opacity-40 px-2 py-1 bg-white/5 rounded">{selectedTask.priority}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="task-notes" className="text-xs font-bold text-secondary uppercase">Notes & Details</label>
+                <textarea
+                  id="task-notes"
+                  value={taskNotes}
+                  onChange={(e) => setTaskNotes(e.target.value)}
+                  placeholder="Add any notes or details about this idea..."
+                  rows={4}
+                  className="w-full bg-white/5 border border-subtle rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-accent resize-none"
+                />
+              </div>
+
+              {selectedTask.avatars.length > 0 && (
+                <div>
+                  <p className="text-xs font-bold text-secondary uppercase mb-2">Added by</p>
+                  <div className="flex -space-x-2">
+                    {selectedTask.avatars.map((av, idx) => (
+                      <img key={idx} src={av} className="w-8 h-8 rounded-full border-2 border-card" alt="user" />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-4 border-t border-subtle space-y-2">
+                <button
+                  onClick={handleSaveNotes}
+                  disabled={isSavingNotes}
+                  className="w-full px-4 py-2 bg-accent text-white rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isSavingNotes ? 'Saving...' : 'Done'}
+                </button>
+                {onDeleteTask && (
+                  <button
+                    onClick={handleDeleteTask}
+                    className="w-full px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-red-500/20 transition-colors"
+                  >
+                    Delete Idea
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Task, Milestone, Suggestion, Activity, TaskStatus, Collection } from './types';
+import { Task, Milestone, Suggestion, Activity, TaskStatus, Collection, InboxItem, DailyConnectionAnswer, Memory } from './types';
 import BoardView from './components/BoardView';
 import MilestonesView from './components/MilestonesView';
 import InboxView from './components/InboxView';
@@ -19,7 +19,7 @@ import Toast, { ToastType } from './components/Toast';
 import ConfirmDialog, { ConfirmDialogProps } from './components/ConfirmDialog';
 import { djangoAuthService, User } from './services/djangoAuth';
 import { djangoRealtimeService } from './services/djangoRealtime';
-import { tasksApi, milestonesApi, activitiesApi, suggestionsApi, collectionsApi, preferencesApi } from './services/djangoApi';
+import { tasksApi, milestonesApi, activitiesApi, suggestionsApi, collectionsApi, preferencesApi, inboxApi, memoriesApi } from './services/djangoApi';
 import { getUserAvatar } from './utils/avatar';
 import { getDisplayName } from './utils/userDisplay';
 
@@ -39,6 +39,8 @@ const App: React.FC = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
+  const [inboxItems, setInboxItems] = useState<InboxItem[]>([]);
+  const [memories, setMemories] = useState<Memory[]>([]);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(() => {
     if (typeof window === 'undefined') return true;
     // Check localStorage first, otherwise use window width as default
@@ -106,7 +108,7 @@ const App: React.FC = () => {
     alexProgress: task.alex_progress || task.alexProgress,
     samProgress: task.sam_progress || task.samProgress,
     description: task.description,
-    time: task.time,
+    date: task.date,
     location: task.location,
     avatars: task.avatars || [],
   });
@@ -116,8 +118,6 @@ const App: React.FC = () => {
     name: milestone.name,
     date: milestone.date,
     status: milestone.status,
-    samExcitement: milestone.sam_excitement || milestone.samExcitement,
-    alexExcitement: milestone.alex_excitement || milestone.alexExcitement,
     icon: milestone.icon,
   });
 
@@ -149,10 +149,49 @@ const App: React.FC = () => {
     color: collection.color,
   });
 
+  const transformInboxItem = (item: any): InboxItem => ({
+    id: String(item.id),
+    itemType: item.item_type || item.itemType,
+    title: item.title,
+    description: item.description,
+    content: item.content || {},
+    senderName: item.sender_name || item.senderName || 'Partner',
+    connectionAnswer: item.connection_answer ? {
+      id: String(item.connection_answer.id),
+      connectionId: String(item.connection_answer.connection),
+      userId: item.connection_answer.user_id,
+      userName: item.connection_answer.user_name,
+      answerText: item.connection_answer.answer_text,
+      answeredAt: item.connection_answer.answered_at,
+      updatedAt: item.connection_answer.updated_at,
+    } : undefined,
+    isRead: item.is_read || item.isRead || false,
+    hasReacted: item.has_reacted || item.hasReacted || false,
+    response: item.response || '',
+    respondedAt: item.responded_at || item.respondedAt || null,
+    createdAt: item.created_at || item.createdAt,
+    updatedAt: item.updated_at || item.updatedAt,
+  });
+
+  const transformMemory = (memory: any): Memory => ({
+    id: String(memory.id),
+    title: memory.title,
+    description: memory.description,
+    date: memory.date,
+    milestone: memory.milestone,
+    milestoneId: memory.milestone_id ? String(memory.milestone_id) : undefined,
+    milestoneName: memory.milestone_name,
+    photos: memory.photos || [],
+    tags: memory.tags || [],
+    is_favorite: memory.is_favorite || false,
+    created_at: memory.created_at,
+    updated_at: memory.updated_at,
+  });
+
   // Load data from API
   const loadData = async () => {
     try {
-      const [tasksData, milestonesData, activitiesData, suggestionsData, collectionsData, preferencesData] = await Promise.all([
+      const [tasksData, milestonesData, activitiesData, suggestionsData, collectionsData, preferencesData, inboxItemsData, memoriesData] = await Promise.all([
         tasksApi.getAll().catch((err) => {
           console.error('[DEBUG] Error loading tasks:', err);
           return [];
@@ -177,6 +216,14 @@ const App: React.FC = () => {
           console.error('[DEBUG] Error loading preferences:', err);
           return null;
         }),
+        inboxApi.getAll().catch((err) => {
+          console.error('[DEBUG] Error loading inbox items:', err);
+          return [];
+        }),
+        memoriesApi.getAll().catch((err) => {
+          console.error('[DEBUG] Error loading memories:', err);
+          return [];
+        }),
       ]);
 
       console.log('[DEBUG] Collections fetched from API:', collectionsData);
@@ -189,6 +236,8 @@ const App: React.FC = () => {
       const transformedCollections = (collectionsData as any[]).length > 0 ? (collectionsData as any[]).map(transformCollection) : [];
       console.log('[DEBUG] Transformed collections:', transformedCollections);
       setCollections(transformedCollections);
+      setInboxItems((inboxItemsData as any[]).length > 0 ? (inboxItemsData as any[]).map(transformInboxItem) : []);
+      setMemories((memoriesData as any[]).length > 0 ? (memoriesData as any[]).map(transformMemory) : []);
     } catch (error) {
       console.error('Error loading data:', error);
     }
@@ -196,86 +245,146 @@ const App: React.FC = () => {
 
   // Set up real-time listeners
   useEffect(() => {
-    if (!isLoggedIn || listenersRegisteredRef.current) return;
+    if (!isLoggedIn) return;
 
-    listenersRegisteredRef.current = true;
-
-    const setupRealtimeListeners = () => {
-      djangoRealtimeService.on('task:created', (data: any) => {
-        setTasks(prev => [transformTask(data), ...prev]);
-      });
-      djangoRealtimeService.on('task:updated', (data: any) => {
+    // Create callback handlers that capture current state
+    const handlers = {
+      'task:created': (data: any) => {
+        const transformed = transformTask(data);
+        setTasks(prev => {
+          const exists = prev.some(t => t.id === transformed.id);
+          if (exists) return prev;
+          return [transformed, ...prev];
+        });
+      },
+      'task:updated': (data: any) => {
         setTasks(prev => prev.map(t => t.id === String(data.id) ? transformTask(data) : t));
-      });
-      djangoRealtimeService.on('task:deleted', (data: { id: string | number }) => {
+      },
+      'task:deleted': (data: { id: string | number }) => {
         const taskId = typeof data.id === 'number' ? data.id.toString() : data.id;
         setTasks(prev => prev.filter(t => t.id !== taskId));
-      });
-
-      djangoRealtimeService.on('milestone:created', (data: any) => {
-        setMilestones(prev => [transformMilestone(data), ...prev]);
-      });
-      djangoRealtimeService.on('milestone:updated', (data: any) => {
+      },
+      'milestone:created': (data: any) => {
+        const transformed = transformMilestone(data);
+        setMilestones(prev => {
+          const exists = prev.some(m => m.id === transformed.id);
+          if (exists) return prev;
+          return [transformed, ...prev];
+        });
+      },
+      'milestone:updated': (data: any) => {
         setMilestones(prev => prev.map(m => m.id === String(data.id) ? transformMilestone(data) : m));
-      });
-      djangoRealtimeService.on('milestone:deleted', (data: { id: string | number }) => {
+      },
+      'milestone:deleted': (data: { id: string | number }) => {
         const milestoneId = typeof data.id === 'number' ? data.id.toString() : data.id;
         setMilestones(prev => prev.filter(m => m.id !== milestoneId));
-      });
-
-      djangoRealtimeService.on('activity:created', (data: any) => {
+      },
+      'activity:created': (data: any) => {
         setActivities(prev => [transformActivity(data), ...prev]);
-      });
-
-      djangoRealtimeService.on('suggestion:created', (data: any) => {
+      },
+      'suggestion:created': (data: any) => {
         const transformed = transformSuggestion(data);
         setSuggestions(prev => {
           const exists = prev.some(s => s.id === transformed.id);
           if (exists) return prev.map(s => s.id === transformed.id ? transformed : s);
           return [transformed, ...prev];
         });
-      });
-      djangoRealtimeService.on('suggestion:deleted', (data: { id: string | number }) => {
+      },
+      'suggestion:deleted': (data: { id: string | number }) => {
         const suggestionId = typeof data.id === 'number' ? data.id.toString() : data.id;
         setSuggestions(prev => prev.filter(s => s.id !== suggestionId));
-      });
-
-      djangoRealtimeService.on('collection:created', (data: any) => {
+      },
+      'collection:created': (data: any) => {
         setCollections(prev => {
-          // Prevent duplicates by checking if collection already exists
           const exists = prev.some(c => c.id === String(data.id));
           if (exists) return prev;
           return [transformCollection(data), ...prev];
         });
-      });
-      djangoRealtimeService.on('collection:updated', (data: any) => {
+      },
+      'collection:updated': (data: any) => {
         setCollections(prev => prev.map(c => c.id === String(data.id) ? transformCollection(data) : c));
-      });
-      djangoRealtimeService.on('collection:deleted', (data: { id: string | number }) => {
+      },
+      'collection:deleted': (data: { id: string | number }) => {
         const collectionId = typeof data.id === 'number' ? data.id.toString() : data.id;
         setCollections(prev => prev.filter(c => c.id !== collectionId));
-      });
+      },
+      'connection_answer:created': (data: any) => {
+        const newInboxItem: InboxItem = {
+          id: String(Math.random()),
+          itemType: 'connection_answer',
+          title: `${data.answer.user_name} answered the daily connection`,
+          description: `"${data.answer.answer_text.substring(0, 100)}..."`,
+          content: { prompt: '', answer: data.answer.answer_text },
+          senderName: data.answer.user_name,
+          connectionAnswer: {
+            id: String(data.answer.id),
+            connectionId: String(data.answer.connection),
+            userId: data.answer.user_id,
+            userName: data.answer.user_name,
+            answerText: data.answer.answer_text,
+            answeredAt: data.answer.answered_at,
+            updatedAt: data.answer.updated_at,
+          },
+          hasReacted: false,
+          response: '',
+          respondedAt: null,
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        setInboxItems(prev => [newInboxItem, ...prev]);
+      },
+      'inbox:created': (data: any) => {
+        const transformed = transformInboxItem(data);
+        setInboxItems(prev => {
+          const exists = prev.some(item => item.id === transformed.id);
+          if (exists) return prev;
+          return [transformed, ...prev];
+        });
+      },
+      'inbox:updated': (data: any) => {
+        const transformed = transformInboxItem(data);
+        setInboxItems(prev => prev.map(item => item.id === transformed.id ? transformed : item));
+      },
+      'inbox:deleted': (data: { id: string | number }) => {
+        const itemId = typeof data.id === 'number' ? data.id.toString() : data.id;
+        setInboxItems(prev => prev.filter(item => item.id !== itemId));
+      },
+      'memory:created': (data: any) => {
+        const transformed = transformMemory(data);
+        setMemories(prev => {
+          const exists = prev.some(m => m.id === transformed.id);
+          if (exists) return prev;
+          return [transformed, ...prev];
+        });
+      },
+      'memory:updated': (data: any) => {
+        setMemories(prev => prev.map(m => {
+          if (m.id === String(data.id)) {
+            const updated = transformMemory(data);
+            // Preserve local favorite status - don't sync favorites between partners
+            return { ...updated, is_favorite: m.is_favorite };
+          }
+          return m;
+        }));
+      },
+      'memory:deleted': (data: { id: string | number }) => {
+        const memoryId = typeof data.id === 'number' ? data.id.toString() : data.id;
+        setMemories(prev => prev.filter(m => m.id !== memoryId));
+      },
     };
 
-    setupRealtimeListeners();
+    // Register handlers
+    Object.entries(handlers).forEach(([event, handler]) => {
+      djangoRealtimeService.on(event, handler as Function);
+    });
 
+    // Cleanup: remove listeners when component unmounts or logout happens
     return () => {
-      // Cleanup only on logout
-      if (!isLoggedIn) {
-        listenersRegisteredRef.current = false;
-        djangoRealtimeService.off('task:created');
-        djangoRealtimeService.off('task:updated');
-        djangoRealtimeService.off('task:deleted');
-        djangoRealtimeService.off('milestone:created');
-        djangoRealtimeService.off('milestone:updated');
-        djangoRealtimeService.off('milestone:deleted');
-        djangoRealtimeService.off('activity:created');
-        djangoRealtimeService.off('suggestion:created');
-        djangoRealtimeService.off('suggestion:deleted');
-        djangoRealtimeService.off('collection:created');
-        djangoRealtimeService.off('collection:updated');
-        djangoRealtimeService.off('collection:deleted');
-      }
+      Object.keys(handlers).forEach(event => {
+        djangoRealtimeService.off(event);
+      });
+      listenersRegisteredRef.current = false;
     };
   }, [isLoggedIn]);
 
@@ -313,6 +422,8 @@ const App: React.FC = () => {
         setActivities([]);
         setSuggestions([]);
         setCollections([]);
+        setInboxItems([]);
+        setMemories([]);
         // Clear the hash when logging out
         window.location.hash = '';
       }
@@ -464,7 +575,7 @@ const App: React.FC = () => {
         alex_progress: newTask.alexProgress,
         sam_progress: newTask.samProgress,
         description: newTask.description,
-        time: newTask.time,
+        date: newTask.date,
         location: newTask.location,
         avatars: taskAvatars,
       };
@@ -480,21 +591,41 @@ const App: React.FC = () => {
     try {
       const taskIdNum = parseInt(taskId);
       if (isNaN(taskIdNum)) throw new Error('Invalid task ID');
-      // Convert updates to Django format
-      const djangoUpdates: any = { ...updates };
-      if (updates.alexProgress !== undefined) djangoUpdates.alex_progress = updates.alexProgress;
-      if (updates.samProgress !== undefined) djangoUpdates.sam_progress = updates.samProgress;
-      delete djangoUpdates.alexProgress;
-      delete djangoUpdates.samProgress;
       
-      await tasksApi.update(taskIdNum, djangoUpdates);
+      // Get the current task to merge updates with existing data
+      const currentTask = tasks.find(t => t.id === taskId);
+      if (!currentTask) throw new Error('Task not found');
+      
+      // Optimistic update: update local state immediately for better UX
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
+      
+      // Merge updates with existing task to ensure all required fields are sent
+      const mergedUpdate = {
+        title: updates.title ?? currentTask.title,
+        category: updates.category ?? currentTask.category,
+        priority: updates.priority ?? currentTask.priority,
+        status: updates.status ?? currentTask.status,
+        liked: updates.liked ?? currentTask.liked,
+        fired: updates.fired ?? currentTask.fired,
+        progress: updates.progress ?? currentTask.progress,
+        alex_progress: updates.alexProgress ?? currentTask.alexProgress,
+        sam_progress: updates.samProgress ?? currentTask.samProgress,
+        description: updates.description ?? currentTask.description,
+        date: updates.date ?? currentTask.date,
+        location: updates.location ?? currentTask.location,
+        avatars: updates.avatars ?? currentTask.avatars,
+      };
+      
+      // Send to backend - real-time listener will update both partners
+      await tasksApi.update(taskIdNum, mergedUpdate);
       if (updates.status) {
-        const task = tasks.find(t => t.id === taskId);
-        if (task) await addActivity('moved', `${task.title} to ${updates.status}`);
+        await addActivity('moved', `${currentTask.title} to ${updates.status}`);
       }
     } catch (error) {
       console.error('Error updating task:', error);
       showToast?.('Failed to update task', 'error');
+      // Reload tasks on error to ensure consistency
+      loadData();
     }
   };
 
@@ -508,6 +639,68 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Error deleting task:', error);
       showToast?.('Failed to delete task', 'error');
+    }
+  };
+
+  const addMilestone = async (newMilestone: any) => {
+    try {
+      const milestonData = {
+        name: newMilestone.name,
+        date: newMilestone.date,
+        status: newMilestone.status,
+        icon: newMilestone.icon,
+      };
+      await milestonesApi.create(milestonData);
+      await addActivity('created', `the milestone "${newMilestone.name}"`);
+    } catch (error) {
+      console.error('Error creating milestone:', error);
+      showToast?.('Failed to create milestone', 'error');
+    }
+  };
+
+  const updateMilestone = async (milestoneId: string, updates: any) => {
+    try {
+      const milestoneIdNum = parseInt(milestoneId);
+      if (isNaN(milestoneIdNum)) throw new Error('Invalid milestone ID');
+      
+      // Get the current milestone to merge updates with existing data
+      const currentMilestone = milestones.find(m => m.id === milestoneId);
+      if (!currentMilestone) throw new Error('Milestone not found');
+      
+      // Optimistic update: update local state immediately for better UX
+      setMilestones(prev => prev.map(m => m.id === milestoneId ? { ...m, ...updates } : m));
+      
+      // Merge updates with existing milestone to ensure all required fields are sent
+      const mergedUpdate = {
+        name: updates.name ?? currentMilestone.name,
+        date: updates.date ?? currentMilestone.date,
+        status: updates.status ?? currentMilestone.status,
+        icon: updates.icon ?? currentMilestone.icon,
+      };
+      
+      // Send to backend - real-time listener will update both partners
+      await milestonesApi.update(milestoneIdNum, mergedUpdate);
+      if (updates.status && updates.status !== currentMilestone.status) {
+        await addActivity('moved', `${currentMilestone.name} to ${updates.status}`);
+      }
+    } catch (error) {
+      console.error('Error updating milestone:', error);
+      showToast?.('Failed to update milestone', 'error');
+      // Reload data on error to ensure consistency
+      loadData();
+    }
+  };
+
+  const deleteMilestone = async (milestoneId: string) => {
+    try {
+      const milestoneIdNum = parseInt(milestoneId);
+      if (isNaN(milestoneIdNum)) throw new Error('Invalid milestone ID');
+      const milestone = milestones.find(m => m.id === milestoneId);
+      await milestonesApi.delete(milestoneIdNum);
+      if (milestone) await addActivity('removed', `the milestone "${milestone.name}"`);
+    } catch (error) {
+      console.error('Error deleting milestone:', error);
+      showToast?.('Failed to delete milestone', 'error');
     }
   };
 
@@ -532,7 +725,7 @@ const App: React.FC = () => {
       message: `Are you sure you want to delete "${collectionToDelete.name}"? This action cannot be undone.`,
       confirmText: 'Delete',
       cancelText: 'Cancel',
-      isDangerous: true,
+      confirmVariant: 'danger',
       onConfirm: async () => {
         try {
           const collectionIdNum = parseInt(collectionId);
@@ -643,15 +836,15 @@ const App: React.FC = () => {
           
           <main className="flex-1 overflow-hidden relative">
             <Routes>
-              <Route path="/" element={<TodayView tasks={tasks} onShareAnswer={() => addActivity('answered', "today's connection prompt")} />} />
-              <Route path="/today" element={<TodayView tasks={tasks.filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.category.toLowerCase().includes(searchQuery.toLowerCase()))} onShareAnswer={() => addActivity('answered', "today's connection prompt")} />} />
+              <Route path="/" element={<TodayView tasks={tasks} onShareAnswer={() => addActivity('answered', "today's connection prompt")} showToast={showToast} />} />
+              <Route path="/today" element={<TodayView tasks={tasks.filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.category.toLowerCase().includes(searchQuery.toLowerCase()))} onShareAnswer={() => addActivity('answered', "today's connection prompt")} showToast={showToast} />} />
               <Route path="/board" element={<BoardView tasks={tasks.filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.category.toLowerCase().includes(searchQuery.toLowerCase()))} setTasks={setTasks} onAction={addActivity} onAddTask={addTask} onUpdateTask={updateTask} onDeleteTask={deleteTask} showConfirm={showConfirm} />} />
-              <Route path="/milestones" element={<MilestonesView milestones={milestones} />} />
-              <Route path="/inbox" element={<InboxView suggestions={suggestions} onAccept={addTask} onSave={() => {}} onDecline={(id) => setSuggestions(prev => prev.filter(s => s.id !== id))} showToast={showToast} showConfirm={showConfirm} />} />
-              <Route path="/collection/:collectionId" element={<CollectionView tasks={tasks} collections={collections} onAddTask={addTask} />} />
+              <Route path="/milestones" element={<MilestonesView milestones={milestones} onAddMilestone={addMilestone} onUpdateMilestone={updateMilestone} onDeleteMilestone={deleteMilestone} showConfirm={showConfirm} showToast={showToast} />} />
+              <Route path="/inbox" element={<InboxView suggestions={suggestions} inboxItems={inboxItems} onAccept={addTask} onSave={() => {}} onDecline={(id) => setSuggestions(prev => prev.filter(s => s.id !== id))} showToast={showToast} showConfirm={showConfirm} />} />
+              <Route path="/collection/:collectionId" element={<CollectionView tasks={tasks} collections={collections} onAddTask={addTask} onUpdateTask={updateTask} onDeleteTask={deleteTask} showConfirm={showConfirm} showToast={showToast} />} />
               <Route path="/profile" element={<ProfileView currentUser={currentUser} activities={activities} milestonesCount={milestones.length} />} />
               <Route path="/settings" element={<SettingsView currentUser={currentUser} showToast={showToast} showConfirm={showConfirm} onLogout={handleLogout} />} />
-              <Route path="/memories" element={<MemoriesView />} />
+              <Route path="/memories" element={<MemoriesView memories={memories} setMemories={setMemories} showToast={showToast} />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </main>

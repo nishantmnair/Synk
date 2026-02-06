@@ -2,12 +2,13 @@
 Django signals for API app
 """
 from contextlib import suppress
-from django.db.models.signals import post_save, pre_delete
+from django.db.models.signals import post_save, post_delete, pre_delete
 from django.dispatch import receiver
 from django.contrib.auth.models import User
-from .models import UserProfile, Couple
+from .models import UserProfile, Couple, InboxItem
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from .serializers import InboxItemSerializer
 
 
 @receiver(post_save, sender=User)
@@ -78,5 +79,54 @@ def notify_partner_on_uncouple(sender, instance, **kwargs):
                     }
                 }
             )
+
+
+@receiver(post_save, sender=InboxItem)
+def broadcast_inbox_item_update(sender, instance, created, **kwargs):
+    """
+    Broadcast inbox item changes to the recipient in real-time.
+    This ensures inbox updates are sent via WebSocket when items are created or modified.
+    """
+    with suppress(Exception):
+        channel_layer = get_channel_layer()
+        serialized_data = InboxItemSerializer(instance).data
+        
+        if created:
+            # Broadcast creation event
+            async_to_sync(channel_layer.group_send)(
+                f"user_{instance.recipient.id}",
+                {
+                    "type": "send_message",
+                    "event": "inbox:created",
+                    "data": serialized_data
+                }
+            )
+        else:
+            # Broadcast update event
+            async_to_sync(channel_layer.group_send)(
+                f"user_{instance.recipient.id}",
+                {
+                    "type": "send_message",
+                    "event": "inbox:updated",
+                    "data": serialized_data
+                }
+            )
+
+
+@receiver(post_delete, sender=InboxItem)
+def broadcast_inbox_item_deletion(sender, instance, **kwargs):
+    """
+    Broadcast inbox item deletion to the recipient in real-time.
+    """
+    with suppress(Exception):
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f"user_{instance.recipient.id}",
+            {
+                "type": "send_message",
+                "event": "inbox:deleted",
+                "data": {"id": instance.id}
+            }
+        )
 
 

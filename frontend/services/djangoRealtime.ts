@@ -9,11 +9,20 @@ class DjangoRealtimeService {
   private userId: number | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
+  private isIntentiallyClosed = false;
+  private isConnecting = false;
 
   connect = async () => {
+    // Prevent multiple simultaneous connection attempts
+    if (this.isConnecting) {
+      return;
+    }
+
     if (this.ws?.readyState === WebSocket.OPEN) {
       return;
     }
+
+    this.isConnecting = true;
 
     try {
       const user = await djangoAuthService.getCurrentUser();
@@ -30,6 +39,8 @@ class DjangoRealtimeService {
       this.ws.onopen = () => {
         console.log('✅ Connected to Django WebSocket');
         this.reconnectAttempts = 0;
+        this.isIntentiallyClosed = false;
+        this.isConnecting = false;
       };
 
       this.ws.onmessage = (event) => {
@@ -43,14 +54,20 @@ class DjangoRealtimeService {
 
       this.ws.onerror = (error) => {
         console.error('WebSocket error:', error);
+        this.isConnecting = false;
       };
 
       this.ws.onclose = () => {
         console.log('❌ Disconnected from Django WebSocket');
-        this.attemptReconnect();
+        this.isConnecting = false;
+        // Only attempt reconnect if this wasn't an intentional disconnect
+        if (!this.isIntentiallyClosed) {
+          this.attemptReconnect();
+        }
       };
     } catch (error) {
       console.error('Error connecting to WebSocket:', error);
+      this.isConnecting = false;
     }
   };
 
@@ -68,12 +85,14 @@ class DjangoRealtimeService {
   };
 
   disconnect = () => {
+    this.isIntentiallyClosed = true;
+    this.isConnecting = false;
     if (this.ws) {
       this.ws.close();
       this.ws = null;
-      this.listeners.clear();
-      this.userId = null;
     }
+    // Don't clear listeners on disconnect - let the component handle cleanup
+    this.userId = null;
   };
 
   private emit = (event: string, data: any) => {

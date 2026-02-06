@@ -27,11 +27,34 @@ vi.mock('./services/djangoRealtime', () => ({
 
 vi.mock('./services/djangoApi', () => ({
   tasksApi: { getAll: vi.fn().mockResolvedValue([]), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
-  milestonesApi: { getAll: vi.fn().mockResolvedValue([]) },
+  milestonesApi: { getAll: vi.fn().mockResolvedValue([]), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
   activitiesApi: { getAll: vi.fn().mockResolvedValue([]), create: vi.fn() },
-  suggestionsApi: { getAll: vi.fn().mockResolvedValue([]) },
-  collectionsApi: { getAll: vi.fn().mockResolvedValue([]), create: vi.fn() },
-  preferencesApi: { get: vi.fn().mockResolvedValue(null) },
+  suggestionsApi: { getAll: vi.fn().mockResolvedValue([]), create: vi.fn(), delete: vi.fn() },
+  collectionsApi: { getAll: vi.fn().mockResolvedValue([]), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
+  preferencesApi: { get: vi.fn().mockResolvedValue(null), update: vi.fn() },
+  inboxApi: {
+    getAll: vi.fn().mockResolvedValue([]),
+    getUnread: vi.fn().mockResolvedValue([]),
+    markAsRead: vi.fn().mockResolvedValue({}),
+    markAllAsRead: vi.fn().mockResolvedValue({}),
+    react: vi.fn().mockResolvedValue({}),
+    shareResponse: vi.fn().mockResolvedValue({}),
+  },
+  dailyConnectionApi: {
+    getAll: vi.fn().mockResolvedValue([]),
+    getToday: vi.fn().mockResolvedValue(null),
+    submitAnswer: vi.fn().mockResolvedValue({}),
+  },
+  memoriesApi: {
+    getAll: vi.fn().mockResolvedValue([]),
+    create: vi.fn().mockResolvedValue({}),
+    update: vi.fn().mockResolvedValue({}),
+    delete: vi.fn().mockResolvedValue({}),
+    toggleFavorite: vi.fn().mockResolvedValue({}),
+  },
+  coupleApi: { get: vi.fn().mockResolvedValue(null), uncouple: vi.fn() },
+  couplingCodeApi: { create: vi.fn(), use: vi.fn() },
+  accountApi: { deleteAccount: vi.fn() },
 }))
 
 const mockUser = {

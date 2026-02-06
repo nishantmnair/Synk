@@ -42,11 +42,10 @@ class BroadcastMixin:
     """
     Mixin for ViewSets that broadcast WebSocket events to users.
     
-    Provides a broadcast() method to send real-time updates to the user's
-    WebSocket connection via Django Channels.
+    Provides broadcast methods to send real-time updates via Django Channels.
     
     Usage:
-        class TaskViewSet(BroadcastMixin, viewsets.ModelViewSet):
+        class TaskViewSet(PartnerResolutionMixin, BroadcastMixin, viewsets.ModelViewSet):
             def perform_create(self, serializer):
                 task = serializer.save()
                 self.broadcast('task:created', TaskSerializer(task).data)
@@ -54,15 +53,47 @@ class BroadcastMixin:
     
     def broadcast(self, event_type, data):
         """
-        Broadcast a WebSocket event to the current user.
+        Broadcast a WebSocket event to the current user and their partner (if coupled).
         
         Args:
             event_type: String event type (e.g., 'task:created', 'suggestion:deleted')
             data: Serialized data to send to the client
         """
         channel_layer = get_channel_layer()
+        # Send to current user
         async_to_sync(channel_layer.group_send)(
             f"user_{self.request.user.id}",
+            {
+                "type": "send_message",
+                "event": event_type,
+                "data": data
+            }
+        )
+        
+        # Send to partner if coupled
+        if hasattr(self, 'get_partner'):
+            if partner := self.get_partner(self.request.user):
+                async_to_sync(channel_layer.group_send)(
+                    f"user_{partner.id}",
+                    {
+                        "type": "send_message",
+                        "event": event_type,
+                        "data": data
+                    }
+                )
+
+    def broadcast_to_user(self, user, event_type, data):
+        """
+        Broadcast a WebSocket event to a specific user.
+        
+        Args:
+            user: Django User object to send the event to
+            event_type: String event type (e.g., 'inbox:created')
+            data: Serialized data to send to the client
+        """
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f"user_{user.id}",
             {
                 "type": "send_message",
                 "event": event_type,

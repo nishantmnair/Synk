@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "node run-coverage.js",
     "test:ui": "vitest --ui"
   },
   "dependencies": {

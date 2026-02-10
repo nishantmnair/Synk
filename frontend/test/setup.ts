@@ -20,27 +20,14 @@ beforeEach(() => {
 })
 
 // Cleanup after each test
-afterEach(async () => {
+afterEach(() => {
   cleanup()
-  // Ensure any pending updates are flushed
-  await new Promise(resolve => setTimeout(resolve, 0))
   // Clear all mocks
   vi.clearAllMocks()
-  // Try to run all pending timers if in fake timer mode
-  try {
-    vi.runAllTimers()
-  } catch {
-    // Not in fake timer mode, ignore
-  }
   // Clear all timers
   vi.clearAllTimers()
-  // Switch back to real timers if needed
-  try {
-    vi.useRealTimers()
-  } catch {
-    // Already using real timers, ignore
-  }
 })
+
 
 
 

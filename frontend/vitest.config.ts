@@ -10,6 +10,7 @@ export default defineConfig({
     setupFiles: './test/setup.ts',
     testTimeout: 15000,
     hookTimeout: 15000,
+    teardownTimeout: 5000,
     forceExit: true,
     isolate: true,
     threads: {
@@ -17,15 +18,8 @@ export default defineConfig({
     },
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json'],
-      exclude: [
-        'node_modules/',
-        'test/',
-        '**/*.d.ts',
-        '**/*.config.*',
-        '**/mockData',
-        'index.tsx',
-      ],
+      reporter: [],
+      enabled: false,
     },
   },
   resolve: {

@@ -46,6 +46,31 @@ def save_user_profile(sender, instance, **kwargs):
             instance.profile.save()
 
 
+@receiver(post_save, sender=Couple)
+def notify_partners_on_couple(sender, instance, created, **kwargs):
+    """
+    When a couple relationship is created, notify both partners in real-time.
+    This sends the couple:coupled event when users connect via coupling code.
+    """
+    if created:
+        try:
+            channel_layer = get_channel_layer()
+            
+            # Notify both users
+            for user in [instance.user1, instance.user2]:
+                async_to_sync(channel_layer.group_send)(
+                    f"user_{user.id}",
+                    {
+                        "type": "send_message",
+                        "event": "couple:coupled",
+                        "data": {}
+                    }
+                )
+            logger.info(f"Notified users {instance.user1.id} and {instance.user2.id} of coupling")
+        except Exception as e:
+            logger.error(f"Error notifying partners on couple creation: {str(e)}", exc_info=True)
+
+
 @receiver(pre_delete, sender=Couple)
 def notify_partner_on_uncouple(sender, instance, **kwargs):
     """

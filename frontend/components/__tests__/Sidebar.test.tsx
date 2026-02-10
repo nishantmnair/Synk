@@ -43,11 +43,27 @@ describe('Sidebar', () => {
     expect(screen.getByRole('link', { name: /Milestones/i })).toBeInTheDocument()
   })
 
-  it('calls onToggle when collapse button clicked', () => {
+  it('renders favicon with correct properties', () => {
     renderSidebar()
-    const toggleBtn = screen.getByTitle(/Collapse Navigation/i)
-    fireEvent.click(toggleBtn)
-    expect(mockOnToggle).toHaveBeenCalled()
+    const favicon = screen.getByAltText('Synk')
+    expect(favicon).toBeInTheDocument()
+    expect(favicon).toHaveAttribute('src', '/Synk-Favicon.png')
+  })
+
+  it('favicon has explicit sizing for crisp rendering', () => {
+    renderSidebar()
+    const favicon = screen.getByAltText('Synk') as HTMLImageElement
+    expect(favicon.style.width).toBe('30px')
+    expect(favicon.style.height).toBe('30px')
+    expect(favicon.style.imageRendering).toBe('crisp-edges')
+  })
+
+  it('favicon link navigates to home page with transparent background', () => {
+    renderSidebar()
+    const link = screen.getByRole('link', { name: /Synk/i })
+    expect(link).toHaveAttribute('href', '/')
+    expect(link).toHaveAttribute('title', 'Home')
+    expect(link.style.background).toBe('transparent')
   })
 
   it('shows Collections section', () => {

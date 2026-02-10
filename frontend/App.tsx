@@ -474,15 +474,34 @@ const App: React.FC = () => {
       setToast(null);
       const user = await djangoAuthService.login(email, password);
       setCurrentUser(user);
+      
+      // Check coupling status BEFORE setting isLoggedIn to ensure correct state
+      // when component renders after login
+      let isCoupledResult = false;
+      try {
+        const coupleData = await coupleApi.get() as any;
+        if (coupleData && coupleData.is_coupled) {
+          isCoupledResult = true;
+          setIsCoupled(true);
+          setShowCouplingOnboarding(false);
+        } else {
+          setIsCoupled(false);
+          setShowCouplingOnboarding(true);
+        }
+      } catch (error) {
+        // If we can't check couple status, show onboarding
+        setIsCoupled(false);
+        setShowCouplingOnboarding(true);
+      }
+      
+      // Now set isLoggedIn after coupling state is determined
       setIsLoggedIn(true);
       djangoRealtimeService.connect();
       // Load data after login
       await loadData();
-      // Check coupling status
-      await checkCoupleStatus();
-      // Only navigate if coupled
-      const coupleData = await coupleApi.get() as any;
-      if (coupleData.is_coupled) {
+      
+      // Navigate to dashboard if coupled
+      if (isCoupledResult) {
         window.location.hash = '#/today';
       }
     } catch (error: any) {
@@ -497,18 +516,34 @@ const App: React.FC = () => {
       setToast(null);
       const user = await djangoAuthService.signup(email, password, passwordConfirm, firstName, lastName, couplingCode);
       setCurrentUser(user);
+      
+      // Check coupling status BEFORE setting isLoggedIn to ensure we don't show
+      // the onboarding modal when rendering after signup with a coupling code
+      let isCoupledResult = false;
+      try {
+        const coupleData = await coupleApi.get() as any;
+        if (coupleData && coupleData.is_coupled) {
+          isCoupledResult = true;
+          setIsCoupled(true);
+          setShowCouplingOnboarding(false);
+        } else {
+          setIsCoupled(false);
+          setShowCouplingOnboarding(true);
+        }
+      } catch (error) {
+        // If we can't check couple status, show onboarding
+        setIsCoupled(false);
+        setShowCouplingOnboarding(true);
+      }
+      
+      // Now set isLoggedIn after coupling state is determined
       setIsLoggedIn(true);
       djangoRealtimeService.connect();
       // Load data after signup
       await loadData();
       
-      // Check coupling status
-      await checkCoupleStatus();
-      
-      // If they're already coupled (used a code), navigate to dashboard
-      // Otherwise, show the coupling onboarding screen
-      const coupleData = await coupleApi.get() as any;
-      if (coupleData && coupleData.is_coupled) {
+      // Navigate to dashboard if already coupled
+      if (isCoupledResult) {
         window.location.hash = '#/today';
       }
     } catch (error: any) {

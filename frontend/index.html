@@ -7,16 +7,39 @@
         var theme = localStorage.getItem('synk_theme') || 'dark';
         document.documentElement.setAttribute('data-theme', theme);
         
-        // Update favicon based on theme
-        var faviconLink = document.querySelector('link[rel="icon"]');
-        if (faviconLink) {
-          faviconLink.href = theme === 'dark' ? '/Synk-Favicon.png' : '/Synk-Logo-LightMode.png';
+        // Update favicon based on theme and system preference
+        function updateFavicon() {
+          var appTheme = localStorage.getItem('synk_theme') || 'dark';
+          var isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var faviconLink = document.querySelector('link[rel="icon"]');
+          if (faviconLink) {
+            faviconLink.href = (appTheme === 'dark' || isDarkMode) ? '/Synk-Favicon-Inverted.png' : '/Synk-Logo-LightMode.png';
+          }
+        }
+        
+        updateFavicon();
+        
+        // Update favicon when system theme changes
+        if (window.matchMedia) {
+          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateFavicon);
         }
       })();
     </script>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <link rel="icon" type="image/png" href="/Synk-Favicon.png" />
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <link rel="icon" type="image/png" href="/Synk-Logo-LightMode.png" media="(prefers-color-scheme: light)" />
+    <link rel="icon" type="image/png" href="/Synk-Favicon-Inverted.png" media="(prefers-color-scheme: dark)" />
+    <style>
+      img[src*="Synk-Favicon"], img[src*="Synk-Logo"] {
+        background-color: transparent !important;
+      }
+      
+      [data-theme="dark"] img[src*="Synk-Favicon"] {
+        filter: invert(1);
+      }
+    </style>
     <title>Synk</title>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>

@@ -1,4 +1,4 @@
-import { expect, afterEach, vi } from 'vitest'
+import { expect, afterEach, vi, beforeEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import * as matchers from '@testing-library/jest-dom/matchers'
 
@@ -14,9 +14,34 @@ const localStorageMock = {
 }
 global.localStorage = localStorageMock as any
 
-// Cleanup after each test
-afterEach(() => {
-  cleanup()
-  // Reset localStorage mocks
+// Reset mocks before each test
+beforeEach(() => {
   vi.clearAllMocks()
 })
+
+// Cleanup after each test
+afterEach(async () => {
+  cleanup()
+  // Ensure any pending updates are flushed
+  await new Promise(resolve => setTimeout(resolve, 0))
+  // Clear all mocks
+  vi.clearAllMocks()
+  // Try to run all pending timers if in fake timer mode
+  try {
+    vi.runAllTimers()
+  } catch {
+    // Not in fake timer mode, ignore
+  }
+  // Clear all timers
+  vi.clearAllTimers()
+  // Switch back to real timers if needed
+  try {
+    vi.useRealTimers()
+  } catch {
+    // Already using real timers, ignore
+  }
+})
+
+
+
+

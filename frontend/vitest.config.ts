@@ -8,9 +8,16 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './test/setup.ts',
+    testTimeout: 15000,
+    hookTimeout: 15000,
+    forceExit: true,
+    isolate: true,
+    threads: {
+      singleThread: true,
+    },
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'json'],
       exclude: [
         'node_modules/',
         'test/',

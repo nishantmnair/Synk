@@ -54,15 +54,17 @@ const TodayView: React.FC<TodayViewProps> = ({ tasks, onShareAnswer, showToast }
   };
 
   const handleSubmitAnswer = async (answer: string) => {
-    if (!dailyConnection || isSubmitting) return;
+    if (!dailyConnection || isSubmitting || !dailyConnection.id) return;
     
     try {
       setIsSubmitting(true);
-      await dailyConnectionApi.submitAnswer(parseInt(dailyConnection.id) || 0, answer);
+      await dailyConnectionApi.submitAnswer(parseInt(String(dailyConnection.id), 10), answer);
       setShared(true);
       setAnswerModalOpen(false);
       onShareAnswer?.();
       showToast?.('Your answer has been shared with your partner!', 'success');
+      // Navigate to inbox to see the response
+      navigate('/inbox');
     } catch (error) {
       console.error('Error submitting answer:', error);
       showToast?.('Failed to share your answer', 'error');

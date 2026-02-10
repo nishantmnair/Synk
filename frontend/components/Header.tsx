@@ -14,7 +14,7 @@ interface HeaderProps {
   isLeftSidebarOpen: boolean;
   onLogout: () => void;
   searchQuery: string;
-  onSearchChange: (query: string) => string;
+  onSearchChange: (query: string) => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   showConfirm: (config: any) => void;

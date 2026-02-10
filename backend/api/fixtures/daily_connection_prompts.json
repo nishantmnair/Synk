@@ -1,0 +1,552 @@
+[
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 1,
+    "fields": {
+      "prompt_text": "What is something meaningful you want to share with your partner today?",
+      "category": "deep",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 2,
+    "fields": {
+      "prompt_text": "What made you feel most loved by your partner this week?",
+      "category": "appreciationation",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 3,
+    "fields": {
+      "prompt_text": "If you could give your partner one piece of advice, what would it be?",
+      "category": "deep",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 4,
+    "fields": {
+      "prompt_text": "What's one thing you're grateful for about today?",
+      "category": "gratitude",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 5,
+    "fields": {
+      "prompt_text": "What does your ideal weekend look like?",
+      "category": "fun",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 6,
+    "fields": {
+      "prompt_text": "What's a goal you want to achieve in the next year?",
+      "category": "dreams",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 7,
+    "fields": {
+      "prompt_text": "What's one way your partner has helped you grow?",
+      "category": "appreciationation",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 8,
+    "fields": {
+      "prompt_text": "What would be your dream date night?",
+      "category": "fun",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 9,
+    "fields": {
+      "prompt_text": "What's something you learned about yourself this week?",
+      "category": "reflection",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 10,
+    "fields": {
+      "prompt_text": "What's your favorite memory together?",
+      "category": "deep",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 11,
+    "fields": {
+      "prompt_text": "If you could travel anywhere together, where would it be?",
+      "category": "dreams",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 12,
+    "fields": {
+      "prompt_text": "What's something small your partner did that meant a lot to you?",
+      "category": "appreciationation",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 13,
+    "fields": {
+      "prompt_text": "What's one thing you want your partner to know about how you're feeling?",
+      "category": "deep",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 14,
+    "fields": {
+      "prompt_text": "What's a hobby or interest you'd like to explore together?",
+      "category": "fun",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 15,
+    "fields": {
+      "prompt_text": "What's something you admire about your partner?",
+      "category": "appreciationation",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 16,
+    "fields": {
+      "prompt_text": "What would make tomorrow a great day for you?",
+      "category": "reflection",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 17,
+    "fields": {
+      "prompt_text": "What's a challenge you're facing and how can your partner support you?",
+      "category": "deep",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 18,
+    "fields": {
+      "prompt_text": "What's something that made you laugh today?",
+      "category": "fun",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 19,
+    "fields": {
+      "prompt_text": "How do you want to celebrate a win together?",
+      "category": "fun",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 20,
+    "fields": {
+      "prompt_text": "What does love mean to you?",
+      "category": "deep",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 21,
+    "fields": {
+      "prompt_text": "What's a tradition you'd like to start together?",
+      "category": "dreams",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 22,
+    "fields": {
+      "prompt_text": "What's something you've been thinking about a lot lately?",
+      "category": "reflection",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 23,
+    "fields": {
+      "prompt_text": "How have we grown together since we met?",
+      "category": "deep",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 24,
+    "fields": {
+      "prompt_text": "What's something you're curious about learning together?",
+      "category": "fun",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 25,
+    "fields": {
+      "prompt_text": "What's a way you show love that sometimes goes unnoticed?",
+      "category": "appreciationation",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 26,
+    "fields": {
+      "prompt_text": "What are you grateful for in our relationship?",
+      "category": "gratitude",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 27,
+    "fields": {
+      "prompt_text": "What's your favorite quality in your partner?",
+      "category": "appreciationation",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 28,
+    "fields": {
+      "prompt_text": "What's something you want to improve about yourself?",
+      "category": "reflection",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 29,
+    "fields": {
+      "prompt_text": "What's the best piece of advice someone has ever given you?",
+      "category": "reflection",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 30,
+    "fields": {
+      "prompt_text": "What would be the perfect morning together?",
+      "category": "fun",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 31,
+    "fields": {
+      "prompt_text": "What's a skill you'd love to teach your partner?",
+      "category": "fun",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 32,
+    "fields": {
+      "prompt_text": "What makes you feel most connected to your partner?",
+      "category": "deep",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 33,
+    "fields": {
+      "prompt_text": "What's something you want to achieve together this year?",
+      "category": "dreams",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 34,
+    "fields": {
+      "prompt_text": "What's your favorite way to spend time with your partner?",
+      "category": "fun",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 35,
+    "fields": {
+      "prompt_text": "What's something your partner does that always makes you smile?",
+      "category": "appreciationation",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 36,
+    "fields": {
+      "prompt_text": "What's a fear you have and how can your partner help?",
+      "category": "deep",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 37,
+    "fields": {
+      "prompt_text": "What's the most important thing to you in a relationship?",
+      "category": "deep",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 38,
+    "fields": {
+      "prompt_text": "What's something fun you've done recently that you want to do again?",
+      "category": "fun",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 39,
+    "fields": {
+      "prompt_text": "How do you feel about our future together?",
+      "category": "dreams",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 40,
+    "fields": {
+      "prompt_text": "What's something kind your partner has done for you recently?",
+      "category": "gratitude",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 41,
+    "fields": {
+      "prompt_text": "What does your partner do that shows they care?",
+      "category": "appreciationation",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 42,
+    "fields": {
+      "prompt_text": "What's a moment you felt truly happy this week?",
+      "category": "gratitude",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 43,
+    "fields": {
+      "prompt_text": "What's something you want to understand better about your partner?",
+      "category": "deep",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 44,
+    "fields": {
+      "prompt_text": "What's your love language? How does your partner show theirs?",
+      "category": "deep",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 45,
+    "fields": {
+      "prompt_text": "What would make your partner feel most appreciated today?",
+      "category": "appreciationation",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 46,
+    "fields": {
+      "prompt_text": "What's a dream you have that you haven't shared yet?",
+      "category": "dreams",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 47,
+    "fields": {
+      "prompt_text": "What's something that made today better than yesterday?",
+      "category": "gratitude",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 48,
+    "fields": {
+      "prompt_text": "How can you show your partner love in a new way this week?",
+      "category": "appreciationation",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 49,
+    "fields": {
+      "prompt_text": "What's a moment that made you realize your partner was 'the one'?",
+      "category": "deep",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "api.dailyconnectionprompt",
+    "pk": 50,
+    "fields": {
+      "prompt_text": "What would the perfect year ahead look like for you both?",
+      "category": "dreams",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  }
+]

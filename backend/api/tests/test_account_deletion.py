@@ -153,7 +153,7 @@ class TestAccountDeletionEndpoint:
             title='Task 2',
             category='Test',
             priority='medium',
-            status='In Progress'
+            status='Upcoming'
         )
         
         assert Task.objects.filter(user_id=user.id).count() == 2

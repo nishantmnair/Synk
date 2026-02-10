@@ -22,6 +22,7 @@ vi.mock('./services/djangoRealtime', () => ({
     connect: vi.fn(),
     disconnect: vi.fn(),
     on: vi.fn(),
+    off: vi.fn(),
   },
 }))
 

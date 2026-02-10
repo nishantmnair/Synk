@@ -41,7 +41,7 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
         },
       });
     } catch (err) {
-      console.error('[API] Token refresh failed:', err);
+      console.error('Token refresh failed:', err);
     }
   }
 
@@ -171,6 +171,10 @@ export const accountApi = {
   deleteAccount: (password: string) => request('/api/users/delete_account/', {
     method: 'POST',
     body: JSON.stringify({ password }),
+  }),
+  changePassword: (currentPassword: string, newPassword: string, newPasswordConfirm: string) => request('/api/users/change_password/', {
+    method: 'POST',
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword, new_password_confirm: newPasswordConfirm }),
   }),
 };
 

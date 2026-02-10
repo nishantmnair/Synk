@@ -14,6 +14,14 @@ interface TokenResponse {
   refresh: string;
 }
 
+interface ApiErrorResponse {
+  detail?: string;
+  message?: string;
+  error_code?: string;
+  errors?: Record<string, string[] | string>;
+  non_field_errors?: string[];
+}
+
 /** Derive Django username from email. Same logic for signup and login. Backend requires len >= 3. */
 function emailToUsername(email: string): string {
   const raw = email.trim().toLowerCase();
@@ -22,6 +30,35 @@ function emailToUsername(email: string): string {
   if (local.length >= 3) return local.slice(0, 150);
   const domain = (at >= 0 ? raw.slice(at + 1) : 'mail').replace(/\./g, '').slice(0, 8);
   return (local + '_' + domain).slice(0, 150);
+}
+
+function extractErrorMessage(error: ApiErrorResponse | null, fallback: string): string {
+  if (!error || typeof error !== 'object') return fallback;
+
+  if (typeof error.detail === 'string' && error.detail.trim()) {
+    return error.detail;
+  }
+
+  if (typeof error.message === 'string' && error.message.trim()) {
+    return error.message;
+  }
+
+  if (Array.isArray(error.non_field_errors) && typeof error.non_field_errors[0] === 'string') {
+    return error.non_field_errors[0];
+  }
+
+  if (error.errors && typeof error.errors === 'object') {
+    for (const value of Object.values(error.errors)) {
+      if (Array.isArray(value) && typeof value[0] === 'string') {
+        return value[0];
+      }
+      if (typeof value === 'string' && value.trim()) {
+        return value;
+      }
+    }
+  }
+
+  return fallback;
 }
 
 class DjangoAuthService {
@@ -84,11 +121,12 @@ class DjangoAuthService {
         throw new Error(errorMessage || 'Registration failed. Please check your input and try again.');
       }
 
-      const user: User = await signupResponse.json();
+      const signupJson = await signupResponse.json() as any;
+      const userData = signupJson?.data ?? signupJson;
       
       // Automatically log in after signup. Use username (not email): JWT /api/token/ expects username.
       // Fall back to email-derived username if not in response
-      const loginIdentifier = user.username || emailToUsername(email);
+      const loginIdentifier = userData?.username || emailToUsername(email);
       return await this.login(loginIdentifier, password);
     } catch (error: any) {
       console.error('Signup error:', error);
@@ -116,9 +154,11 @@ class DjangoAuthService {
       });
 
       if (!tokenResponse.ok) {
-        const error = await tokenResponse.json().catch(() => ({ detail: 'Invalid credentials' })) as { detail?: string };
-        const msg = error.detail ?? 'Login failed';
-        const friendly = /no active account|invalid credentials/i.test(msg)
+        const error = await tokenResponse.json().catch(() => null) as ApiErrorResponse | null;
+        const defaultMessage = tokenResponse.status === 401 ? 'Invalid credentials' : 'Login failed';
+        const msg = extractErrorMessage(error, defaultMessage);
+        const friendly = error?.error_code === 'invalid_credentials' ||
+          /no active account|invalid credentials|credentials provided are invalid/i.test(msg)
           ? 'Invalid email/username or password.'
           : msg;
         throw new Error(friendly);

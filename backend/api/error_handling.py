@@ -87,7 +87,7 @@ def synk_exception_handler(exc, context):
     if isinstance(exc, AuthenticationFailed):
         response_data, status_code = format_error_response(
             error_code='invalid_credentials',
-            message='The credentials provided are invalid. Please check your username.',
+            message='The credentials provided are invalid. Please try again.',
             status_code=status.HTTP_401_UNAUTHORIZED
         )
         return Response(response_data, status=status_code)

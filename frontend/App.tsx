@@ -19,7 +19,7 @@ import Toast, { ToastType } from './components/Toast';
 import ConfirmDialog, { ConfirmDialogProps } from './components/ConfirmDialog';
 import { djangoAuthService, User } from './services/djangoAuth';
 import { djangoRealtimeService } from './services/djangoRealtime';
-import { tasksApi, milestonesApi, activitiesApi, suggestionsApi, collectionsApi, preferencesApi, inboxApi, memoriesApi } from './services/djangoApi';
+import { tasksApi, milestonesApi, activitiesApi, suggestionsApi, collectionsApi, preferencesApi, inboxApi, memoriesApi, coupleApi } from './services/djangoApi';
 import { getUserAvatar } from './utils/avatar';
 import { getDisplayName } from './utils/userDisplay';
 
@@ -28,6 +28,7 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showCouplingOnboarding, setShowCouplingOnboarding] = useState(false);
+  const [isCoupled, setIsCoupled] = useState(false);
   
   // Notification states
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
@@ -67,8 +68,7 @@ const App: React.FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>(() =>
     (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'light') ? 'light' : 'dark'
   );
-  // Track if real-time listeners have been registered
-  const listenersRegisteredRef = useRef(false);
+
   // Notification helpers
   const showToast = (message: string, type: ToastType = 'success') => {
     setToast({ message, type });
@@ -123,7 +123,7 @@ const App: React.FC = () => {
 
   const transformActivity = (activity: any): Activity => ({
     id: String(activity.id),
-    user: activity.user || activity.activity_user || 'User',
+    user: activity.user || 'User',
     action: activity.action,
     item: activity.item,
     timestamp: activity.timestamp,
@@ -188,45 +188,60 @@ const App: React.FC = () => {
     updated_at: memory.updated_at,
   });
 
+  // Check couple status
+  const checkCoupleStatus = async () => {
+    try {
+      const coupleData = await coupleApi.get() as any;
+      if (coupleData && coupleData.is_coupled) {
+        setIsCoupled(true);
+        setShowCouplingOnboarding(false);
+      } else {
+        setIsCoupled(false);
+        setShowCouplingOnboarding(true);
+      }
+    } catch (error) {
+      setIsCoupled(false);
+      setShowCouplingOnboarding(true);
+    }
+  };
+
   // Load data from API
   const loadData = async () => {
     try {
       const [tasksData, milestonesData, activitiesData, suggestionsData, collectionsData, preferencesData, inboxItemsData, memoriesData] = await Promise.all([
         tasksApi.getAll().catch((err) => {
-          console.error('[DEBUG] Error loading tasks:', err);
+          console.error('Error loading tasks:', err);
           return [];
         }),
         milestonesApi.getAll().catch((err) => {
-          console.error('[DEBUG] Error loading milestones:', err);
+          console.error('Error loading milestones:', err);
           return [];
         }),
         activitiesApi.getAll(50).catch((err) => {
-          console.error('[DEBUG] Error loading activities:', err);
+          console.error('Error loading activities:', err);
           return [];
         }),
         suggestionsApi.getAll().catch((err) => {
-          console.error('[DEBUG] Error loading suggestions:', err);
+          console.error('Error loading suggestions:', err);
           return [];
         }),
         collectionsApi.getAll().catch((err) => {
-          console.error('[DEBUG] Error loading collections:', err, err?.data);
+          console.error('Error loading collections:', err, err?.data);
           return [];
         }),
         preferencesApi.get().catch((err) => {
-          console.error('[DEBUG] Error loading preferences:', err);
+          console.error('Error loading preferences:', err);
           return null;
         }),
         inboxApi.getAll().catch((err) => {
-          console.error('[DEBUG] Error loading inbox items:', err);
+          console.error('Error loading inbox items:', err);
           return [];
         }),
         memoriesApi.getAll().catch((err) => {
-          console.error('[DEBUG] Error loading memories:', err);
+          console.error('Error loading memories:', err);
           return [];
         }),
       ]);
-
-      console.log('[DEBUG] Collections fetched from API:', collectionsData);
 
       // Only set data if arrays are returned (not empty errors)
       setTasks((tasksData as any[]).length > 0 ? (tasksData as any[]).map(transformTask) : []);
@@ -234,7 +249,6 @@ const App: React.FC = () => {
       setActivities((activitiesData as any[]).length > 0 ? (activitiesData as any[]).map(transformActivity) : []);
       setSuggestions((suggestionsData as any[]).length > 0 ? (suggestionsData as any[]).map(transformSuggestion) : []);
       const transformedCollections = (collectionsData as any[]).length > 0 ? (collectionsData as any[]).map(transformCollection) : [];
-      console.log('[DEBUG] Transformed collections:', transformedCollections);
       setCollections(transformedCollections);
       setInboxItems((inboxItemsData as any[]).length > 0 ? (inboxItemsData as any[]).map(transformInboxItem) : []);
       setMemories((memoriesData as any[]).length > 0 ? (memoriesData as any[]).map(transformMemory) : []);
@@ -249,6 +263,11 @@ const App: React.FC = () => {
 
     // Create callback handlers that capture current state
     const handlers = {
+      'couple:coupled': () => {
+        setIsCoupled(true);
+        setShowCouplingOnboarding(false);
+        window.location.hash = '#/today';
+      },
       'task:created': (data: any) => {
         const transformed = transformTask(data);
         setTasks(prev => {
@@ -308,32 +327,6 @@ const App: React.FC = () => {
         const collectionId = typeof data.id === 'number' ? data.id.toString() : data.id;
         setCollections(prev => prev.filter(c => c.id !== collectionId));
       },
-      'connection_answer:created': (data: any) => {
-        const newInboxItem: InboxItem = {
-          id: String(Math.random()),
-          itemType: 'connection_answer',
-          title: `${data.answer.user_name} answered the daily connection`,
-          description: `"${data.answer.answer_text.substring(0, 100)}..."`,
-          content: { prompt: '', answer: data.answer.answer_text },
-          senderName: data.answer.user_name,
-          connectionAnswer: {
-            id: String(data.answer.id),
-            connectionId: String(data.answer.connection),
-            userId: data.answer.user_id,
-            userName: data.answer.user_name,
-            answerText: data.answer.answer_text,
-            answeredAt: data.answer.answered_at,
-            updatedAt: data.answer.updated_at,
-          },
-          hasReacted: false,
-          response: '',
-          respondedAt: null,
-          isRead: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        setInboxItems(prev => [newInboxItem, ...prev]);
-      },
       'inbox:created': (data: any) => {
         const transformed = transformInboxItem(data);
         setInboxItems(prev => {
@@ -384,7 +377,6 @@ const App: React.FC = () => {
       Object.keys(handlers).forEach(event => {
         djangoRealtimeService.off(event);
       });
-      listenersRegisteredRef.current = false;
     };
   }, [isLoggedIn]);
 
@@ -392,7 +384,6 @@ const App: React.FC = () => {
   useEffect(() => {
     // Check if user is already logged in
     djangoAuthService.getCurrentUser().then(async (user) => {
-      console.log('[DEBUG] Current user check result:', user);
       if (user) {
         setCurrentUser(user);
         setIsLoggedIn(true);
@@ -406,12 +397,15 @@ const App: React.FC = () => {
 
     // Listen for auth state changes
     const unsubscribe = djangoAuthService.onAuthStateChange(async (user) => {
-      console.log('[DEBUG] Auth state changed:', user);
       if (user) {
         setCurrentUser(user);
         setIsLoggedIn(true);
+        // Connect to real-time service
         djangoRealtimeService.connect();
+        // Load data from API
         await loadData();
+        // Check coupling status
+        await checkCoupleStatus();
       } else {
         setCurrentUser(null);
         setIsLoggedIn(false);
@@ -448,7 +442,6 @@ const App: React.FC = () => {
         }
       } catch (error) {
         // Silently fail - don't interrupt user experience
-        console.debug('Auto-refresh user profile failed:', error);
       }
     };
 
@@ -468,7 +461,6 @@ const App: React.FC = () => {
         }
       } catch (error) {
         // Silently fail - don't interrupt user experience
-        console.debug('Auto-refresh activities failed:', error);
       }
     };
 
@@ -480,14 +472,19 @@ const App: React.FC = () => {
     try {
       // Clear any existing toast before logging in
       setToast(null);
-      // Set the hash first before any state updates
-      window.location.hash = '#/today';
       const user = await djangoAuthService.login(email, password);
       setCurrentUser(user);
       setIsLoggedIn(true);
       djangoRealtimeService.connect();
       // Load data after login
       await loadData();
+      // Check coupling status
+      await checkCoupleStatus();
+      // Only navigate if coupled
+      const coupleData = await coupleApi.get() as any;
+      if (coupleData.is_coupled) {
+        window.location.hash = '#/today';
+      }
     } catch (error: any) {
       console.error('Login failed:', error);
       throw error; // Let AuthView handle the error display
@@ -498,8 +495,6 @@ const App: React.FC = () => {
     try {
       // Clear any existing toast before signing up
       setToast(null);
-      // Set the hash first before any state updates
-      window.location.hash = '#/today';
       const user = await djangoAuthService.signup(email, password, passwordConfirm, firstName, lastName, couplingCode);
       setCurrentUser(user);
       setIsLoggedIn(true);
@@ -507,10 +502,14 @@ const App: React.FC = () => {
       // Load data after signup
       await loadData();
       
-      // If they didn't use a coupling code, show onboarding
-      // (If they used a code, they're already coupled, so onboarding will auto-complete)
-      if (!couplingCode || !couplingCode.trim()) {
-        setShowCouplingOnboarding(true);
+      // Check coupling status
+      await checkCoupleStatus();
+      
+      // If they're already coupled (used a code), navigate to dashboard
+      // Otherwise, show the coupling onboarding screen
+      const coupleData = await coupleApi.get() as any;
+      if (coupleData && coupleData.is_coupled) {
+        window.location.hash = '#/today';
       }
     } catch (error: any) {
       console.error('Signup failed:', error);
@@ -770,6 +769,14 @@ const App: React.FC = () => {
     localStorage.setItem('synk_theme', next);
   };
 
+  // Update favicon when theme changes
+  useEffect(() => {
+    const faviconLink = document.querySelector('link[rel="icon"]');
+    if (faviconLink) {
+      faviconLink.setAttribute('href', theme === 'dark' ? '/Synk-Favicon.png' : '/Synk-Logo-LightMode.png');
+    }
+  }, [theme]);
+
   // Show loading state while checking auth
   if (isLoading) {
     return (
@@ -781,8 +788,10 @@ const App: React.FC = () => {
 
   if (!isLoggedIn) {
     return (
-      <>
-        <AuthView onLogin={handleLogin} onSignup={handleSignup} />
+      <Router>
+        <Routes>
+          <Route path="*" element={<AuthView onLogin={handleLogin} onSignup={handleSignup} showToast={showToast} />} />
+        </Routes>
         {/* Toast for logout message */}
         {toast && (
           <Toast
@@ -791,72 +800,73 @@ const App: React.FC = () => {
             onClose={() => setToast(null)}
           />
         )}
-      </>
+      </Router>
     );
   }
 
   return (
     <Router>
-      {showCouplingOnboarding && (
+      {!showCouplingOnboarding ? (
+        <div className="h-screen flex overflow-hidden bg-main">
+          {/* Navigation Sidebar */}
+          <div className={`transition-all duration-300 ease-in-out border-r border-subtle bg-sidebar overflow-hidden shrink-0 ${isLeftSidebarOpen ? 'w-60' : 'w-0 border-r-0'}`}>
+            <div className="w-60 h-full">
+              <Sidebar 
+                collections={collections} 
+                onAddCollection={addCollection}
+                onDeleteCollection={deleteCollection}
+                onToggle={toggleLeftSidebar}
+                suggestionsCount={suggestions.length}
+              />
+            </div>
+          </div>
+
+          <div className="flex-1 flex flex-col min-w-0 bg-main">
+            <Header 
+              currentUser={currentUser}
+              onToggleRightSidebar={toggleRightSidebar} 
+              isRightSidebarOpen={isRightSidebarOpen} 
+              onToggleLeftSidebar={toggleLeftSidebar}
+              isLeftSidebarOpen={isLeftSidebarOpen}
+              onLogout={handleLogout}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              theme={theme}
+              onToggleTheme={toggleTheme}
+              onSaveDateIdea={addSuggestionFromIdea}
+              showConfirm={showConfirm}
+            />
+            
+            <main className="flex-1 overflow-hidden relative">
+              <Routes>
+                <Route path="/" element={<TodayView tasks={tasks} onShareAnswer={() => addActivity('answered', "today's connection prompt")} showToast={showToast} />} />
+                <Route path="/today" element={<TodayView tasks={tasks.filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.category.toLowerCase().includes(searchQuery.toLowerCase()))} onShareAnswer={() => addActivity('answered', "today's connection prompt")} showToast={showToast} />} />
+                <Route path="/board" element={<BoardView tasks={tasks.filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.category.toLowerCase().includes(searchQuery.toLowerCase()))} setTasks={setTasks} onAction={addActivity} onAddTask={addTask} onUpdateTask={updateTask} onDeleteTask={deleteTask} showConfirm={showConfirm} />} />
+                <Route path="/milestones" element={<MilestonesView milestones={milestones} onAddMilestone={addMilestone} onUpdateMilestone={updateMilestone} onDeleteMilestone={deleteMilestone} showConfirm={showConfirm} showToast={showToast} />} />
+                <Route path="/inbox" element={<InboxView suggestions={suggestions} inboxItems={inboxItems} onAccept={addTask} onSave={() => {}} onDecline={(id) => setSuggestions(prev => prev.filter(s => s.id !== id))} showToast={showToast} showConfirm={showConfirm} />} />
+                <Route path="/collection/:collectionId" element={<CollectionView tasks={tasks} collections={collections} onAddTask={addTask} onUpdateTask={updateTask} onDeleteTask={deleteTask} showConfirm={showConfirm} showToast={showToast} />} />
+                <Route path="/profile" element={<ProfileView currentUser={currentUser} activities={activities} milestonesCount={milestones.length} />} />
+                <Route path="/settings" element={<SettingsView currentUser={currentUser} showToast={showToast} showConfirm={showConfirm} onLogout={handleLogout} />} />
+                <Route path="/memories" element={<MemoriesView memories={memories} setMemories={setMemories} showToast={showToast} />} />
+                <Route path="*" element={<Navigate to="/" />} />
+              </Routes>
+            </main>
+          </div>
+
+          {/* Info Sidebar */}
+          <div className={`transition-[width] duration-300 ease-in-out border-l border-subtle bg-sidebar overflow-hidden shrink-0 ${isRightSidebarOpen ? 'w-72' : 'w-0 border-l-0'}`}>
+            <div className="w-72 h-full">
+              <RightAside activities={activities} milestones={milestones} onToggle={toggleRightSidebar} />
+            </div>
+          </div>
+        </div>
+      ) : (
         <CouplingOnboarding
           currentUser={currentUser}
           onComplete={() => setShowCouplingOnboarding(false)}
           showToast={showToast}
         />
       )}
-      <div className="h-screen flex overflow-hidden bg-main">
-        {/* Navigation Sidebar */}
-        <div className={`transition-all duration-300 ease-in-out border-r border-subtle bg-sidebar overflow-hidden shrink-0 ${isLeftSidebarOpen ? 'w-60' : 'w-0 border-r-0'}`}>
-          <div className="w-60 h-full">
-            <Sidebar 
-              collections={collections} 
-              onAddCollection={addCollection}
-              onDeleteCollection={deleteCollection}
-              onToggle={toggleLeftSidebar}
-              suggestionsCount={suggestions.length}
-            />
-          </div>
-        </div>
-
-        <div className="flex-1 flex flex-col min-w-0 bg-main">
-          <Header 
-            currentUser={currentUser}
-            onToggleRightSidebar={toggleRightSidebar} 
-            isRightSidebarOpen={isRightSidebarOpen} 
-            onToggleLeftSidebar={toggleLeftSidebar}
-            isLeftSidebarOpen={isLeftSidebarOpen}
-            onLogout={handleLogout}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            theme={theme}
-            onToggleTheme={toggleTheme}
-            onSaveDateIdea={addSuggestionFromIdea}
-            showConfirm={showConfirm}
-          />
-          
-          <main className="flex-1 overflow-hidden relative">
-            <Routes>
-              <Route path="/" element={<TodayView tasks={tasks} onShareAnswer={() => addActivity('answered', "today's connection prompt")} showToast={showToast} />} />
-              <Route path="/today" element={<TodayView tasks={tasks.filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.category.toLowerCase().includes(searchQuery.toLowerCase()))} onShareAnswer={() => addActivity('answered', "today's connection prompt")} showToast={showToast} />} />
-              <Route path="/board" element={<BoardView tasks={tasks.filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.category.toLowerCase().includes(searchQuery.toLowerCase()))} setTasks={setTasks} onAction={addActivity} onAddTask={addTask} onUpdateTask={updateTask} onDeleteTask={deleteTask} showConfirm={showConfirm} />} />
-              <Route path="/milestones" element={<MilestonesView milestones={milestones} onAddMilestone={addMilestone} onUpdateMilestone={updateMilestone} onDeleteMilestone={deleteMilestone} showConfirm={showConfirm} showToast={showToast} />} />
-              <Route path="/inbox" element={<InboxView suggestions={suggestions} inboxItems={inboxItems} onAccept={addTask} onSave={() => {}} onDecline={(id) => setSuggestions(prev => prev.filter(s => s.id !== id))} showToast={showToast} showConfirm={showConfirm} />} />
-              <Route path="/collection/:collectionId" element={<CollectionView tasks={tasks} collections={collections} onAddTask={addTask} onUpdateTask={updateTask} onDeleteTask={deleteTask} showConfirm={showConfirm} showToast={showToast} />} />
-              <Route path="/profile" element={<ProfileView currentUser={currentUser} activities={activities} milestonesCount={milestones.length} />} />
-              <Route path="/settings" element={<SettingsView currentUser={currentUser} showToast={showToast} showConfirm={showConfirm} onLogout={handleLogout} />} />
-              <Route path="/memories" element={<MemoriesView memories={memories} setMemories={setMemories} showToast={showToast} />} />
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
-          </main>
-        </div>
-
-        {/* Info Sidebar */}
-        <div className={`transition-[width] duration-300 ease-in-out border-l border-subtle bg-sidebar overflow-hidden shrink-0 ${isRightSidebarOpen ? 'w-72' : 'w-0 border-l-0'}`}>
-           <div className="w-72 h-full">
-            <RightAside activities={activities} milestones={milestones} onToggle={toggleRightSidebar} />
-           </div>
-        </div>
-      </div>
 
       {/* Notifications */}
       {toast && (

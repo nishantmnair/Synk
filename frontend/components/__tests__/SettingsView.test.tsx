@@ -83,8 +83,8 @@ describe('SettingsView', () => {
   it('displays warning text for delete account', async () => {
     render(<SettingsView currentUser={mockUser as any} />)
     await waitFor(() => {
-      expect(screen.getByText(/This action is irreversible/i)).toBeInTheDocument()
-      expect(screen.getByText(/permanently removes your account and data/i)).toBeInTheDocument()
+      expect(screen.getByText(/These actions are irreversible/i)).toBeInTheDocument()
+      expect(screen.getByText(/Proceed with caution/i)).toBeInTheDocument()
     })
   })
 

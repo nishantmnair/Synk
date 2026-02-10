@@ -103,10 +103,7 @@ const CouplingOnboarding: React.FC<CouplingOnboardingProps> = ({ onComplete, sho
     }
   };
 
-  const handleSkip = () => {
-    // Allow skipping, but still complete onboarding
-    onComplete();
-  };
+
 
 
   if (isCoupled && partner) {
@@ -161,14 +158,7 @@ const CouplingOnboarding: React.FC<CouplingOnboardingProps> = ({ onComplete, sho
             </p>
           </div>
 
-          <div className="flex gap-4">
-            <button
-              onClick={handleSkip}
-              className="flex-1 px-6 py-3 bg-white/5 border border-subtle text-secondary rounded-xl font-semibold hover:bg-white/10 transition-colors"
-            >
-              Continue to App
-            </button>
-          </div>
+
         </div>
       </div>
     );
@@ -202,7 +192,10 @@ const CouplingOnboarding: React.FC<CouplingOnboardingProps> = ({ onComplete, sho
               />
             </div>
             {error && (
-              <p className="text-sm text-red-400 text-center">{error}</p>
+              <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3.5 rounded-lg text-sm space-y-1 flex gap-3 animate-in shake-in-x">
+                <span className="material-symbols-outlined text-base shrink-0 mt-0.5">error</span>
+                <span>{error}</span>
+              </div>
             )}
           </div>
 
@@ -279,17 +272,7 @@ const CouplingOnboarding: React.FC<CouplingOnboardingProps> = ({ onComplete, sho
           </button>
         </div>
 
-        <div className="pt-4 border-t border-subtle">
-          <button
-            onClick={handleSkip}
-            className="w-full px-6 py-3 bg-white/5 border border-subtle text-secondary rounded-xl font-semibold hover:bg-white/10 transition-colors"
-          >
-            Skip for Now
-          </button>
-          <p className="text-xs text-secondary/70 text-center mt-3">
-            You can always connect accounts later in Settings
-          </p>
-        </div>
+
       </div>
     </div>
   );

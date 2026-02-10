@@ -10,6 +10,7 @@ from django.contrib.auth.hashers import check_password
 from rest_framework.test import APIClient
 from rest_framework import status
 from uuid import UUID
+from django.urls import reverse
 
 from api.models import UserProfile
 from api.serializers import UserRegistrationSerializer, UserProfileSerializer
@@ -37,7 +38,7 @@ class TestUserDataPersistence:
     @pytest.fixture
     def registration_url(self):
         """Registration endpoint URL"""
-        return '/api/register/'
+        return reverse('register-list')
     
     # AC-1: User registration creates record in users table
     def test_user_registration_creates_user_record(self, api_client, registration_url):

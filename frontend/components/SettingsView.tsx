@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { coupleApi, couplingCodeApi, accountApi, preferencesApi } from '../services/djangoApi';
 import { User, djangoAuthService } from '../services/djangoAuth';
@@ -32,6 +31,14 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
   const [joinCode, setJoinCode] = useState('');
   const [isLoadingCode, setIsLoadingCode] = useState(false);
   const [couplingError, setCouplingError] = useState('');
+
+  // Password reset state
+  const [isPasswordResetModalOpen, setIsPasswordResetModalOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
+  const [resetError, setResetError] = useState('');
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   // Load preferences and couple status on mount
   useEffect(() => {
@@ -212,6 +219,57 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
     });
   };
 
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetError('');
+
+    if (!currentPassword.trim()) {
+      setResetError('Current password is required');
+      return;
+    }
+
+    if (!newPassword.trim()) {
+      setResetError('New password is required');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setResetError('New password must be at least 8 characters long');
+      return;
+    }
+
+    if (newPassword !== newPasswordConfirm) {
+      setResetError('New passwords do not match');
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      setResetError('New password must be different from current password');
+      return;
+    }
+
+    try {
+      setIsResettingPassword(true);
+      await accountApi.changePassword(currentPassword, newPassword, newPasswordConfirm);
+      showToast?.('Password successfully changed.', 'success');
+      setIsPasswordResetModalOpen(false);
+      resetPasswordForm();
+    } catch (error: any) {
+      const errorMsg = getActionErrorMessage('password_change', error);
+      setResetError(errorMsg);
+      showToast?.(errorMsg, 'error');
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
+  const resetPasswordForm = () => {
+    setCurrentPassword('');
+    setNewPassword('');
+    setNewPasswordConfirm('');
+    setResetError('');
+  };
+
   const handleDeleteAccount = async (password: string) => {
     try {
       await accountApi.deleteAccount(password);
@@ -330,7 +388,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
                     </button>
                   </div>
                   {couplingError && (
-                    <p className="text-xs text-red-400 mt-2">{couplingError}</p>
+                    <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3.5 rounded-lg text-sm space-y-1 flex gap-3 animate-in shake-in-x mt-2">
+                      <span className="material-symbols-outlined text-base shrink-0 mt-0.5">error</span>
+                      <span>{couplingError}</span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -365,12 +426,18 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
           <h3 className="text-xs font-bold uppercase tracking-widest text-red-400 px-2">Danger Zone</h3>
           <div className="bg-red-400/5 border border-red-400/20 rounded-2xl p-6 space-y-4">
             <button 
+              onClick={() => setIsPasswordResetModalOpen(true)}
+              className="w-full px-4 py-2.5 bg-orange-500/20 border border-orange-400 text-orange-400 hover:bg-orange-500/30 hover:border-orange-300 hover:text-orange-300 active:bg-orange-500/40 transition-colors text-xs font-bold uppercase tracking-widest rounded-lg active:scale-95 min-h-10 flex items-center justify-center"
+            >
+              Change Password
+            </button>
+            <button 
               onClick={() => setIsDeleteModalOpen(true)}
               className="w-full px-4 py-2.5 bg-red-500/20 border border-red-400 text-red-400 hover:bg-red-500/30 hover:border-red-300 hover:text-red-300 active:bg-red-500/40 transition-colors text-xs font-bold uppercase tracking-widest rounded-lg active:scale-95 min-h-10 flex items-center justify-center"
             >
               Delete Account
             </button>
-            <p className="text-[10px] text-red-400/60 uppercase">This action is irreversible and permanently removes your account and data.</p>
+            <p className="text-[10px] text-red-400/60 uppercase">These actions are irreversible. Proceed with caution.</p>
           </div>
         </section>
 
@@ -386,6 +453,136 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast, showConfirm, onL
           )}
         </div>
       </div>
+
+      {/* Change Password Modal */}
+      {isPasswordResetModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => {
+              setIsPasswordResetModalOpen(false);
+              resetPasswordForm();
+            }}
+          />
+          <div className="relative bg-card border border-subtle rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in-95 overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-subtle bg-white/2">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-orange-400">lock</span>
+                </div>
+                <h2 className="text-xl font-bold">Change Password</h2>
+              </div>
+              <button
+                onClick={() => {
+                  setIsPasswordResetModalOpen(false);
+                  resetPasswordForm();
+                }}
+                className="material-symbols-outlined text-secondary hover:text-primary transition-colors cursor-pointer"
+              >
+                close
+              </button>
+            </div>
+
+            <form onSubmit={handlePasswordChange} className="p-6 space-y-5">
+              <div className="bg-blue-500/10 border border-blue-500/30 text-blue-400 px-4 py-3 rounded-lg text-sm flex gap-3">
+                <span className="material-symbols-outlined text-xl shrink-0 mt-0.5">info</span>
+                <span>Change your password to keep your account secure.</span>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-primary mb-2">
+                  Current Password
+                </label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter your current password"
+                  disabled={isResettingPassword}
+                  className="w-full bg-white/5 border border-subtle rounded-lg px-4 py-2.5 text-sm text-primary placeholder-secondary focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-primary mb-2">
+                  New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="At least 8 characters"
+                    disabled={isResettingPassword}
+                    className="w-full bg-white/5 border border-subtle rounded-lg px-4 py-2.5 text-sm text-primary placeholder-secondary focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  />
+                  {newPassword.length > 0 && (
+                    <span className={`absolute right-3 top-3 text-2xl ${newPassword.length >= 8 ? 'text-accent' : 'text-secondary'}`}>
+                      {newPassword.length >= 8 ? '✓' : '○'}
+                    </span>
+                  )}
+                </div>
+                {newPassword.length > 0 && (
+                  <p className={`text-xs mt-1.5 ${newPassword.length >= 8 ? 'text-accent' : 'text-orange-400'}`}>
+                    {newPassword.length >= 8 ? '✓ Strong password' : '✗ Minimum 8 characters'}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-primary mb-2">
+                  Confirm New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type="password"
+                    value={newPasswordConfirm}
+                    onChange={(e) => setNewPasswordConfirm(e.target.value)}
+                    placeholder="Re-enter your new password"
+                    disabled={isResettingPassword}
+                    className="w-full bg-white/5 border border-subtle rounded-lg px-4 py-2.5 text-sm text-primary placeholder-secondary focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  />
+                  {newPasswordConfirm.length > 0 && (
+                    <span className={`absolute right-3 top-3 text-2xl ${newPassword === newPasswordConfirm && newPassword.length >= 8 ? 'text-accent' : 'text-orange-400'}`}>
+                      {newPassword === newPasswordConfirm && newPassword.length >= 8 ? '✓' : '✗'}
+                    </span>
+                  )}
+                </div>
+                {newPasswordConfirm.length > 0 && (
+                  <p className={`text-xs mt-1.5 ${newPassword === newPasswordConfirm && newPassword.length >= 8 ? 'text-accent' : 'text-orange-400'}`}>
+                    {newPassword === newPasswordConfirm && newPassword.length >= 8 ? '✓ Passwords match' : '✗ Passwords do not match or are too short'}
+                  </p>
+                )}
+              </div>
+
+              {resetError && (
+                <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3.5 rounded-lg text-sm space-y-1 flex gap-3 animate-in shake-in-x">
+                  <span className="material-symbols-outlined text-xl shrink-0 mt-0.5">error</span>
+                  <span>{resetError}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isResettingPassword || !currentPassword.trim() || !newPassword.trim() || !newPasswordConfirm.trim() || newPassword !== newPasswordConfirm || newPassword.length < 8 || currentPassword === newPassword}
+                className="w-full px-4 py-2.5 bg-orange-500 text-white rounded-lg text-sm font-bold uppercase tracking-widest hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 min-h-10 flex items-center justify-center gap-2 mt-6"
+              >
+                {isResettingPassword ? (
+                  <>
+                    <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                    Changing Password...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-base">lock</span>
+                    Change Password
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       <DeleteAccountModal 
         isOpen={isDeleteModalOpen}

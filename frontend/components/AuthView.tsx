@@ -4,9 +4,10 @@ import { getActionErrorMessage } from '../utils/errorMessages';
 interface AuthViewProps {
   onLogin: (email: string, password: string) => Promise<void>;
   onSignup: (email: string, password: string, passwordConfirm: string, firstName?: string, lastName?: string, couplingCode?: string) => Promise<void>;
+  showToast?: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
-const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup }) => {
+const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup, showToast }) => {
   const [isSignup, setIsSignup] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -84,11 +85,10 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup }) => {
   return (
     <div className="min-h-screen bg-main text-primary font-sans flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="flex items-center justify-center gap-2 mb-8">
+        <div className="flex items-center justify-center mb-8">
           <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
             <span className="material-symbols-outlined text-white text-sm">all_inclusive</span>
           </div>
-          <span className="font-bold text-xl">Synk</span>
         </div>
 
         <div className="bg-card border border-subtle rounded-2xl p-6 space-y-5">
@@ -112,8 +112,9 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup }) => {
           </div>
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-3 py-2 rounded-lg text-sm">
-              {error}
+            <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3.5 rounded-lg text-sm space-y-2 flex gap-3 animate-in shake-in-x">
+              <span className="material-symbols-outlined text-xl shrink-0 mt-0.5">error</span>
+              <span>{error}</span>
             </div>
           )}
 
@@ -227,7 +228,10 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup }) => {
                     placeholder="Confirm password"
                   />
                   {passwordConfirm && password !== passwordConfirm && (
-                    <p className="text-red-400 text-xs mt-1">Passwords do not match</p>
+                    <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-3 py-2.5 rounded-lg text-xs space-y-1 flex gap-2 animate-in shake-in-x mt-1">
+                      <span className="material-symbols-outlined text-sm shrink-0 mt-0.5">error</span>
+                      <span>Passwords do not match</span>
+                    </div>
                   )}
                 </div>
                 <div>
@@ -255,12 +259,14 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup }) => {
           </form>
 
           {!isSignup && (
-            <p className="text-xs text-secondary text-center pt-1">
-              No account?{' '}
-              <button type="button" onClick={() => { setIsSignup(true); resetForm(); }} className="text-accent font-medium">
-                Sign up
-              </button>
-            </p>
+            <>
+              <p className="text-xs text-secondary text-center pt-1">
+                No account?{' '}
+                <button type="button" onClick={() => { setIsSignup(true); resetForm(); }} className="text-accent font-medium">
+                  Sign up
+                </button>
+              </p>
+            </>
           )}
         </div>
       </div>

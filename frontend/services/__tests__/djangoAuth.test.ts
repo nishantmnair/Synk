@@ -67,6 +67,22 @@ describe('djangoAuthService', () => {
         djangoAuthService.login('test@example.com', 'wrongpass')
       ).rejects.toThrow('Invalid email/username or password.')
     })
+
+    it('maps standardized backend auth errors to friendly login message', async () => {
+      ;(global.fetch as any).mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: async () => ({
+          status: 'error',
+          error_code: 'invalid_credentials',
+          message: 'The credentials provided are invalid. Please try again.'
+        })
+      })
+
+      await expect(
+        djangoAuthService.login('test@example.com', 'wrongpass')
+      ).rejects.toThrow('Invalid email/username or password.')
+    })
   })
 
   describe('signup', () => {

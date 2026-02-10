@@ -1,6 +1,7 @@
 """
 Django signals for API app
 """
+import logging
 from contextlib import suppress
 from django.db.models.signals import post_save, post_delete, pre_delete
 from django.dispatch import receiver
@@ -9,6 +10,8 @@ from .models import UserProfile, Couple, InboxItem
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from .serializers import InboxItemSerializer
+
+logger = logging.getLogger(__name__)
 
 
 @receiver(post_save, sender=User)
@@ -87,30 +90,26 @@ def broadcast_inbox_item_update(sender, instance, created, **kwargs):
     Broadcast inbox item changes to the recipient in real-time.
     This ensures inbox updates are sent via WebSocket when items are created or modified.
     """
-    with suppress(Exception):
+    try:
         channel_layer = get_channel_layer()
         serialized_data = InboxItemSerializer(instance).data
         
-        if created:
-            # Broadcast creation event
-            async_to_sync(channel_layer.group_send)(
-                f"user_{instance.recipient.id}",
-                {
-                    "type": "send_message",
-                    "event": "inbox:created",
-                    "data": serialized_data
-                }
-            )
-        else:
-            # Broadcast update event
-            async_to_sync(channel_layer.group_send)(
-                f"user_{instance.recipient.id}",
-                {
-                    "type": "send_message",
-                    "event": "inbox:updated",
-                    "data": serialized_data
-                }
-            )
+        event_type = "inbox:created" if created else "inbox:updated"
+        group_name = f"user_{instance.recipient.id}"
+        
+        logger.info(f"Broadcasting {event_type} for inbox item {instance.id} to group {group_name}")
+        
+        async_to_sync(channel_layer.group_send)(
+            group_name,
+            {
+                "type": "send_message",
+                "event": event_type,
+                "data": serialized_data
+            }
+        )
+        logger.info(f"Successfully broadcast {event_type}")
+    except Exception as e:
+        logger.error(f"Error broadcasting inbox item: {str(e)}", exc_info=True)
 
 
 @receiver(post_delete, sender=InboxItem)

@@ -83,7 +83,10 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({ isOpen, onClose
                 disabled={isDeleting}
               />
               {error && (
-                <p className="text-xs text-red-400 mt-2">{error}</p>
+                <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3.5 rounded-lg text-sm space-y-1 flex gap-3 animate-in shake-in-x">
+                  <span className="material-symbols-outlined text-base shrink-0 mt-0.5">error</span>
+                  <span>{error}</span>
+                </div>
               )}
             </div>
 

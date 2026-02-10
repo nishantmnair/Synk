@@ -396,3 +396,33 @@ class Memory(models.Model):
     
     def __str__(self):
         return self.title
+
+
+class DailyConnectionPrompt(models.Model):
+    """Pool of prompts for daily connections to cycle through"""
+    prompt_text = models.TextField(unique=True)
+    category = models.CharField(
+        max_length=50,
+        choices=[
+            ('deep', 'Deep Conversation'),
+            ('fun', 'Fun & Playful'),
+            ('gratitude', 'Gratitude'),
+            ('dreams', 'Dreams & Goals'),
+            ('reflection', 'Self-Reflection'),
+            ('appreciationation', 'Appreciation'),
+        ],
+        default='deep'
+    )
+    is_active = models.BooleanField(default=True)  # Allow disabling prompts without deleting
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['created_at']
+        verbose_name = 'Daily Connection Prompt'
+        verbose_name_plural = 'Daily Connection Prompts'
+    
+    def __str__(self):
+        return self.prompt_text[:50]
+
+

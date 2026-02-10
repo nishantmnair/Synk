@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Task, Milestone, Activity, Suggestion, Collection, UserPreferences, Couple, CouplingCode
+from .models import Task, Milestone, Activity, Suggestion, Collection, UserPreferences, Couple, CouplingCode, DailyConnectionPrompt
 
 
 @admin.register(Task)
@@ -52,3 +52,11 @@ class CouplingCodeAdmin(admin.ModelAdmin):
     list_display = ['code', 'created_by', 'used_by', 'expires_at', 'created_at']
     list_filter = ['expires_at', 'created_at']
     search_fields = ['code', 'created_by__username', 'used_by__username']
+
+
+@admin.register(DailyConnectionPrompt)
+class DailyConnectionPromptAdmin(admin.ModelAdmin):
+    list_display = ['prompt_text', 'category', 'is_active', 'created_at']
+    list_filter = ['category', 'is_active', 'created_at']
+    search_fields = ['prompt_text']
+    readonly_fields = ['created_at', 'updated_at']

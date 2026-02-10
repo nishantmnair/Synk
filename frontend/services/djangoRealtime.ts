@@ -27,7 +27,6 @@ class DjangoRealtimeService {
     try {
       const user = await djangoAuthService.getCurrentUser();
       if (!user) {
-        console.warn('Cannot connect: User not authenticated');
         return;
       }
 
@@ -37,7 +36,6 @@ class DjangoRealtimeService {
       this.ws = new WebSocket(wsUrl);
 
       this.ws.onopen = () => {
-        console.log('✅ Connected to Django WebSocket');
         this.reconnectAttempts = 0;
         this.isIntentiallyClosed = false;
         this.isConnecting = false;
@@ -58,7 +56,6 @@ class DjangoRealtimeService {
       };
 
       this.ws.onclose = () => {
-        console.log('❌ Disconnected from Django WebSocket');
         this.isConnecting = false;
         // Only attempt reconnect if this wasn't an intentional disconnect
         if (!this.isIntentiallyClosed) {
@@ -75,7 +72,7 @@ class DjangoRealtimeService {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
       const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
-      console.log(`Reconnecting in ${delay}ms... (attempt ${this.reconnectAttempts})`);
+
       setTimeout(() => {
         this.connect();
       }, delay);
@@ -98,7 +95,15 @@ class DjangoRealtimeService {
   private emit = (event: string, data: any) => {
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {
-      eventListeners.forEach(listener => listener(data));
+      eventListeners.forEach(listener => {
+        try {
+          listener(data);
+        } catch (error) {
+          console.error(`[WebSocket] Error in listener for ${event}:`, error);
+        }
+      });
+    } else {
+      console.warn(`[WebSocket] No listeners registered for event: ${event}`);
     }
   };
 

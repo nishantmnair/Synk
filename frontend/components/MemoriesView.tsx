@@ -39,11 +39,8 @@ const MemoriesView: React.FC<MemoriesViewProps> = ({ memories, setMemories, show
   });
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
-  // Debug: Log when memories change
   useEffect(() => {
-    console.log('[MemoriesView] memories updated:', memories.length, 'items');
     const favCount = memories.filter(m => m.is_favorite).length;
-    console.log('[MemoriesView] Favorited memories:', favCount);
   }, [memories]);
 
   const getFilteredMemories = () => {
@@ -195,16 +192,13 @@ const MemoriesView: React.FC<MemoriesViewProps> = ({ memories, setMemories, show
   const handleToggleFavorite = async (memory: Memory) => {
     try {
       const memoryId = parseInt(memory.id);
-      console.log('[Memory] Before toggle - id:', memoryId, 'is_favorite:', memory.is_favorite);
       
       // Make the API call first
       const result = await memoriesApi.toggleFavorite(memoryId);
-      console.log('[Memory] Toggle result:', result, 'is_favorite in result:', (result as any)?.is_favorite);
       
       // Use the API response data to update, not local logic
       // The backend always returns the updated memory
       const newFavoriteStatus = (result as any)?.is_favorite !== undefined ? (result as any).is_favorite : !memory.is_favorite;
-      console.log('[Memory] New favorite status:', newFavoriteStatus);
       
       const updatedMemories = memories.map(m => 
         String(m.id) === String(memory.id) 
@@ -283,8 +277,9 @@ const MemoriesView: React.FC<MemoriesViewProps> = ({ memories, setMemories, show
 
         {/* Error message */}
         {error && (
-          <div className="bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-3 rounded-lg text-sm">
-            {error}
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3.5 rounded-lg text-sm space-y-1 flex gap-3 animate-in shake-in-x">
+            <span className="material-symbols-outlined text-base shrink-0 mt-0.5">error</span>
+            <span>{error}</span>
           </div>
         )}
 
@@ -400,6 +395,15 @@ const MemoriesView: React.FC<MemoriesViewProps> = ({ memories, setMemories, show
                       >
                         <span className="material-symbols-outlined text-lg">edit</span>
                       </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteMemory(memory);
+                        }}
+                        className="bg-black/50 hover:bg-red-600 text-white rounded-full w-10 h-10 flex items-center justify-center transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-lg">delete</span>
+                      </button>
                     </div>
                   </div>
                   <div
@@ -462,20 +466,31 @@ const MemoriesView: React.FC<MemoriesViewProps> = ({ memories, setMemories, show
                           {new Date(memory.date).toLocaleDateString()}
                         </p>
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleFavorite(memory);
-                        }}
-                        className="text-secondary hover:text-romantic transition-colors"
-                      >
-                        <span 
-                          className="material-symbols-outlined"
-                          style={{ fontVariationSettings: memory.is_favorite ? '"FILL" 1' : '"FILL" 0' }}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleFavorite(memory);
+                          }}
+                          className="text-secondary hover:text-romantic transition-colors"
                         >
-                          favorite
-                        </span>
-                      </button>
+                          <span 
+                            className="material-symbols-outlined"
+                            style={{ fontVariationSettings: memory.is_favorite ? '"FILL" 1' : '"FILL" 0' }}
+                          >
+                            favorite
+                          </span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteMemory(memory);
+                          }}
+                          className="text-secondary hover:text-red-500 transition-colors"
+                        >
+                          <span className="material-symbols-outlined">delete</span>
+                        </button>
+                      </div>
                     </div>
                     <p className="text-sm text-secondary line-clamp-2">{memory.description}</p>
                     {memory.photos.length > 0 && (

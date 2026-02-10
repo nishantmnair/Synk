@@ -42,7 +42,7 @@ describe('MilestonesView', () => {
     await waitFor(() => {
       expect(screen.getByText('Trip to Japan')).toBeInTheDocument()
     })
-    expect(screen.getByText('Milestone Name')).toBeInTheDocument()
+    expect(screen.getByText('Milestone')).toBeInTheDocument()
     expect(screen.getByText('Target Date')).toBeInTheDocument()
   })
 })

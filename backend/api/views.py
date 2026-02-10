@@ -4,25 +4,31 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
 from contextlib import suppress
+import logging
 from django.db import models as django_models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.conf import settings
 from datetime import timedelta, date
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from .models import (
     Task, Milestone, Activity, Suggestion, Collection, UserPreferences,
-    Couple, CouplingCode, DailyConnection, DailyConnectionAnswer, InboxItem, Memory
+    Couple, CouplingCode, DailyConnection, DailyConnectionAnswer, InboxItem, Memory,
+    DailyConnectionPrompt
 )
 from .serializers import (
     TaskSerializer, MilestoneSerializer, ActivitySerializer,
     SuggestionSerializer, CollectionSerializer, UserPreferencesSerializer,
     UserSerializer, UserRegistrationSerializer, CoupleSerializer, CouplingCodeSerializer,
     UserDetailSerializer, UserProfileSerializer, DailyConnectionSerializer,
-    DailyConnectionAnswerSerializer, InboxItemSerializer, MemorySerializer
+    DailyConnectionAnswerSerializer, InboxItemSerializer, MemorySerializer, ChangePasswordSerializer
 )
 from .mixins import PartnerResolutionMixin, BroadcastMixin
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -377,7 +383,35 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-
+    @action(detail=False, methods=['post'])
+    def change_password(self, request):
+        """Change user password (requires current password)"""
+        from .exceptions import ValidationError as SynkValidationError
+        
+        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+        if not serializer.is_valid():
+            raise SynkValidationError(
+                detail="Password change failed",
+                code="password_change_error",
+                field_errors=serializer.errors
+            )
+        
+        user = request.user
+        new_password = serializer.validated_data['new_password']
+        
+        try:
+            user.set_password(new_password)
+            user.save()
+            
+            return Response(
+                {'status': 'success', 'detail': 'Password successfully changed.'}, 
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            return Response(
+                {'status': 'error', 'detail': f'Error changing password: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class UserRegistrationViewSet(viewsets.GenericViewSet):
@@ -603,6 +637,31 @@ class DailyConnectionViewSet(PartnerResolutionMixin, BroadcastMixin, viewsets.Mo
         
         return DailyConnection.objects.none()
     
+    def _get_next_prompt(self, couple):
+        """Get a random prompt from the pool, avoiding the same one as yesterday"""
+        # Get all active prompts
+        prompts = DailyConnectionPrompt.objects.filter(is_active=True)
+        
+        if not prompts.exists():
+            # Fallback if no prompts in database
+            return 'Connect with your partner to share daily prompts.'
+        
+        # Get yesterday's prompt to avoid repeating it
+        yesterday = date.today() - timedelta(days=1)
+        if yesterday_connection := DailyConnection.objects.filter(
+            couple=couple,
+            date=yesterday
+        ).first():
+            available_prompts = prompts.exclude(prompt_text=yesterday_connection.prompt)
+            # If we have prompts available that aren't yesterday's, use those
+            if available_prompts.exists():
+                import random
+                return random.choice(available_prompts).prompt_text
+        
+        # Otherwise, select from all prompts
+        import random
+        return random.choice(prompts).prompt_text
+    
     @action(detail=False, methods=['get'])
     def today(self, request):
         """Get today's daily connection for the couple"""
@@ -633,12 +692,12 @@ class DailyConnectionViewSet(PartnerResolutionMixin, BroadcastMixin, viewsets.Mo
             }, status=status.HTTP_200_OK)
         
         today = date.today()
+        prompt = self._get_next_prompt(couple)
+        
         connection, created = DailyConnection.objects.get_or_create(
             couple=couple,
             date=today,
-            defaults={
-                'prompt': 'What is something meaningful you want to share with your partner today?'
-            }
+            defaults={'prompt': prompt}
         )
         
         serializer = self.get_serializer(connection)
@@ -663,34 +722,26 @@ class DailyConnectionViewSet(PartnerResolutionMixin, BroadcastMixin, viewsets.Mo
             defaults={'answer_text': answer_text}
         )
         
-        # Create inbox item for partner
+        logger.info(f"User {request.user.id} submitted answer to connection {connection.id}")
+        
+        # Create inbox item for partner (signal will handle broadcast)
         if partner := self.get_partner(request.user):
-            inbox_item = InboxItem.objects.create(
-                recipient=partner,
-                sender=request.user,
-                item_type='connection_answer',
-                title=f'{request.user.username} shared their daily connection answer',
-                description=f'"{answer_text[:100]}..."' if len(answer_text) > 100 else f'"{answer_text}"',
-                content={'prompt': connection.prompt, 'answer': answer_text},
-                connection_answer=answer
-            )
-            
-            # Broadcast to partner
-            self.broadcast('connection_answer:created', {
-                'connection_id': connection.id,
-                'answer': DailyConnectionAnswerSerializer(answer).data
-            })
-            
-            # Broadcast inbox:created event to partner
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.group_send)(
-                f"user_{partner.id}",
-                {
-                    "type": "send_message",
-                    "event": "inbox:created",
-                    "data": InboxItemSerializer(inbox_item).data
-                }
-            )
+            try:
+                inbox_item = InboxItem.objects.create(
+                    recipient=partner,
+                    sender=request.user,
+                    item_type='connection_answer',
+                    title=f'{request.user.username} shared their daily connection answer',
+                    description=f'"{answer_text[:100]}..."' if len(answer_text) > 100 else f'"{answer_text}"',
+                    content={'prompt': connection.prompt, 'answer': answer_text},
+                    connection_answer=answer
+                )
+                logger.info(f"Created inbox item {inbox_item.id} for partner {partner.id}")
+                # Signal will automatically broadcast inbox:created to partner
+            except Exception as e:
+                logger.error(f"Error creating inbox item for partner: {str(e)}", exc_info=True)
+        else:
+            logger.warning(f"Could not find partner for user {request.user.id}")
         
         serializer = DailyConnectionAnswerSerializer(answer)
         return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
@@ -826,3 +877,5 @@ class MemoryViewSet(PartnerResolutionMixin, BroadcastMixin, viewsets.ModelViewSe
         serializer = self.get_serializer(memory)
         self.broadcast('memory:updated', serializer.data)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+

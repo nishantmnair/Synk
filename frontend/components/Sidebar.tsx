@@ -34,7 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collections, onAddCollection, onDelet
           <span className="material-symbols-outlined text-[18px]">{icon}</span>
           <span className="truncate max-w-[120px]">{label}</span>
         </div>
-        {badge && (
+        {badge != null && (
           <span className="bg-romantic/20 text-romantic text-[10px] px-1.5 py-0.5 rounded-full font-bold">
             {badge}
           </span>
@@ -82,9 +82,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collections, onAddCollection, onDelet
           className="flex items-center gap-2 overflow-hidden rounded-md py-1 pr-1 -ml-1 hover:bg-white/5 transition-colors cursor-pointer"
           title="Home"
         >
-          <div className="w-6 h-6 rounded-lg bg-accent flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(99,102,241,0.3)]">
-            <span className="material-symbols-outlined text-white text-sm font-bold">all_inclusive</span>
-          </div>
+          <img src="/Synk-Favicon.png" alt="Synk" className="w-12 h-12 rounded shadow-[0_0_10px_rgba(99,102,241,0.3)] brightness-0 dark:brightness-100 dark:invert" style={{ imageRendering: 'crisp-edges' }} />
           <span className="font-bold text-lg tracking-tight text-primary">Synk</span>
         </Link>
         <button 

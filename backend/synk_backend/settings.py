@@ -26,12 +26,12 @@ load_dotenv(BASE_DIR / '.env.local', override=True)
 
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-# Validate required production environment variables
+# Validate required production environment variables (only SECRET_KEY is critical)
 if not DEBUG:
-    if missing_vars := [var for var in ['SECRET_KEY', 'ALLOWED_HOSTS'] if not os.environ.get(var)]:
+    if not os.environ.get('SECRET_KEY'):
         raise ValueError(
-            f'CRITICAL: Missing required production environment variables: {", ".join(missing_vars)}. '
-            f'Set these in .env.production before deploying.'
+            f'CRITICAL: Missing required production environment variable: SECRET_KEY. '
+            f'Set this in environment variables before deploying.'
         )
 
 
@@ -50,7 +50,14 @@ if not SECRET_KEY:
 # Default to False (secure) unless explicitly set to True for development
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# ALLOWED_HOSTS: Restrict in production, permissive in development
+if DEBUG:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', 'localhost:8000']
+else:
+    # Production: Allow from environment variable, with sensible defaults
+    default_hosts = 'localhost,127.0.0.1,*.onrender.com'
+    hosts_str = os.environ.get('ALLOWED_HOSTS', default_hosts)
+    ALLOWED_HOSTS = [host.strip() for host in hosts_str.split(',') if host.strip()]
 
 
 # Application definition
@@ -216,12 +223,23 @@ SIMPLE_JWT = {
 }
 
 # CORS settings
-CORS_ALLOWED_ORIGINS = [
+# Default includes common development and deployment patterns
+_default_cors_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:5173",  # Vite default port
     "http://127.0.0.1:5173",
+    "https://localhost",
+    "http://0.0.0.0:3000",
+    "http://0.0.0.0:8000",
 ]
+
+# Add from environment if specified
+_env_origins = os.environ.get('CORS_ALLOWED_ORIGINS', '')
+if _env_origins:
+    _default_cors_origins.extend([o.strip() for o in _env_origins.split(',') if o.strip()])
+
+CORS_ALLOWED_ORIGINS = _default_cors_origins
 
 CORS_ALLOW_CREDENTIALS = True
 

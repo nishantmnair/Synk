@@ -1,10 +1,16 @@
 """
 Django settings for synk_backend project.
+
+SECURITY NOTES:
+- Sensitive configuration is loaded from environment variables
+- DEBUG is disabled by default in production (set via env)
+- All sensitive keys are required in production, not hardcoded
 """
 
 from pathlib import Path
 from datetime import timedelta
 import os
+import sys
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -14,17 +20,37 @@ from dotenv import load_dotenv
 load_dotenv(BASE_DIR / '.env')
 load_dotenv(BASE_DIR / '.env.local', override=True)
 
+# ============================================================================
+# ENVIRONMENT VALIDATION - Catch configuration errors early
+# ============================================================================
+
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+
+# Validate required production environment variables
+if not DEBUG:
+    if missing_vars := [var for var in ['SECRET_KEY', 'ALLOWED_HOSTS'] if not os.environ.get(var)]:
+        raise ValueError(
+            f'CRITICAL: Missing required production environment variables: {", ".join(missing_vars)}. '
+            f'Set these in .env.production before deploying.'
+        )
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-this-in-production')
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    if os.environ.get('DEBUG', 'False') == 'True':
+        SECRET_KEY = 'django-insecure-development-only'
+    else:
+        raise ValueError('SECRET_KEY environment variable is required in production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+# Default to False (secure) unless explicitly set to True for development
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0,testserver').split(',')
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 
 # Application definition
@@ -54,6 +80,11 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Security middleware (rate limiting and security headers)
+    'api.middleware.RateLimitMiddleware',
+    'api.middleware.SecurityHeadersMiddleware',
+    'api.middleware.InputValidationMiddleware',
+    # Error handling and logging
     'api.error_handling.ErrorLoggingMiddleware',
 ]
 
@@ -153,6 +184,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # REST Framework settings
+# OWASP ASVS compliance: Rate limiting, input validation, secure defaults
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -164,6 +196,15 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 100,
     'EXCEPTION_HANDLER': 'api.error_handling.synk_exception_handler',
+    # Rate limiting (throttling) for DRF
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',  # Unauthenticated users: 100 requests per hour
+        'user': '300/hour',  # Authenticated users: 300 requests per hour
+    }
 }
 
 # JWT Settings
@@ -211,3 +252,110 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@synk.app')
 
 # Frontend URL for password reset links
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
+# ============================================================================
+# PRODUCTION SECURITY SETTINGS (OWASP ASVS Compliance)
+# ============================================================================
+
+# HTTPS/SSL Settings
+# In production (DEBUG=False), enforce these settings
+if not DEBUG:
+    # Redirect all HTTP requests to HTTPS
+    SECURE_SSL_REDIRECT = True
+    
+    # HSTS - Force HTTPS for 31536000 seconds (1 year)
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    
+    # Use HTTPS for session and CSRF cookies
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    
+    # Additional cookie security
+    SESSION_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Strict'
+    CSRF_COOKIE_SAMESITE = 'Strict'
+    
+    # Prevent browsers from caching responses with sensitive data
+    SESSION_COOKIE_AGE = 3600  # 1 hour for security
+    SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# Development environment (for localhost/dev)
+else:
+    # In development, allow HTTP for easier testing
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+
+# Security: Allowed Origins for CORS (configurable per environment)
+PRODUCTION_ALLOWED_ORIGINS = os.environ.get('PRODUCTION_ALLOWED_ORIGINS', '').split(',') if os.environ.get('PRODUCTION_ALLOWED_ORIGINS') else []
+if PRODUCTION_ALLOWED_ORIGINS and PRODUCTION_ALLOWED_ORIGINS[0]:
+    CORS_ALLOWED_ORIGINS = PRODUCTION_ALLOWED_ORIGINS
+
+# Gemini API Key (should only be server-side)
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
+
+# ============================================================================
+# LOGGING CONFIGURATION - For production monitoring and security auditing
+# ============================================================================
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {
+            'format': '[%(asctime)s] %(levelname)s %(name)s: %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'verbose': {
+            'format': '[%(asctime)s] %(levelname)s %(name)s [%(filename)s:%(lineno)d] %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'standard',
+            'stream': 'ext://sys.stdout',
+        },
+        'console_verbose': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+            'stream': 'ext://sys.stdout',
+            'level': 'DEBUG',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': os.getenv('LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': os.getenv('DB_LOG_LEVEL', 'WARNING'),  # Avoid spam
+            'propagate': False,
+        },
+        'api': {
+            'handlers': ['console'],
+            'level': os.getenv('LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+        # Security-related logging
+        'api.middleware': {
+            'handlers': ['console'],
+            'level': 'INFO',  # Always log rate limiting and security events
+            'propagate': False,
+        },
+        'api.security': {
+            'handlers': ['console'],
+            'level': 'INFO',  # Always log security events
+            'propagate': False,
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': os.getenv('LOG_LEVEL', 'INFO'),
+    },
+}

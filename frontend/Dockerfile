@@ -26,13 +26,19 @@ RUN npm run build
 # Production stage
 FROM nginx:alpine
 
-# Copy built files from builder
-COPY --from=builder /app/dist /usr/share/nginx/html
+# Copy built files from builder with correct permissions
+COPY --from=builder --chown=nginx:nginx /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port
+# Create cache directory for nginx
+RUN mkdir -p /var/cache/nginx && chown -R nginx:nginx /var/cache/nginx
+
+# Expose port (non-privileged)
 EXPOSE 80
+
+# Run as nginx user (non-root)
+USER nginx
 
 CMD ["nginx", "-g", "daemon off;"]

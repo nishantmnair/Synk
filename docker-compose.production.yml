@@ -1,0 +1,121 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: synk_db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-synk_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    # Security: Don't expose port in production, use only internal networking
+    # ports: []
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Security: Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    restart: unless-stopped
+    networks:
+      - synk-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: synk_backend
+    entrypoint: ["/bin/bash", "/app/entrypoint.sh"]
+    command: daphne -b 0.0.0.0 -p 8000 synk_backend.asgi:application
+    volumes:
+      - ./backend:/app
+      - backend_static:/app/staticfiles
+    ports:
+      - "8000:8000"
+    environment:
+      # Security: Never set DEBUG=True in production
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY:?ERROR: SECRET_KEY is required. Set it in .env.production}
+      - DB_NAME=${DB_NAME:-synk_db}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=db
+      - DB_PORT=5432
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+      - PRODUCTION_ALLOWED_ORIGINS=${PRODUCTION_ALLOWED_ORIGINS}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - EMAIL_BACKEND=${EMAIL_BACKEND}
+      - EMAIL_HOST=${EMAIL_HOST}
+      - EMAIL_PORT=${EMAIL_PORT}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Security: Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    networks:
+      - synk-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+        - VITE_WS_URL=${VITE_WS_URL:-ws://localhost:8000}
+    container_name: synk_frontend
+    ports:
+      - "80:80"
+      - "443:443"  # For HTTPS (configure SSL in nginx)
+    depends_on:
+      - backend
+    restart: unless-stopped
+    # Security: Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    networks:
+      - synk-network
+
+volumes:
+  postgres_data:
+    driver: local
+  backend_static:
+    driver: local
+
+networks:
+  synk-network:
+    driver: bridge

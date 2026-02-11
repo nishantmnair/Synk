@@ -3,36 +3,42 @@ FROM python:3.11-slim
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV PIP_NO_CACHE_DIR=1
 
 # Set work directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# Install system dependencies in single layer (reduces image size)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-client \
+    bash \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
+# Copy requirements first (for better layer caching)
 COPY requirements.txt /app/
+
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install bash (needed for entrypoint)
-RUN apt-get update && apt-get install -y bash && rm -rf /var/lib/apt/lists/*
-
-# Copy project files (excluding entrypoint.sh for now)
-COPY requirements.txt /app/
+# Copy project files
 COPY manage.py /app/
 COPY api /app/api
 COPY synk_backend /app/synk_backend
-
-# Copy entrypoint script and make it executable
 COPY entrypoint.sh /app/entrypoint.sh
+
+# Make entrypoint executable
 RUN chmod +x /app/entrypoint.sh
+
+# Create non-root user for security (prevent container escape privilege escalation)
+RUN useradd -m -u 1000 -s /bin/bash appuser && chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
 
 # Expose port
 EXPOSE 8000
 
-# Use entrypoint script with explicit bash
+# Use entrypoint script
 ENTRYPOINT ["/bin/bash", "/app/entrypoint.sh"]
 
 # Default command (can be overridden in docker-compose.yml)

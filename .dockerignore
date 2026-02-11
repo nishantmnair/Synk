@@ -1,0 +1,80 @@
+# Docker Build Optimization
+# Prevents large/unnecessary files from being added to Docker context
+
+# Version control
+.git
+.gitignore
+.github
+
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+venv
+env
+ENV
+__pycache__
+*.egg-info
+dist-info
+.Python
+
+# Build outputs
+dist
+build
+.venv
+.pytest_cache
+.tox
+.nyc_output
+htmlcov
+coverage
+
+# Development
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+.env
+.env.local
+.env.*.local
+
+# Test files
+.vitest
+test
+tests
+**/*.test.js
+**/*.test.ts
+**/*.spec.js
+**/*.spec.ts
+
+# Documentation
+README.md
+docs
+*.md
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.circleci
+
+# Misc
+.editorconfig
+.prettierrc
+Makefile
+docker-compose.dev.yml
+docker-compose.yml
+.dockerignore
+Dockerfile.dev
+
+# Frontend specific
+frontend/public
+frontend/src/test
+frontend/coverage
+
+# Backend specific
+backend/db.sqlite3
+backend/.coverage
+backend/coverage.xml
+backend/htmlcov
+backend/staticfiles

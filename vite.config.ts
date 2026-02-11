@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
     // Load env variables from frontend directory
-    const env = process.env;
+    const env = { ...process.env };
     
     return {
       // Point envDir to frontend directory
@@ -16,10 +16,9 @@ export default defineConfig(({ mode }) => {
       },
       plugins: [react()],
       define: {
-        // Vite automatically exposes .env variables prefixed with VITE_ via import.meta.env
-        // We also define process.env for compatibility with the geminiService
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY || ''),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || '')
+        // SECURITY: Do NOT expose API keys to the frontend!
+        // API keys should only be used server-side via the Django backend
+        // The geminiService should call backend endpoints instead of making direct API calls
       },
       resolve: {
         alias: {

@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getActionErrorMessage } from '../utils/errorMessages';
 
 interface AuthViewProps {
   onLogin: (email: string, password: string) => Promise<void>;
   onSignup: (email: string, password: string, passwordConfirm: string, firstName?: string, lastName?: string, couplingCode?: string) => Promise<void>;
   showToast?: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
 }
 
-const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup, showToast }) => {
+const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup, showToast, theme: propTheme, onToggleTheme }) => {
   const [isSignup, setIsSignup] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,6 +19,26 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup, showToast }) => 
   const [couplingCode, setCouplingCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (propTheme) return propTheme;
+    if (typeof document !== 'undefined') {
+      const stored = localStorage.getItem('synk_theme');
+      if (stored === 'light' || stored === 'dark') return stored;
+      return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    }
+    return 'dark';
+  });
+
+  const toggleTheme = () => {
+    if (onToggleTheme) {
+      onToggleTheme();
+    } else {
+      const next = theme === 'dark' ? 'light' : 'dark';
+      setTheme(next);
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('synk_theme', next);
+    }
+  };
 
   const resetForm = () => {
     setEmail('');
@@ -84,11 +106,25 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup, showToast }) => 
 
   return (
     <div className="min-h-screen bg-main text-primary font-sans flex flex-col items-center justify-center p-4">
+      {/* Theme Toggle Button - Top Right */}
+      <button
+        onClick={toggleTheme}
+        className="absolute top-4 right-4 material-symbols-outlined text-secondary hover:text-primary transition-colors text-[20px] w-10 h-10 flex items-center justify-center rounded-md hover:bg-white/5 active:scale-95"
+        title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+      >
+        {theme === 'dark' ? 'light_mode' : 'dark_mode'}
+      </button>
+
       <div className="w-full max-w-md">
-        <div className="flex items-center justify-center mb-8">
-          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
-            <span className="material-symbols-outlined text-white text-sm">all_inclusive</span>
-          </div>
+        {/* Logo with Synk Text */}
+        <div className="flex items-center justify-center gap-3 mb-8">
+          <img
+            src={theme === 'dark' ? '/Synk-Favicon.png' : '/Synk-Favicon-Inverted.png'}
+            alt="Synk Logo"
+            className="w-12 h-12"
+          />
+          <span className="text-3xl font-bold text-primary">Synk</span>
         </div>
 
         <div className="bg-card border border-subtle rounded-2xl p-6 space-y-5">

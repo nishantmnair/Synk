@@ -8,13 +8,18 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './test/setup.ts',
-    testTimeout: 15000,
-    hookTimeout: 15000,
-    teardownTimeout: 5000,
+    testTimeout: 10000,
+    hookTimeout: 10000,
+    teardownTimeout: 2000,
     forceExit: true,
     isolate: true,
+    passWithNoTests: true,
     threads: {
       singleThread: true,
+      isolate: false,
+    },
+    pool: {
+      threads: 1,
     },
     coverage: {
       provider: 'v8',

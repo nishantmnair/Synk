@@ -38,9 +38,22 @@ coverage.xml
 .env
 .env.local
 .env.*.local
+.env.production
 .env.production.local
 .env.development.local
+.env.development
 .env.test.local
+.env.example.local
+
+# Security: Never commit these
+*.key
+*.pem
+*.crt
+*.csr
+*.p12
+*.pfx
+secret*
+.ssh/
 
 # IDE
 .vscode/
@@ -48,6 +61,18 @@ coverage.xml
 *.swp
 *.swo
 *~
+*.iml
+.DS_Store
+
+# OS files
+Thumbs.db
+.DS_Store
+*.log
+
+# Third-party
+.venv/
+node_modules/
+
 *.sublime-workspace
 *.sublime-project
 .DS_Store/.project

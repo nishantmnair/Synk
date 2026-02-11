@@ -516,6 +516,7 @@ const App: React.FC = () => {
       setToast(null);
       const user = await djangoAuthService.signup(email, password, passwordConfirm, firstName, lastName, couplingCode);
       setCurrentUser(user);
+      showToast('Account created successfully!', 'success');
       
       // Check coupling status BEFORE setting isLoggedIn to ensure we don't show
       // the onboarding modal when rendering after signup with a coupling code
@@ -825,7 +826,7 @@ const App: React.FC = () => {
     return (
       <Router>
         <Routes>
-          <Route path="*" element={<AuthView onLogin={handleLogin} onSignup={handleSignup} showToast={showToast} />} />
+          <Route path="*" element={<AuthView onLogin={handleLogin} onSignup={handleSignup} showToast={showToast} theme={theme} onToggleTheme={toggleTheme} />} />
         </Routes>
         {/* Toast for logout message */}
         {toast && (

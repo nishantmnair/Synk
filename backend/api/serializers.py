@@ -5,6 +5,59 @@ from .models import (
     Couple, CouplingCode, UserProfile, Employment, Education, Skill, Project,
     DailyConnection, DailyConnectionAnswer, InboxItem, Memory
 )
+from .security import InputValidator, sanitize_input
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Field length constraints (OWASP: Validate all inputs)
+MAX_FIELD_LENGTHS = {
+    'username': 150,
+    'email': 254,
+    'first_name': 150,
+    'last_name': 150,
+    'password': 128,
+    'title': 500,
+    'description': 5000,
+    'code': 50,
+}
+
+
+class BaseModelSerializer(serializers.ModelSerializer):
+    """Base serializer with common validation and sanitization."""
+    
+    def validate_string_field(self, field_name: str, value: str, max_length: int = None) -> str:
+        """
+        Validate and sanitize a string field.
+        OWASP requirement: All user input must be validated and sanitized.
+        """
+        if not isinstance(value, str):
+            raise serializers.ValidationError(f'{field_name} must be a string.')
+        
+        # Get max length from class attribute or parameter
+        max_len = max_length or MAX_FIELD_LENGTHS.get(field_name, 1000)
+        
+        try:
+            value = InputValidator.sanitize_string(value, max_length=max_len)
+        except ValueError as e:
+            raise serializers.ValidationError(str(e)) from e
+        
+        return value
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'first_name', 'last_name']
+        read_only_fields = ['id']
+    
+    def validate_first_name(self, value):
+        """Validate first name."""
+        return self.validate_string_field('first_name', value) if value else value
+    
+    def validate_last_name(self, value):
+        """Validate last name."""
+        return self.validate_string_field('last_name', value) if value else value
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -24,65 +77,142 @@ class UserProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_uuid', 'created_at', 'updated_at', 'email_normalized']
 
 
+
 class UserRegistrationSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, min_length=8, style={'input_type': 'password'})
-    password_confirm = serializers.CharField(write_only=True, min_length=8, style={'input_type': 'password'})
+    password = serializers.CharField(
+        write_only=True,
+        min_length=8,
+        max_length=128,
+        style={'input_type': 'password'}
+    )
+    password_confirm = serializers.CharField(
+        write_only=True,
+        min_length=8,
+        max_length=128,
+        style={'input_type': 'password'}
+    )
     
     class Meta:
         model = User
         fields = ['username', 'email', 'password', 'password_confirm', 'first_name', 'last_name']
         extra_kwargs = {
-            'email': {'required': True},
-            'username': {'required': True},
+            'email': {'required': True, 'max_length': 254},
+            'username': {'required': True, 'max_length': 150},
+            'first_name': {'max_length': 150, 'allow_blank': True},
+            'last_name': {'max_length': 150, 'allow_blank': True},
         }
     
     def validate_username(self, value):
-        """Validate username"""
+        """Validate username per OWASP input validation rules."""
         if not value or not value.strip():
             raise serializers.ValidationError('Username cannot be empty.')
-        if len(value.strip()) < 3:
+        
+        value = value.strip()
+        
+        if len(value) < 3:
             raise serializers.ValidationError('Username must be at least 3 characters long.')
+        
+        if len(value) > 150:
+            raise serializers.ValidationError('Username must not exceed 150 characters.')
+        
+        # Only alphanumeric, underscore, hyphen, and dot
+        import re
+        if not re.match(r'^[a-zA-Z0-9._-]+$', value):
+            raise serializers.ValidationError('Username can only contain letters, numbers, dot, hyphen, and underscore.')
+        
         # Check if username already exists
-        if User.objects.filter(username__iexact=value.strip()).exists():
+        if User.objects.filter(username__iexact=value).exists():
             raise serializers.ValidationError('A user with this username already exists.')
-        return value.strip()
+        
+        return value
     
     def validate_email(self, value):
-        """Validate email"""
+        """Validate email per OWASP input validation rules."""
         if not value or not value.strip():
             raise serializers.ValidationError('Email is required.')
+        
+        try:
+            value = InputValidator.validate_email(value)
+        except ValueError as e:
+            raise serializers.ValidationError(str(e)) from e
+        
         # Check if email already exists
-        if User.objects.filter(email__iexact=value.strip().lower()).exists():
+        if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError('A user with this email already exists.')
-        return value.strip().lower()
+        
+        return value
     
     def validate_password(self, value):
-        """Validate password strength"""
+        """Validate password strength per OWASP requirements."""
         if len(value) < 8:
             raise serializers.ValidationError('Password must be at least 8 characters long.')
+        
+        if len(value) > 128:
+            raise serializers.ValidationError('Password must not exceed 128 characters.')
+        
+        if not any(char.isupper() for char in value):
+            raise serializers.ValidationError('Password must contain at least one uppercase letter.')
+        
+        if not any(char.islower() for char in value):
+            raise serializers.ValidationError('Password must contain at least one lowercase letter.')
+        
+        if not any(char.isdigit() for char in value):
+            raise serializers.ValidationError('Password must contain at least one number.')
+        
+        # Check for at least one special character
+        import re
+        try:
+            if not re.search(r'[!@#$%^&*(),.?":{}|<>]', value):
+                raise serializers.ValidationError('Password must contain at least one special character (!@#$%^&*(),.?":{}|<>).')
+        except Exception as e:
+            raise serializers.ValidationError(str(e)) from e
+        
+        return value
+    
+    def validate_first_name(self, value):
+        """Validate first name."""
+        return self.validate_string_field('first_name', value) if value else value
+    
+    def validate_last_name(self, value):
+        """Validate last name."""
+        return self.validate_string_field('last_name', value) if value else value
+    
+    def validate_string_field(self, field_name: str, value: str) -> str:
+        """Validate and sanitize a string field."""
+        if not isinstance(value, str):
+            raise serializers.ValidationError(f'{field_name} must be a string.')
+        
+        max_len = MAX_FIELD_LENGTHS.get(field_name, 500)
+        try:
+            value = InputValidator.sanitize_string(value, max_length=max_len)
+        except ValueError as e:
+            raise serializers.ValidationError(str(e)) from e
+        
         return value
     
     def validate(self, attrs):
+        """Validate the entire registration payload."""
         if attrs['password'] != attrs['password_confirm']:
             raise serializers.ValidationError({'password': 'Passwords do not match.'})
+        
+        # Additional check: password should not contain username
+        if attrs['username'].lower() in attrs['password'].lower():
+            raise serializers.ValidationError({'password': 'Password must not contain username.'})
+        
         return attrs
     
     def create(self, validated_data):
+        """Create user with validated data."""
         validated_data.pop('password_confirm')
         password = validated_data.pop('password')
-        
-        # Note: Django User model doesn't allow null values for first_name and last_name,
-        # so we keep them as empty strings if not provided
         
         # Normalize email to lowercase
         email = validated_data.get('email', '').lower()
         validated_data['email'] = email
         
-        # create_user already hashes the password with bcrypt/PBKDF2, so we pass it directly
-        # The post_save signal will automatically create the UserProfile
-        # Validation methods above already check for duplicates, but keep try/except as safety net
         try:
             user = User.objects.create_user(password=password, **validated_data)
+            logger.info(f'New user registered: {user.username}')
         except Exception as e:
             # Additional safety net for database-level constraints
             error_str = str(e).lower()
@@ -90,9 +220,12 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({'username': 'A user with this username already exists.'}) from e
             elif 'email' in error_str:
                 raise serializers.ValidationError({'email': 'A user with this email already exists.'}) from e
+            logger.error(f'User registration failed: {e}')
             raise serializers.ValidationError({'detail': 'Failed to create user. Please try again.'}) from e
         
         return user
+
+
 
 
 class TaskSerializer(serializers.ModelSerializer):
@@ -106,6 +239,67 @@ class TaskSerializer(serializers.ModelSerializer):
             'location', 'avatars', 'created_at', 'updated_at', 'user'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'user']
+        extra_kwargs = {
+            'title': {'max_length': 500, 'required': True},
+            'description': {'max_length': 5000, 'allow_blank': True},
+            'location': {'max_length': 500, 'allow_blank': True},
+        }
+    
+    def validate_title(self, value):
+        """Validate and sanitize task title."""
+        if not value or not value.strip():
+            raise serializers.ValidationError('Title cannot be empty.')
+        
+        try:
+            value = InputValidator.sanitize_string(value, max_length=500)
+        except ValueError as e:
+            raise serializers.ValidationError(str(e))
+        
+        return value
+    
+    def validate_description(self, value):
+        """Validate and sanitize task description."""
+        if not value:
+            return value
+        try:
+            return InputValidator.sanitize_string(value, max_length=5000, allow_html=True)
+        except ValueError as e:
+            raise serializers.ValidationError(str(e)) from e
+    
+    def validate_location(self, value):
+        """Validate and sanitize location."""
+        if not value:
+            return value
+        try:
+            return InputValidator.sanitize_string(value, max_length=500)
+        except ValueError as e:
+            raise serializers.ValidationError(str(e)) from e
+    
+    def validate_priority(self, value):
+        """Validate priority is within allowed values."""
+        allowed = ['low', 'medium', 'high']
+        if value and value not in allowed:
+            raise serializers.ValidationError(f'Priority must be one of: {", ".join(allowed)}')
+        return value
+    
+    def validate_status(self, value):
+        """Validate status is within allowed values."""
+        allowed = ['todo', 'in_progress', 'completed']
+        if value and value not in allowed:
+            raise serializers.ValidationError(f'Status must be one of: {", ".join(allowed)}')
+        return value
+    
+    def validate_progress(self, value):
+        """Validate progress is between 0 and 100."""
+        if value is None:
+            return value
+        try:
+            value = int(value)
+            if not (0 <= value <= 100):
+                raise serializers.ValidationError('Progress must be between 0 and 100.')
+            return value
+        except (TypeError, ValueError) as e:
+            raise serializers.ValidationError('Progress must be a number.') from e
     
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -115,6 +309,7 @@ class TaskSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['user'] = self.context['request'].user
         return super().create(validated_data)
+
 
 
 

@@ -27,12 +27,11 @@ load_dotenv(BASE_DIR / '.env.local', override=True)
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 # Validate required production environment variables (only SECRET_KEY is critical)
-if not DEBUG:
-    if not os.environ.get('SECRET_KEY'):
-        raise ValueError(
-            f'CRITICAL: Missing required production environment variable: SECRET_KEY. '
-            f'Set this in environment variables before deploying.'
-        )
+if not DEBUG and not os.environ.get('SECRET_KEY'):
+    raise ValueError(
+        'CRITICAL: Missing required production environment variable: SECRET_KEY. '
+        'Set this in environment variables before deploying.'
+    )
 
 
 # Quick-start development settings - unsuitable for production

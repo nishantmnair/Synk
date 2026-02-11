@@ -1,5 +1,7 @@
 # Cloud Deployment Roadmap - 12 Use Cases
 
+> ⚠️ **UPDATED Feb 11, 2026:** Environment variables simplified. Only `SECRET_KEY` is required in production. `ALLOWED_HOSTS` and `CORS` now have smart defaults. See [DEPLOYMENT_NEXT_STEPS.md](./DEPLOYMENT_NEXT_STEPS.md) for current deployment guide.
+
 ## 📊 Status Overview
 
 | UC | Title | Status | Priority | Effort |
@@ -152,15 +154,10 @@ railway login
 railway add --plugin custom --name postgres-synk --image postgres:15-alpine
 
 # 4. Configure environment variables
+# NOTE: Only SECRET_KEY is required. ALLOWED_HOSTS, CORS, etc. have smart defaults now.
 railway variables set \
   DEBUG=False \
-  SECRET_KEY=<generated-key> \
-  ALLOWED_HOSTS=backend.railway.app \
-  DB_HOST=$DATABASE_URL_HOST \
-  DB_PORT=$DATABASE_URL_PORT \
-  DB_NAME=$DATABASE_NAME \
-  DB_USER=$DATABASE_USER \
-  DB_PASSWORD=$DATABASE_PASSWORD
+  SECRET_KEY=<generated-key>
 
 # 5. Create Procfile for Railway
 cat > backend/Procfile <<'EOF'
@@ -186,16 +183,19 @@ railway exec python manage.py createsuperuser
 ```
 
 #### Step 4: Configure CORS (15m)
+
+**NOTE: CORS is now auto-configured with sensible defaults!** You can add custom origins via the `CORS_ALLOWED_ORIGINS` environment variable if needed:
+
+```bash
+railway variables set \
+  CORS_ALLOWED_ORIGINS='https://synk.vercel.app,https://yourdomain.com'
+```
+
+Or configure in code:
 ```python
 # backend/synk_backend/settings.py
-CORS_ALLOWED_ORIGINS = [
-    'https://synk.vercel.app',
-    'https://backend.railway.app',
-]
-
-CSRF_TRUSTED_ORIGINS = [
-    'https://synk.vercel.app',
-]
+# Already includes defaults for localhost, Vercel, and Render
+# CORS_ALLOWED_ORIGINS configured automatically
 ```
 
 **Acceptance Criteria Checklist:**

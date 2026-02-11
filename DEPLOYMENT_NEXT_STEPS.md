@@ -71,16 +71,19 @@ git push origin main
 
 ### Backend Environment (Render)
 
-You'll set these in Render dashboard during deployment. Have these ready:
+You'll set these in Render dashboard during deployment. **Only SECRET_KEY is required** - everything else has smart defaults.
 
+**Required:**
 ```
-# Backend Environment Variables
 SECRET_KEY=your-django-secret-key-here
-ALLOWED_HOSTS=your-backend.onrender.com,localhost
-DEBUG=False
 DATABASE_URL=postgresql://user:password@host/database
-CORS_ALLOWED_ORIGINS=https://your-frontend-vercel.app,https://yourdomain.com
-PYTHONUNBUFFERED=1
+```
+
+**Optional (already defaults to sensible values):**
+```
+DEBUG=False                                    # Defaults to False (recommended)
+ALLOWED_HOSTS=your-backend.onrender.com      # Defaults to *.onrender.com (auto-configured)
+CORS_ALLOWED_ORIGINS=https://your-frontend   # Defaults to include localhost + Vercel domains
 ```
 
 **To generate SECRET_KEY:**
@@ -88,7 +91,7 @@ PYTHONUNBUFFERED=1
 python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
 ```
 
-✅ Keep this list ready. Move to Phase 3.
+✅ Copy the SECRET_KEY and DATABASE_URL. Move to Phase 3.
 
 ---
 
@@ -172,16 +175,15 @@ gunicorn -w 4 -b 0.0.0.0:8000 backend.synk_backend.wsgi:application
 
 ### Step 4: Add Environment Variables
 
-Click "Environment" and add:
+Click "Environment" and add these **required** variables:
 
 ```
 SECRET_KEY=<generated-value-from-phase-2>
-ALLOWED_HOSTS=your-backend.onrender.com
-DEBUG=False
 DATABASE_URL=<neon-connection-string>
-CORS_ALLOWED_ORIGINS=https://synk-xxxxx.vercel.app
-PYTHONUNBUFFERED=1
+DEBUG=False
 ```
+
+**That's it!** Everything else (ALLOWED_HOSTS, CORS, etc.) is auto-configured with smart defaults.
 
 ### Step 5: Deploy
 
@@ -302,12 +304,13 @@ Frontend (Vercel)
 
 Backend (Render)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+□ Service deployed successfully (no migration errors)
 □ API responds to /api/health/
 □ User registration works
 □ Login works
 □ JWT tokens are generated
 □ Database queries work
-□ Logs show no errors
+□ Logs show no errors (migrations completed)
 □ Response times < 1 second
 □ No CPU/Memory errors in logs
 

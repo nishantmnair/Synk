@@ -1,5 +1,7 @@
 # Quick Start: Cloud Deployment Guide (Free Tier)
 
+> ⚠️ **UPDATED Feb 11, 2026:** Environment variables simplified. Only `SECRET_KEY` is required. For Render/Vercel deployment, follow [DEPLOYMENT_NEXT_STEPS.md](./DEPLOYMENT_NEXT_STEPS.md) instead.
+
 ## 📦 Complete Stack (Zero Cost)
 
 ```
@@ -110,11 +112,10 @@ release: python manage.py migrate
 EOF
 
 # Set environment variables
+# NOTE: Only SECRET_KEY is required. ALLOWED_HOSTS, CORS, etc. have smart defaults now.
 railway variables set \
   DEBUG=False \
-  SECRET_KEY=<your-generated-key> \
-  ALLOWED_HOSTS=synk-backend.railway.app \
-  LOG_LEVEL=INFO
+  SECRET_KEY=<your-generated-key>
 
 # Deploy
 railway up

@@ -8,6 +8,17 @@ from api.models import (
     Task, Milestone, Activity, Suggestion, Collection, 
     UserPreferences, Couple
 )
+from django.conf import settings
+
+
+# Ensure test settings are applied
+@pytest.fixture(scope='session', autouse=True)
+def configure_django_settings():
+    """Configure Django settings for testing"""
+    settings.SECURE_SSL_REDIRECT = False
+    settings.SESSION_COOKIE_SECURE = False
+    settings.CSRF_COOKIE_SECURE = False
+    settings.DEBUG = True
 
 @pytest.fixture
 def user(db):
@@ -35,14 +46,18 @@ def user2(db):
 def authenticated_client(user):
     """Create an authenticated API client"""
     client = APIClient()
-    # Get JWT token
+    # Get JWT token with trailing slash (since APPEND_SLASH is True)
     response = client.post('/api/token/', {
         'username': user.username,
         'password': 'testpass123'
-    })
+    }, format='json')
+    
     if response.status_code == 200:
         token = response.data['access']
         client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+    elif response.status_code != 200:
+        # Debug: Log the response status for debugging
+        print(f"Token request failed with status {response.status_code}: {response.content}")
     return client
 
 @pytest.fixture

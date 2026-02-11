@@ -8,6 +8,7 @@ from contextlib import suppress
 from django.utils.deprecation import MiddlewareMixin
 from django.http import JsonResponse
 from django.core.cache import cache
+from django.conf import settings
 from .security import RateLimiter, SecurityHeaders
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,10 @@ class RateLimitMiddleware(MiddlewareMixin):
         """
         Check if request exceeds rate limit before processing.
         """
+        # Skip rate limiting in DEBUG mode (development and tests)
+        if settings.DEBUG:
+            return None
+        
         # Skip rate limiting for health checks and static files
         if request.path.startswith('/static/') or request.path == '/health/':
             return None

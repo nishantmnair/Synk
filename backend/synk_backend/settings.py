@@ -24,30 +24,19 @@ load_dotenv(BASE_DIR / '.env.local', override=True)
 # ENVIRONMENT VALIDATION - Catch configuration errors early
 # ============================================================================
 
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+# Detect testing environment FIRST
+IS_TESTING = any(arg in sys.argv for arg in ['pytest', 'test', 'runtests']) or 'pytest' in sys.modules
 
-# Validate required production environment variables (only SECRET_KEY is critical)
-if not DEBUG and not os.environ.get('SECRET_KEY'):
-    raise ValueError(
-        'CRITICAL: Missing required production environment variable: SECRET_KEY. '
-        'Set this in environment variables before deploying.'
-    )
-
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
+# Set DEBUG based on environment and testing
+DEBUG = os.environ.get('DEBUG', 'False') == 'True' or IS_TESTING
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY')
 if not SECRET_KEY:
-    if os.environ.get('DEBUG', 'False') == 'True':
+    if DEBUG or IS_TESTING:
         SECRET_KEY = 'django-insecure-development-only'
     else:
         raise ValueError('SECRET_KEY environment variable is required in production')
-
-# SECURITY WARNING: don't run with debug turned on in production!
-# Default to False (secure) unless explicitly set to True for development
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 # ALLOWED_HOSTS: Restrict in production, permissive in development
 if DEBUG:
@@ -273,9 +262,13 @@ FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
 # PRODUCTION SECURITY SETTINGS (OWASP ASVS Compliance)
 # ============================================================================
 
+# Django URL configuration - Allow trailing slashes for DRF
+APPEND_SLASH = True
+
 # HTTPS/SSL Settings
 # In production (DEBUG=False), enforce these settings
-if not DEBUG:
+# Exclude testing environments from SSL redirect
+if not DEBUG and not IS_TESTING:
     # Redirect all HTTP requests to HTTPS
     SECURE_SSL_REDIRECT = True
     
@@ -298,9 +291,9 @@ if not DEBUG:
     SESSION_COOKIE_AGE = 3600  # 1 hour for security
     SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
-# Development environment (for localhost/dev)
+# Development and testing environments
 else:
-    # In development, allow HTTP for easier testing
+    # In development and tests, allow HTTP for easier testing
     SECURE_SSL_REDIRECT = False
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False

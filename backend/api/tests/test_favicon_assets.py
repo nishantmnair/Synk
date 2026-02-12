@@ -76,10 +76,6 @@ class TestFaviconStaticFiles:
 class TestFaviconMetadata:
     """Test favicon metadata and properties"""
     
-    def test_favicon_mime_type(self):
-        """Test favicon MIME type is correct"""
-        pass
-    
     @pytest.mark.parametrize('filename', [
         'Synk-Favicon.png',
         'Synk-Logo-LightMode.png',
@@ -103,14 +99,6 @@ class TestFaviconMetadata:
 class TestFaviconHeaderMetadata:
     """Test favicon-related HTTP headers and meta tags"""
     
-    def test_favicon_link_has_rel_icon(self):
-        """Test favicon links have correct rel attribute"""
-        pass
-    
-    def test_favicon_link_has_type_attribute(self):
-        """Test favicon links have type attribute"""
-        pass
-    
     @pytest.mark.parametrize('media_query', [
         '(prefers-color-scheme: light)',
         '(prefers-color-scheme: dark)',
@@ -118,12 +106,4 @@ class TestFaviconHeaderMetadata:
     def test_favicon_media_query_attributes(self, media_query):
         """Test favicon links have media query attributes"""
         assert 'prefers-color-scheme' in media_query
-    
-    def test_theme_color_meta_tag_dark(self):
-        """Test theme-color meta tag for dark mode"""
-        pass
-    
-    def test_theme_color_meta_tag_light(self):
-        """Test theme-color meta tag for light mode"""
-        pass
 

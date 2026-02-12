@@ -8,7 +8,6 @@ import logging
 from django.db import models as django_models
 from django.contrib.auth.models import User
 from django.utils import timezone
-from django.template.loader import render_to_string
 from django.conf import settings
 from datetime import timedelta, date
 from channels.layers import get_channel_layer

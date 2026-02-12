@@ -236,13 +236,6 @@ class TestServerErrorHandling:
             password='ValidPassword123!'
         )
     
-    def test_server_error_generic_message(self):
-        """Test 500 error returns generic message to user (details logged server-side)"""
-        # This would be triggered by an actual server error in code
-        # For now, we can test the format is correct when it occurs
-        # A real test would mock a database error or similar
-        pass
-    
     def test_error_includes_error_code_not_details(self):
         """Test error response includes error_code, not exception details"""
         # Simulate an error response
@@ -283,12 +276,6 @@ class TestAuthenticationRequiredErrors:
         data = response.json()
         assert data['status'] == 'error'
         assert 'error_code' in data
-    
-    def test_expired_token_handling(self):
-        """Test expired token handling (if applicable)"""
-        # This would require JWT token manipulation
-        # Real test would create an expired token and test refresh
-        pass
 
 
 @pytest.mark.django_db

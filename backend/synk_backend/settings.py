@@ -254,10 +254,8 @@ else:
 # ============================================================================
 # PRODUCTION SECURITY SETTINGS (OWASP ASVS Compliance)
 # ============================================================================
-# Environment variable validation
-if not DEBUG:
-    if missing_vars := [var for var in ['SECRET_KEY', 'ALLOWED_HOSTS'] if not os.environ.get(var)]:
-        raise ValueError(f'CRITICAL: Missing required production environment variables: {missing_vars}')
+# Environment variable validation - SECRET_KEY is already validated above
+# ALLOWED_HOSTS has sensible defaults set above, so no need to validate it here
 
 # Django URL configuration - Allow trailing slashes for DRF
 APPEND_SLASH = True

@@ -231,13 +231,10 @@ CORS_ALLOWED_ORIGINS = _default_cors_origins
 
 CORS_ALLOW_CREDENTIALS = True
 
-# Allow all origins in development (remove in production)
-if DEBUG:
-    CORS_ALLOW_ALL_ORIGINS = False  # Keep False for security, but add common dev ports above
-
 # Channels settings
 if DEBUG:
-    # Development: use in-memory channel layer
+    # Development: Allow all origins and use in-memory channel layer
+    CORS_ALLOW_ALL_ORIGINS = False  # Keep False for security, but add common dev ports above
     CHANNEL_LAYERS = {
         'default': {
             'BACKEND': 'channels.layers.InMemoryChannelLayer',
@@ -259,9 +256,7 @@ else:
 # ============================================================================
 # Environment variable validation
 if not DEBUG:
-    required_env_vars = ['SECRET_KEY', 'ALLOWED_HOSTS']
-    missing_vars = [var for var in required_env_vars if not os.environ.get(var)]
-    if missing_vars:
+    if missing_vars := [var for var in ['SECRET_KEY', 'ALLOWED_HOSTS'] if not os.environ.get(var)]:
         raise ValueError(f'CRITICAL: Missing required production environment variables: {missing_vars}')
 
 # Django URL configuration - Allow trailing slashes for DRF

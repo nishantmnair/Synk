@@ -102,8 +102,6 @@ class DjangoRealtimeService {
           console.error(`[WebSocket] Error in listener for ${event}:`, error);
         }
       });
-    } else {
-      console.warn(`[WebSocket] No listeners registered for event: ${event}`);
     }
   };
 

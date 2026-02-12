@@ -101,7 +101,7 @@ class TestUserRegistrationSerializer:
     """Test UserRegistrationSerializer"""
     
     def _create_registration_data(self, username='testuser', email='test@example.com', 
-                                  password='testpass123', password_confirm='testpass123',
+                                  password='TestPass123!', password_confirm='TestPass123!',
                                   first_name='Test', last_name='User'):
         """Helper method to create registration test data"""
         return {
@@ -161,7 +161,7 @@ class TestUserRegistrationSerializer:
         user = serializer.save()
         assert user.username == 'newuser'
         assert user.email == 'newuser@example.com'
-        assert user.check_password('testpass123')
+        assert user.check_password('TestPass123!')
 
     def test_create_user_empty_optional_names(self):
         """Test creating user with empty first_name/last_name - serializer converts to None (may raise if DB rejects)"""

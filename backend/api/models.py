@@ -22,8 +22,7 @@ class UserProfile(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=['email_normalized'],
-                name='unique_normalized_email',
-                violation_error_message='A user with this email already exists.'
+                name='unique_normalized_email'
             )
         ]
     

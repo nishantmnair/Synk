@@ -49,8 +49,8 @@ class TestUserDataPersistence:
         registration_data = {
             'username': username,
             'email': email,
-            'password': 'SecurePass123',
-            'password_confirm': 'SecurePass123',
+            'password': 'SecurePass123!',
+            'password_confirm': 'SecurePass123!',
             'first_name': 'Test',
             'last_name': 'User'
         }
@@ -72,8 +72,8 @@ class TestUserDataPersistence:
         registration_data = {
             'username': username,
             'email': email,
-            'password': 'SecurePass123',
-            'password_confirm': 'SecurePass123'
+            'password': 'SecurePass123!',
+            'password_confirm': 'SecurePass123!'
         }
         
         response = api_client.post(registration_url, registration_data)
@@ -88,7 +88,7 @@ class TestUserDataPersistence:
         """Test that passwords are stored as hashes, not plain text"""
         username = unique_username()
         email = unique_email()
-        plain_password = 'SecurePass123'
+        plain_password = 'SecurePass123!'
         registration_data = {
             'username': username,
             'email': email,
@@ -129,8 +129,8 @@ class TestUserDataPersistence:
         registration_data = {
             'username': username,
             'email': email_upper,
-            'password': 'SecurePass123',
-            'password_confirm': 'SecurePass123'
+            'password': 'SecurePass123!',
+            'password_confirm': 'SecurePass123!'
         }
         
         response = api_client.post(registration_url, registration_data)
@@ -144,7 +144,7 @@ class TestUserDataPersistence:
         user = User.objects.create_user(
             username=unique_username(),
             email='ProfiLe@Example.COM',
-            password='SecurePass123'
+            password='SecurePass123!'
         )
         
         profile = UserProfile.objects.get(user=user)
@@ -160,8 +160,8 @@ class TestUserDataPersistence:
         registration_data = {
             'username': username,
             'email': email,
-            'password': 'SecurePass123',
-            'password_confirm': 'SecurePass123'
+            'password': 'SecurePass123!',
+            'password_confirm': 'SecurePass123!'
         }
         
         response = api_client.post(registration_url, registration_data)
@@ -180,7 +180,7 @@ class TestUserDataPersistence:
         user = User.objects.create_user(
             username=unique_username(),
             email=unique_email(),
-            password='SecurePass123'
+            password='SecurePass123!'
         )
         
         profile = user.profile
@@ -198,7 +198,7 @@ class TestUserDataPersistence:
         user = User.objects.create_user(
             username=unique_username(),
             email=unique_email(),
-            password='SecurePass123'
+            password='SecurePass123!'
         )
         
         original_profile = user.profile
@@ -221,8 +221,8 @@ class TestUserDataPersistence:
         registration_data = {
             'username': username,
             'email': email,
-            'password': 'SecurePass123',
-            'password_confirm': 'SecurePass123'
+            'password': 'SecurePass123!',
+            'password_confirm': 'SecurePass123!'
         }
         
         response = api_client.post(registration_url, registration_data)
@@ -242,13 +242,13 @@ class TestUserDataPersistence:
         user1 = User.objects.create_user(
             username=unique_username(),
             email=unique_email(),
-            password='SecurePass123'
+            password='SecurePass123!'
         )
         
         user2 = User.objects.create_user(
             username=unique_username(),
             email=unique_email(),
-            password='SecurePass123'
+            password='SecurePass123!'
         )
         
         assert user1.profile.id_uuid != user2.profile.id_uuid
@@ -258,7 +258,7 @@ class TestUserDataPersistence:
         user = User.objects.create_user(
             username=unique_username(),
             email=unique_email(),
-            password='SecurePass123'
+            password='SecurePass123!'
         )
         
         original_uuid = user.profile.id_uuid
@@ -278,8 +278,8 @@ class TestUserDataPersistence:
         registration_data = {
             'username': username1,
             'email': email,
-            'password': 'SecurePass123',
-            'password_confirm': 'SecurePass123'
+            'password': 'SecurePass123!',
+            'password_confirm': 'SecurePass123!'
         }
         
         # First registration should succeed
@@ -303,8 +303,8 @@ class TestUserDataPersistence:
         registration_data = {
             'username': username1,
             'email': email_base,
-            'password': 'SecurePass123',
-            'password_confirm': 'SecurePass123'
+            'password': 'SecurePass123!',
+            'password_confirm': 'SecurePass123!'
         }
         
         response1 = api_client.post(registration_url, registration_data)
@@ -326,8 +326,8 @@ class TestUserDataPersistence:
         registration_data = {
             'username': username,
             'email': email,
-            'password': 'SecurePass123',
-            'password_confirm': 'SecurePass123',
+            'password': 'SecurePass123!',
+            'password_confirm': 'SecurePass123!',
             'first_name': 'Linked',
             'last_name': 'User'
         }
@@ -347,7 +347,7 @@ class TestUserDataPersistence:
         user = User.objects.create_user(
             username=unique_username(),
             email=unique_email(),
-            password='SecurePass123'
+            password='SecurePass123!'
         )
         
         profile_id = user.profile.id
@@ -367,8 +367,8 @@ class TestUserDataPersistence:
         serializer = UserRegistrationSerializer(data={
             'username': username,
             'email': email,
-            'password': 'SecurePass123',
-            'password_confirm': 'SecurePass123'
+            'password': 'SecurePass123!',
+            'password_confirm': 'SecurePass123!'
         })
         
         assert serializer.is_valid()
@@ -382,7 +382,7 @@ class TestUserDataPersistence:
         user = User.objects.create_user(
             username=unique_username(),
             email=unique_email(),
-            password='SecurePass123'
+            password='SecurePass123!'
         )
         
         serializer = UserProfileSerializer(user.profile)
@@ -405,8 +405,8 @@ class TestUserDataPersistence:
         registration_data = {
             'username': username,
             'email': email,
-            'password': 'SecurePass123',
-            'password_confirm': 'SecurePass123',
+            'password': 'SecurePass123!',
+            'password_confirm': 'SecurePass123!',
             'first_name': 'Session',
             'last_name': 'Test'
         }
@@ -417,7 +417,7 @@ class TestUserDataPersistence:
         # Get token for login
         token_response = api_client.post('/api/token/', {
             'username': username,
-            'password': 'SecurePass123'
+            'password': 'SecurePass123!'
         })
         assert token_response.status_code == status.HTTP_200_OK
         
@@ -437,8 +437,8 @@ class TestUserDataPersistence:
         registration_data = {
             'username': username,
             'email': email,
-            'password': 'SecurePass123',
-            'password_confirm': 'SecurePass123'
+            'password': 'SecurePass123!',
+            'password_confirm': 'SecurePass123!'
         }
         
         response = api_client.post(registration_url, registration_data)
@@ -462,8 +462,8 @@ class TestUserDataPersistence:
         registration_data = {
             'username': username,
             'email': email,
-            'password': 'SecurePass123',
-            'password_confirm': 'SecurePass123',
+            'password': 'SecurePass123!',
+            'password_confirm': 'SecurePass123!',
             'first_name': '',
             'last_name': ''
         }

@@ -161,11 +161,8 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         
         # Check for at least one special character
         import re
-        try:
-            if not re.search(r'[!@#$%^&*(),.?":{}|<>]', value):
-                raise serializers.ValidationError('Password must contain at least one special character (!@#$%^&*(),.?":{}|<>).')
-        except Exception as e:
-            raise serializers.ValidationError(str(e)) from e
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', value):
+            raise serializers.ValidationError('Password must contain at least one special character (!@#$%^&*(),.?":{}|<>).')
         
         return value
     
@@ -253,7 +250,7 @@ class TaskSerializer(serializers.ModelSerializer):
         try:
             value = InputValidator.sanitize_string(value, max_length=500)
         except ValueError as e:
-            raise serializers.ValidationError(str(e))
+            raise serializers.ValidationError(str(e)) from e
         
         return value
     
@@ -284,7 +281,7 @@ class TaskSerializer(serializers.ModelSerializer):
     
     def validate_status(self, value):
         """Validate status is within allowed values."""
-        allowed = ['todo', 'in_progress', 'completed']
+        allowed = ['Backlog', 'Planning', 'Upcoming', 'Completed']
         if value and value not in allowed:
             raise serializers.ValidationError(f'Status must be one of: {", ".join(allowed)}')
         return value

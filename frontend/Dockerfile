@@ -27,15 +27,19 @@ RUN npm run build
 FROM nginx:alpine
 
 # Copy built files from builder with correct permissions
-COPY --from=builder --chown=nginx:nginx /app/dist /usr/share/nginx/html
+COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Create cache directory for nginx
-RUN mkdir -p /var/cache/nginx && chown -R nginx:nginx /var/cache/nginx
+# Create tmp directories and configure nginx
+RUN mkdir -p /tmp/client_temp /tmp/proxy_temp /tmp/fastcgi_temp /tmp/uwsgi_temp /tmp/scgi_temp && \
+    chmod 777 /tmp/client_temp /tmp/proxy_temp /tmp/fastcgi_temp /tmp/uwsgi_temp /tmp/scgi_temp && \
+    mkdir -p /var/run/nginx && \
+    # Update nginx main config to use custom pid location
+    sed -i 's|pid        /run/nginx.pid;|pid        /var/run/nginx/nginx.pid;|g' /etc/nginx/nginx.conf
 
-# Expose port (non-privileged)
+# Expose port
 EXPOSE 80
 
 # Run as nginx user (non-root)

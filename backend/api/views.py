@@ -8,7 +8,6 @@ import logging
 from django.db import models as django_models
 from django.contrib.auth.models import User
 from django.utils import timezone
-from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 from datetime import timedelta, date
@@ -344,7 +343,6 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         """Delete user account and all associated data"""
         from .serializers import AccountDeletionSerializer
         from .exceptions import ValidationError as SynkValidationError
-        from django.core.mail import send_mail
         
         serializer = AccountDeletionSerializer(data=request.data, context={'request': request})
         if not serializer.is_valid():
@@ -356,20 +354,8 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             )
         
         user = request.user
-        email = user.email
-        username = user.username
         
         try:
-            # Send confirmation email before deletion
-            with suppress(Exception):
-                send_mail(
-                    subject='Your Synk Account Has Been Deleted',
-                    message=f'Your account "{username}" and all associated data have been permanently deleted from Synk.',
-                    from_email='noreply@synk.local',
-                    recipient_list=[email],
-                    fail_silently=True,
-                )
-            
             # Delete all associated data (cascading deletes handled by Django models)
             user.delete()
             

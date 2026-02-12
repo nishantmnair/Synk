@@ -30,6 +30,31 @@ services:
     networks:
       - synk-network
 
+  redis:
+    image: redis:7-alpine
+    container_name: synk_redis
+    ports:
+      - "6379:6379"
+    # Security: Don't expose port in production, use only internal networking
+    # ports: []
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Security: Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    restart: unless-stopped
+    networks:
+      - synk-network
+
   backend:
     build:
       context: ./backend
@@ -52,18 +77,14 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
       - PRODUCTION_ALLOWED_ORIGINS=${PRODUCTION_ALLOWED_ORIGINS}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - EMAIL_BACKEND=${EMAIL_BACKEND}
-      - EMAIL_HOST=${EMAIL_HOST}
-      - EMAIL_PORT=${EMAIL_PORT}
-      - EMAIL_USE_TLS=${EMAIL_USE_TLS}
-      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
-      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:

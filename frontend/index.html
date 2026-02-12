@@ -4,24 +4,38 @@
 <head>
     <script>
       (function() {
-        var theme = localStorage.getItem('synk_theme') || 'dark';
+        var theme = localStorage.getItem('synk_theme');
+        if (!theme) {
+          // Use system preference if no user preference stored
+          var isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          theme = isDarkMode ? 'dark' : 'light';
+        }
         document.documentElement.setAttribute('data-theme', theme);
         
         // Update favicon based on theme and system preference
         function updateFavicon() {
-          var appTheme = localStorage.getItem('synk_theme') || 'dark';
-          var isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-          var faviconLink = document.querySelector('link[rel="icon"]');
-          if (faviconLink) {
-            faviconLink.href = (appTheme === 'dark' || isDarkMode) ? '/Synk-Favicon-Inverted.png' : '/Synk-Logo-LightMode.png';
+          var appTheme = localStorage.getItem('synk_theme');
+          if (!appTheme) {
+            // Use system preference if no user preference stored
+            var isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            appTheme = isDarkMode ? 'dark' : 'light';
           }
+          // Update all favicon links to ensure they change immediately
+          var faviconLinks = document.querySelectorAll('link[rel="icon"]');
+          faviconLinks.forEach(function(link) {
+            link.href = (appTheme === 'dark') ? '/Synk-Favicon-Inverted.png' : '/Synk-Logo-LightMode.png';
+          });
         }
         
         updateFavicon();
         
         // Update favicon when system theme changes
         if (window.matchMedia) {
-          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateFavicon);
+          var darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+          darkModeQuery.addEventListener('change', updateFavicon);
+          // Also listen for light mode changes (some systems use this)
+          var lightModeQuery = window.matchMedia('(prefers-color-scheme: light)');
+          lightModeQuery.addEventListener('change', updateFavicon);
         }
       })();
     </script>

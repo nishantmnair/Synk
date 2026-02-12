@@ -55,9 +55,6 @@ def authenticated_client(user):
     if response.status_code == 200:
         token = response.data['access']
         client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
-    elif response.status_code != 200:
-        # Debug: Log the response status for debugging
-        print(f"Token request failed with status {response.status_code}: {response.content}")
     return client
 
 @pytest.fixture

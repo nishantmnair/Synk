@@ -8,6 +8,20 @@
 - **Total Time:** ~90 minutes
 - **Cost:** $0/month (free tier)
 
+## 📖 NEW: Detailed Step-by-Step Tutorials
+
+**⭐ New feature for easier deployment!**
+
+See **[DEPLOYMENT_TUTORIALS.md](./DEPLOYMENT_TUTORIALS.md)** for detailed, beginner-friendly tutorials:
+
+- 🎯 **Neon PostgreSQL Setup** - Complete database creation guide
+- 🎯 **Render Backend Deployment** - Full Django backend deployment
+- 🎯 **Vercel Frontend Deployment** - React app deployment
+- 🎯 **Verification & Testing** - How to test your deployed app
+- 🎯 **Troubleshooting** - Solutions for common issues
+
+Each tutorial includes screenshots, exact steps, and what to do if something goes wrong!
+
 ---
 
 ## ✅ Pre-Deployment Status

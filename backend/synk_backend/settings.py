@@ -297,6 +297,11 @@ else:
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
 
+# Trust the X-Forwarded-Proto header from reverse proxies (for Render, Heroku, etc)
+# This tells Django to trust that HTTPS was handled by the proxy
+if os.environ.get('SECURE_PROXY_SSL_HEADER'):
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 # Security: Allowed Origins for CORS (configurable per environment)
 PRODUCTION_ALLOWED_ORIGINS = os.environ.get('PRODUCTION_ALLOWED_ORIGINS', '').split(',') if os.environ.get('PRODUCTION_ALLOWED_ORIGINS') else []
 if PRODUCTION_ALLOWED_ORIGINS and PRODUCTION_ALLOWED_ORIGINS[0]:

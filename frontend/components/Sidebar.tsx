@@ -76,7 +76,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collections, onAddCollection, onDelet
 
   return (
     <aside className="h-full bg-sidebar flex flex-col">
-      <div className="flex items-center px-4 py-3 m-0 gap-0 pr-2">
+      <div className="flex items-center px-4 py-3 m-0 gap-0 pr-2 mb-6">
         <Link
           to="/"
           className="flex items-center cursor-pointer outline-none border-none p-0 m-0 flex-1 gap-2"

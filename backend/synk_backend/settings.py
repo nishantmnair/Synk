@@ -42,10 +42,14 @@ if not SECRET_KEY:
 if DEBUG:
     ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', 'localhost:8000']
 else:
-    # Production: Allow from environment variable, with sensible defaults
-    default_hosts = 'localhost,127.0.0.1,*.onrender.com'
-    hosts_str = os.environ.get('ALLOWED_HOSTS', default_hosts)
-    ALLOWED_HOSTS = [host.strip() for host in hosts_str.split(',') if host.strip()]
+    # Production: Always include Render domains + any custom hosts from environment
+    allowed_hosts = ['localhost', '127.0.0.1', '*.onrender.com', 'synk-qa88.onrender.com']
+    # Add any additional hosts from environment variable
+    env_hosts = os.environ.get('ALLOWED_HOSTS', '')
+    if env_hosts:
+        allowed_hosts.extend([h.strip() for h in env_hosts.split(',') if h.strip()])
+    # Remove duplicates while preserving order
+    ALLOWED_HOSTS = list(dict.fromkeys(allowed_hosts))
 
 
 # Application definition

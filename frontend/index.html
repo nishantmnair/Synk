@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,38 +10,13 @@
           theme = isDarkMode ? 'dark' : 'light';
         }
         document.documentElement.setAttribute('data-theme', theme);
-        
-        // Update favicon based on theme and system preference
-        function updateFavicon() {
-          var appTheme = localStorage.getItem('synk_theme');
-          if (!appTheme) {
-            // Use system preference if no user preference stored
-            var isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            appTheme = isDarkMode ? 'dark' : 'light';
-          }
-          // Update all favicon links to ensure they change immediately
-          var faviconLinks = document.querySelectorAll('link[rel="icon"]');
-          faviconLinks.forEach(function(link) {
-            link.href = (appTheme === 'dark') ? '/Synk-Favicon-Inverted.png' : '/Synk-Logo-LightMode.png';
-          });
-        }
-        
-        updateFavicon();
-        
-        // Update favicon when system theme changes
-        if (window.matchMedia) {
-          var darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
-          darkModeQuery.addEventListener('change', updateFavicon);
-          // Also listen for light mode changes (some systems use this)
-          var lightModeQuery = window.matchMedia('(prefers-color-scheme: light)');
-          lightModeQuery.addEventListener('change', updateFavicon);
-        }
       })();
     </script>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <!-- Favicon is controlled by browser's prefers-color-scheme, independent of app theme toggle -->
     <link rel="icon" type="image/png" href="/Synk-Logo-LightMode.png" media="(prefers-color-scheme: light)" />
     <link rel="icon" type="image/png" href="/Synk-Favicon-Inverted.png" media="(prefers-color-scheme: dark)" />
     <style>

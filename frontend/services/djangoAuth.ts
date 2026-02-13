@@ -245,8 +245,14 @@ class DjangoAuthService {
         return storedToken;
       } else {
         // Token is expired, try to refresh
-        await this.refreshAccessToken();
-        return this.accessToken;
+        try {
+          await this.refreshAccessToken();
+          return this.accessToken;
+        } catch (err) {
+          // Refresh failed - clear tokens
+          await this.logout();
+          return null;
+        }
       }
     }
 

@@ -2,7 +2,8 @@
   "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/dist",
   "env": {
-    "VITE_API_URL": "@vite_api_url"
+    "VITE_API_URL": "@vite_api_url",
+    "VITE_WS_URL": "@vite_ws_url"
   },
   "github": {
     "enabled": false

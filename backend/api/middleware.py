@@ -4,6 +4,7 @@ Handles request throttling, security headers, and input validation.
 """
 
 import logging
+import json
 from contextlib import suppress
 from django.utils.deprecation import MiddlewareMixin
 from django.http import JsonResponse
@@ -35,6 +36,7 @@ class RateLimitMiddleware(MiddlewareMixin):
     def process_request(self, request):
         """
         Check if request exceeds rate limit before processing.
+        Uses email-based limiting for registration, IP-based for other endpoints.
         """
         # Skip rate limiting in DEBUG mode (development and tests)
         if settings.DEBUG:
@@ -63,6 +65,30 @@ class RateLimitMiddleware(MiddlewareMixin):
         # Check rate limit (IP-based for unauthenticated requests)
         limiter = RateLimiter(rate=rate, interval=interval)
         
+        # Special handling for registration: use email-based rate limiting
+        if request.path.startswith('/api/register/') and request.method == 'POST':
+            email = None
+            try:
+                # Extract email from request body for registration
+                if request.content_type == 'application/json':
+                    email = json.loads(request.body).get('email', '').lower().strip()
+            except (json.JSONDecodeError, ValueError, TypeError):
+                pass
+            
+            # Rate limit by email (prevents one person from blocking others on same IP)
+            if email and limiter.is_rate_limited(request, email=email):
+                retry_after = limiter.get_retry_after(request, email=email)
+                logger.warning(f"Email {email} rate limited for registration")
+                return JsonResponse(
+                    {
+                        'status': 'error',
+                        'detail': 'Too many registration attempts for this email. Please try again later.',
+                        'error_code': 'RATE_LIMIT_EXCEEDED'
+                    },
+                    status=429,
+                    headers={'Retry-After': str(retry_after)}
+                )
+        
         # For authenticated users, also check user-based limits (higher limits)
         if request.user and request.user.is_authenticated:
             # User-based rate limit is typically higher
@@ -79,19 +105,20 @@ class RateLimitMiddleware(MiddlewareMixin):
                     status=429,
                     headers={'Retry-After': str(retry_after)}
                 )
-        elif limiter.is_rate_limited(request, user_based=False):
-            # IP-based rate limit for unauthenticated requests
-            retry_after = limiter.get_retry_after(request, user_based=False)
-            logger.warning(f"IP {client_ip} rate limited: {request.path}")
-            return JsonResponse(
-                {
-                    'status': 'error',
-                    'detail': 'Too many requests. Please try again later.',
-                    'error_code': 'RATE_LIMIT_EXCEEDED'
-                },
-                status=429,
-                headers={'Retry-After': str(retry_after)}
-            )
+        elif not (request.path.startswith('/api/register/') and request.method == 'POST'):
+            # IP-based rate limit for other unauthenticated requests (not registration)
+            if limiter.is_rate_limited(request, user_based=False):
+                retry_after = limiter.get_retry_after(request, user_based=False)
+                logger.warning(f"IP {client_ip} rate limited: {request.path}")
+                return JsonResponse(
+                    {
+                        'status': 'error',
+                        'detail': 'Too many requests. Please try again later.',
+                        'error_code': 'RATE_LIMIT_EXCEEDED'
+                    },
+                    status=429,
+                    headers={'Retry-After': str(retry_after)}
+                )
         
         return None
 

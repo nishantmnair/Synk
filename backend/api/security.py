@@ -37,18 +37,23 @@ class RateLimiter:
         self.rate = rate
         self.interval = interval
     
-    def get_client_key(self, request, user_based: bool = False) -> str:
+    def get_client_key(self, request, user_based: bool = False, email: Optional[str] = None) -> str:
         """
         Get cache key for rate limiting.
-        Supports both IP-based and user-based limiting.
+        Supports IP-based, user-based, and email-based limiting.
         
         Args:
             request: Django request object
             user_based: If True, use user ID; if False, use IP address
+            email: If provided, use email-based rate limiting
             
         Returns:
             Cache key string
         """
+        # Email-based limiting (highest priority)
+        if email:
+            return f"ratelimit:email:{email.lower()}"
+        
         if user_based and request.user and request.user.is_authenticated:
             return f"ratelimit:user:{request.user.id}"
         
@@ -61,18 +66,19 @@ class RateLimiter:
         
         return f"ratelimit:ip:{client_ip}"
     
-    def is_rate_limited(self, request, user_based: bool = False) -> bool:
+    def is_rate_limited(self, request, user_based: bool = False, email: Optional[str] = None) -> bool:
         """
         Check if request exceeds rate limit.
         
         Args:
             request: Django request object
             user_based: If True, apply user-based limiting
+            email: If provided, apply email-based limiting
             
         Returns:
             True if rate limited, False otherwise
         """
-        key = self.get_client_key(request, user_based)
+        key = self.get_client_key(request, user_based, email=email)
         current_count = cache.get(key, 0)
         
         if current_count >= self.rate:
@@ -83,9 +89,9 @@ class RateLimiter:
         cache.set(key, current_count + 1, self.interval)
         return False
     
-    def get_retry_after(self, request, user_based: bool = False) -> int:
+    def get_retry_after(self, request, user_based: bool = False, email: Optional[str] = None) -> int:
         """Get remaining time until rate limit resets."""
-        key = self.get_client_key(request, user_based)
+        key = self.get_client_key(request, user_based, email=email)
         ttl = cache.ttl(key) if hasattr(cache, 'ttl') else self.interval
         return max(ttl, 0)
 

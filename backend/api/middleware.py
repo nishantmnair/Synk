@@ -33,6 +33,36 @@ class RateLimitMiddleware(MiddlewareMixin):
     - Rate limiting prevents brute force attacks and DoS.
     """
     
+    @staticmethod
+    def _get_client_ip(request) -> str:
+        """Extract client IP from request, handling proxies."""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            return x_forwarded_for.split(',')[0].strip()
+        return request.META.get('REMOTE_ADDR', 'unknown')
+    
+    @staticmethod
+    def _get_email_from_request(request) -> str | None:
+        """Extract email from JSON request body."""
+        email = None
+        with suppress(json.JSONDecodeError, ValueError, TypeError):
+            if request.content_type == 'application/json':
+                email = json.loads(request.body).get('email', '').lower().strip()
+        return email or None
+    
+    @staticmethod
+    def _rate_limit_response(detail: str, retry_after: int) -> JsonResponse:
+        """Create a standard rate limit response."""
+        return JsonResponse(
+            {
+                'status': 'error',
+                'detail': detail,
+                'error_code': 'RATE_LIMIT_EXCEEDED'
+            },
+            status=429,
+            headers={'Retry-After': str(retry_after)}
+        )
+    
     def process_request(self, request):
         """
         Check if request exceeds rate limit before processing.
@@ -45,13 +75,6 @@ class RateLimitMiddleware(MiddlewareMixin):
         # Skip rate limiting for health checks and static files
         if request.path.startswith('/static/') or request.path == '/health/':
             return None
-        
-        # Get client IP
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-        if x_forwarded_for:
-            client_ip = x_forwarded_for.split(',')[0].strip()
-        else:
-            client_ip = request.META.get('REMOTE_ADDR', 'unknown')
         
         # Determine rate limit for this endpoint
         rate, interval = 300, 3600  # Default: 300 requests per hour
@@ -67,57 +90,35 @@ class RateLimitMiddleware(MiddlewareMixin):
         
         # Special handling for registration: use email-based rate limiting
         if request.path.startswith('/api/register/') and request.method == 'POST':
-            email = None
-            try:
-                # Extract email from request body for registration
-                if request.content_type == 'application/json':
-                    email = json.loads(request.body).get('email', '').lower().strip()
-            except (json.JSONDecodeError, ValueError, TypeError):
-                pass
+            email = self._get_email_from_request(request)
             
-            # Rate limit by email (prevents one person from blocking others on same IP)
             if email and limiter.is_rate_limited(request, email=email):
                 retry_after = limiter.get_retry_after(request, email=email)
                 logger.warning(f"Email {email} rate limited for registration")
-                return JsonResponse(
-                    {
-                        'status': 'error',
-                        'detail': 'Too many registration attempts for this email. Please try again later.',
-                        'error_code': 'RATE_LIMIT_EXCEEDED'
-                    },
-                    status=429,
-                    headers={'Retry-After': str(retry_after)}
+                return self._rate_limit_response(
+                    'Too many registration attempts for this email. Please try again later.',
+                    retry_after
                 )
         
         # For authenticated users, also check user-based limits (higher limits)
         if request.user and request.user.is_authenticated:
-            # User-based rate limit is typically higher
             limiter = RateLimiter(rate=rate * 2, interval=interval)
             if limiter.is_rate_limited(request, user_based=True):
                 retry_after = limiter.get_retry_after(request, user_based=True)
                 logger.warning(f"User {request.user.id} rate limited: {request.path}")
-                return JsonResponse(
-                    {
-                        'status': 'error',
-                        'detail': 'Too many requests. Please try again later.',
-                        'error_code': 'RATE_LIMIT_EXCEEDED'
-                    },
-                    status=429,
-                    headers={'Retry-After': str(retry_after)}
+                return self._rate_limit_response(
+                    'Too many requests. Please try again later.',
+                    retry_after
                 )
         elif not (request.path.startswith('/api/register/') and request.method == 'POST'):
             # IP-based rate limit for other unauthenticated requests (not registration)
             if limiter.is_rate_limited(request, user_based=False):
+                client_ip = self._get_client_ip(request)
                 retry_after = limiter.get_retry_after(request, user_based=False)
                 logger.warning(f"IP {client_ip} rate limited: {request.path}")
-                return JsonResponse(
-                    {
-                        'status': 'error',
-                        'detail': 'Too many requests. Please try again later.',
-                        'error_code': 'RATE_LIMIT_EXCEEDED'
-                    },
-                    status=429,
-                    headers={'Retry-After': str(retry_after)}
+                return self._rate_limit_response(
+                    'Too many requests. Please try again later.',
+                    retry_after
                 )
         
         return None

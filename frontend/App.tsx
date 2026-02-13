@@ -805,14 +805,6 @@ const App: React.FC = () => {
     localStorage.setItem('synk_theme', next);
   };
 
-  // Update favicon when theme changes
-  useEffect(() => {
-    const faviconLink = document.querySelector('link[rel="icon"]');
-    if (faviconLink) {
-      faviconLink.setAttribute('href', theme === 'dark' ? '/Synk-Favicon.png' : '/Synk-Logo-LightMode.png');
-    }
-  }, [theme]);
-
   // Show loading state while checking auth
   if (isLoading) {
     return (

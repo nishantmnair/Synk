@@ -308,7 +308,18 @@ class DjangoAuthService {
 
     // Try to restore from localStorage
     const storedUser = localStorage.getItem('synk_user');
+    const storedToken = localStorage.getItem('synk_access_token');
     const token = await this.getAccessToken();
+
+    // If we have a stored token but getCurrentUser couldn't get a valid one,
+    // it means token refresh failed - clear stale auth
+    if (storedToken && !token) {
+      localStorage.removeItem('synk_access_token');
+      localStorage.removeItem('synk_refresh_token');
+      localStorage.removeItem('synk_user');
+      this.currentUser = null;
+      return null;
+    }
 
     if (storedUser && token) {
       try {

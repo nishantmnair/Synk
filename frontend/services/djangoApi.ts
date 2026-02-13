@@ -24,17 +24,23 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     },
   });
 
-  // If 401, try to refresh token and retry once
+  // If 401, check if it's an auth error we can recover from
   if (response.status === 401 && token) {
     try {
-      // Check if this is a "user not found" error (stale token pointing to deleted user)
+      // Clone response to read the body without consuming it
       const errorData = await response.clone().json().catch(() => ({}));
-      if (errorData?.code === 'user_not_found' || errorData?.detail?.includes?.('User not found')) {
-        // User was deleted or token is invalid - force logout
+      const errorMessage = String(errorData?.detail || errorData?.message || '');
+      
+      // If user was deleted/not found, force logout and don't retry
+      if (errorData?.code === 'user_not_found' || 
+          errorMessage.toLowerCase().includes('user not found') ||
+          errorMessage.toLowerCase().includes('user matching query does not exist')) {
+        // Clear stale auth data - user no longer exists in database
         await djangoAuthService.logout();
-        throw new Error('Authentication failed: User no longer exists');
+        throw new Error('Your account is no longer available. Please log in again.');
       }
 
+      // Otherwise, try to refresh the token and retry
       await djangoAuthService.refreshAccessToken();
       token = await djangoAuthService.getAccessToken();
       if (!token) {

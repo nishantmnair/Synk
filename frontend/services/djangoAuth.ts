@@ -65,6 +65,28 @@ class DjangoAuthService {
   private currentUser: User | null = null;
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
+  private lastTokenVerified: number = 0; // Timestamp of last verification
+  private tokenVerificationCacheTTL: number = 5 * 60 * 1000; // 5 minutes cache
+  private refreshTokenPromise: Promise<void> | null = null; // Prevent concurrent refresh attempts
+
+  /** Decode JWT and check if it's expired */
+  private isTokenExpired(token: string): boolean {
+    try {
+      // JWT format: header.payload.signature
+      const parts = token.split('.');
+      if (parts.length !== 3) return true;
+
+      // Decode payload (base64url)
+      const payload = JSON.parse(atob(parts[1]));
+      if (!payload.exp) return true;
+
+      // Check if token expires within the next 30 seconds
+      const now = Math.floor(Date.now() / 1000);
+      return payload.exp < now + 30;
+    } catch {
+      return true;
+    }
+  }
 
   async signup(email: string, password: string, passwordConfirm: string, firstName?: string, lastName?: string, couplingCode?: string): Promise<User> {
     try {
@@ -210,20 +232,19 @@ class DjangoAuthService {
   }
 
   async getAccessToken(): Promise<string | null> {
-    if (this.accessToken) {
+    if (this.accessToken && !this.isTokenExpired(this.accessToken)) {
       return this.accessToken;
     }
 
     // Try to restore from localStorage
     const storedToken = localStorage.getItem('synk_access_token');
     if (storedToken) {
-      // Verify token is still valid by trying to refresh if needed
-      const isValid = await this.verifyToken(storedToken);
-      if (isValid) {
+      // Check if token is expired using JWT decode (no API call)
+      if (!this.isTokenExpired(storedToken)) {
         this.accessToken = storedToken;
         return storedToken;
       } else {
-        // Try to refresh
+        // Token is expired, try to refresh
         await this.refreshAccessToken();
         return this.accessToken;
       }
@@ -232,46 +253,46 @@ class DjangoAuthService {
     return null;
   }
 
-  private async verifyToken(token: string): Promise<boolean> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/users/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      return response.ok;
-    } catch {
-      return false;
-    }
-  }
-
   async refreshAccessToken(): Promise<void> {
+    // Prevent concurrent refresh attempts - if one is already in progress, wait for it
+    if (this.refreshTokenPromise) {
+      return this.refreshTokenPromise;
+    }
+
     const storedRefresh = localStorage.getItem('synk_refresh_token');
     if (!storedRefresh) {
       return;
     }
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/token/refresh/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ refresh: storedRefresh }),
-      });
+    // Create the refresh promise
+    this.refreshTokenPromise = (async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/token/refresh/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ refresh: storedRefresh }),
+        });
 
-      if (response.ok) {
-        const data = await response.json() as { access: string };
-        this.accessToken = data.access;
-        localStorage.setItem('synk_access_token', this.accessToken);
-      } else {
-        // Refresh token expired, logout
+        if (response.ok) {
+          const data = await response.json() as { access: string };
+          this.accessToken = data.access;
+          localStorage.setItem('synk_access_token', this.accessToken);
+        } else {
+          // Refresh token expired, logout
+          await this.logout();
+        }
+      } catch (error) {
+        console.error('Token refresh error:', error);
         await this.logout();
+      } finally {
+        // Clear the refresh promise after completion
+        this.refreshTokenPromise = null;
       }
-    } catch (error) {
-      console.error('Token refresh error:', error);
-      await this.logout();
-    }
+    })();
+
+    return this.refreshTokenPromise;
   }
 
   async getCurrentUser(): Promise<User | null> {

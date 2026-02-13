@@ -224,6 +224,9 @@ _default_cors_origins = [
     "https://localhost",
     "http://0.0.0.0:3000",
     "http://0.0.0.0:8000",
+    # Production frontends
+    "https://synk-main.vercel.app",
+    "https://synk.vercel.app",
 ]
 
 # Add from environment if specified

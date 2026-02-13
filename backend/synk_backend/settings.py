@@ -202,7 +202,7 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '100/hour',  # Unauthenticated users: 100 requests per hour
-        'user': '300/hour',  # Authenticated users: 300 requests per hour
+        'user': '1000/hour',  # Authenticated users: 1000 requests per hour (~17 per minute)
     }
 }
 
@@ -248,15 +248,26 @@ if DEBUG:
         },
     }
 else:
-    # Production: use Redis for multi-worker deployment
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels_redis.core.RedisChannelLayer',
-            'CONFIG': {
-                'hosts': [(os.environ.get('REDIS_HOST', 'localhost'), int(os.environ.get('REDIS_PORT', 6379)))],
+    # Production: try Redis, fall back to in-memory if not available
+    REDIS_HOST = os.environ.get('REDIS_HOST')
+    if REDIS_HOST:
+        # If Redis host is configured, use Redis
+        CHANNEL_LAYERS = {
+            'default': {
+                'BACKEND': 'channels_redis.core.RedisChannelLayer',
+                'CONFIG': {
+                    'hosts': [(REDIS_HOST, int(os.environ.get('REDIS_PORT', 6379)))],
+                },
             },
-        },
-    }
+        }
+    else:
+        # Fall back to in-memory if Redis is not configured
+        # This allows single-instance deployments without Redis
+        CHANNEL_LAYERS = {
+            'default': {
+                'BACKEND': 'channels.layers.InMemoryChannelLayer',
+            },
+        }
 
 # ============================================================================
 # PRODUCTION SECURITY SETTINGS (OWASP ASVS Compliance)

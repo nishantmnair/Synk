@@ -9,9 +9,11 @@ interface CouplingOnboardingProps {
   currentUser: User | null;
   onComplete: () => void;
   showToast?: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
+  showConfirm?: (config: any) => void;
+  onLogout?: () => void;
 }
 
-const CouplingOnboarding: React.FC<CouplingOnboardingProps> = ({ onComplete, showToast }) => {
+const CouplingOnboarding: React.FC<CouplingOnboardingProps> = ({ onComplete, showToast, showConfirm, onLogout }) => {
   const [step, setStep] = useState<'choose' | 'generate' | 'join'>('choose');
   const [couplingCode, setCouplingCode] = useState<string | null>(null);
   const [codeExpiresAt, setCodeExpiresAt] = useState<string | null>(null);
@@ -272,7 +274,21 @@ const CouplingOnboarding: React.FC<CouplingOnboardingProps> = ({ onComplete, sho
           </button>
         </div>
 
-
+        <button
+          onClick={() => {
+            showConfirm?.({
+              title: 'Sign Out',
+              message: 'Are you sure you want to sign out of Synk?',
+              confirmText: 'Sign Out',
+              confirmVariant: 'primary' as const,
+              onConfirm: onLogout
+            });
+          }}
+          className="w-full px-4 py-2 text-red-400/80 hover:text-red-400 text-sm font-semibold transition-colors flex items-center justify-center gap-2 hover:bg-red-400/5 rounded-lg"
+        >
+          <span className="material-symbols-outlined text-base">logout</span>
+          Sign Out
+        </button>
       </div>
     </div>
   );

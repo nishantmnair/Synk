@@ -18,6 +18,8 @@ interface HeaderProps {
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   showConfirm: (config: any) => void;
+  isCoupled: boolean;
+  showToast?: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ 
@@ -31,7 +33,9 @@ const Header: React.FC<HeaderProps> = ({
   onSearchChange,
   theme,
   onToggleTheme,
-  showConfirm
+  showConfirm,
+  isCoupled,
+  showToast
 }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -49,6 +53,13 @@ const Header: React.FC<HeaderProps> = ({
         navigate('/settings');
         break;
       case 'signout':
+        // If not coupled, keep user on page with a message
+        if (!isCoupled) {
+          showToast?.('You must be coupled with a partner to sign out. Please contact support if you need assistance.', 'warning');
+          return;
+        }
+        
+        // If coupled, show confirmation and proceed with logout
         showConfirm({
           title: 'Sign Out',
           message: 'Are you sure you want to sign out of Synk?',

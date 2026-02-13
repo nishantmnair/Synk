@@ -242,4 +242,57 @@ describe('CouplingOnboarding', () => {
     // Verify input has value
     expect(input.value).toBe('AB')
   })
+
+  it('renders sign out button on choose step', async () => {
+    render(<CouplingOnboarding currentUser={mockUser as any} onComplete={vi.fn()} />)
+    await waitFor(() => {
+      expect(screen.getByText('Connect with Your Partner')).toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: /Sign Out/i })).toBeInTheDocument()
+  })
+
+  it('shows confirmation dialog when sign out button is clicked', async () => {
+    const showConfirm = vi.fn()
+    render(
+      <CouplingOnboarding
+        currentUser={mockUser as any}
+        onComplete={vi.fn()}
+        showConfirm={showConfirm}
+        onLogout={vi.fn()}
+      />
+    )
+    await waitFor(() => {
+      expect(screen.getByText('Connect with Your Partner')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Sign Out/i }))
+    expect(showConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Sign Out',
+        message: 'Are you sure you want to sign out of Synk?',
+        confirmText: 'Sign Out',
+        confirmVariant: 'primary',
+      })
+    )
+  })
+
+  it('calls onLogout when confirmation is accepted', async () => {
+    const showConfirm = vi.fn()
+    const onLogout = vi.fn()
+    render(
+      <CouplingOnboarding
+        currentUser={mockUser as any}
+        onComplete={vi.fn()}
+        showConfirm={showConfirm}
+        onLogout={onLogout}
+      />
+    )
+    await waitFor(() => {
+      expect(screen.getByText('Connect with Your Partner')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Sign Out/i }))
+    // Get the stored callback
+    const confirmCall = showConfirm.mock.calls[0][0]
+    confirmCall.onConfirm()
+    expect(onLogout).toHaveBeenCalled()
+  })
 })

@@ -871,6 +871,8 @@ const App: React.FC = () => {
               onToggleTheme={toggleTheme}
               onSaveDateIdea={addSuggestionFromIdea}
               showConfirm={showConfirm}
+              isCoupled={isCoupled}
+              showToast={showToast}
             />
             
             <main className="flex-1 overflow-hidden relative">
@@ -901,6 +903,8 @@ const App: React.FC = () => {
           currentUser={currentUser}
           onComplete={() => setShowCouplingOnboarding(false)}
           showToast={showToast}
+          showConfirm={showConfirm}
+          onLogout={handleLogout}
         />
       )}
 

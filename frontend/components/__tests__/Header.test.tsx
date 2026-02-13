@@ -29,6 +29,9 @@ const renderHeader = (props = {}) => {
     theme: 'dark' as const,
     onToggleTheme: vi.fn(),
     onSaveDateIdea: vi.fn(),
+    showConfirm: vi.fn(),
+    isCoupled: false,
+    showToast: vi.fn(),
     ...props
   }
 
@@ -74,5 +77,19 @@ describe('Header', () => {
   it('renders without user', () => {
     renderHeader({ currentUser: null })
     expect(screen.getByRole('button', { name: /profile/i })).toBeInTheDocument()
+  })
+
+  it('shows sign out option in profile menu', () => {
+    renderHeader()
+    fireEvent.click(screen.getByRole('button', { name: /profile/i }))
+    expect(screen.getByRole('button', { name: /Sign Out/i })).toBeInTheDocument()
+  })
+
+  it('calls showConfirm when sign out is clicked with coupled status true', () => {
+    const showConfirm = vi.fn()
+    renderHeader({ isCoupled: true, showConfirm })
+    fireEvent.click(screen.getByRole('button', { name: /profile/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Sign Out/i }))
+    expect(showConfirm).toHaveBeenCalled()
   })
 })

@@ -36,6 +36,7 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 RUN mkdir -p /tmp/client_temp /tmp/proxy_temp /tmp/fastcgi_temp /tmp/uwsgi_temp /tmp/scgi_temp && \
     chmod 777 /tmp/client_temp /tmp/proxy_temp /tmp/fastcgi_temp /tmp/uwsgi_temp /tmp/scgi_temp && \
     mkdir -p /var/run/nginx && \
+    chmod 777 /var/run/nginx && \
     # Update nginx main config to use custom pid location
     sed -i 's|pid        /run/nginx.pid;|pid        /var/run/nginx/nginx.pid;|g' /etc/nginx/nginx.conf
 

@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 import secrets
+import string
 import uuid
 
 
@@ -203,9 +204,10 @@ class CouplingCode(models.Model):
     
     @classmethod
     def generate_code(cls):
-        """Generate a unique 8-character code"""
+        """Generate a unique 8-character code with uppercase letters and digits"""
+        charset = string.ascii_uppercase + string.digits
         while True:
-            code = secrets.token_hex(4).upper()  # 8 character hex code
+            code = ''.join(secrets.choice(charset) for _ in range(8))
             if not cls.objects.filter(code=code, used_by__isnull=True, expires_at__gt=timezone.now()).exists():
                 return code
     

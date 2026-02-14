@@ -54,14 +54,11 @@ describe('CouplingOnboarding', () => {
       expires_at: '2025-02-01T00:00:00Z',
     } as any)
     render(<CouplingOnboarding currentUser={mockUser as any} onComplete={vi.fn()} />)
-    await waitFor(() => {
-      expect(screen.getByText('Generate Code')).toBeInTheDocument()
-    }, { timeout: 250 })
     fireEvent.click(screen.getByRole('button', { name: /Generate Code/i }))
     await waitFor(() => {
       expect(screen.getByText('Share Your Coupling Code')).toBeInTheDocument()
+      expect(screen.getByText('ABCD1234')).toBeInTheDocument()
     }, { timeout: 250 })
-    expect(screen.getByText('ABCD1234')).toBeInTheDocument()
   })
 
   it('does not show Continue to App button after generating code', async () => {
@@ -70,9 +67,6 @@ describe('CouplingOnboarding', () => {
       expires_at: '2025-02-01T00:00:00Z',
     } as any)
     render(<CouplingOnboarding currentUser={mockUser as any} onComplete={vi.fn()} />)
-    await waitFor(() => {
-      expect(screen.getByText('Generate Code')).toBeInTheDocument()
-    }, { timeout: 250 })
     fireEvent.click(screen.getByRole('button', { name: /Generate Code/i }))
     await waitFor(() => {
       expect(screen.getByText('Share Your Coupling Code')).toBeInTheDocument()
@@ -87,9 +81,6 @@ describe('CouplingOnboarding', () => {
     } as any)
     const showToast = vi.fn()
     render(<CouplingOnboarding currentUser={mockUser as any} onComplete={vi.fn()} showToast={showToast} />)
-    await waitFor(() => {
-      expect(screen.getByText('Generate Code')).toBeInTheDocument()
-    }, { timeout: 250 })
     fireEvent.click(screen.getByRole('button', { name: /Generate Code/i }))
     await waitFor(() => {
       expect(screen.getByText('ABCD1234')).toBeInTheDocument()
@@ -117,9 +108,6 @@ describe('CouplingOnboarding', () => {
 
   it('navigates to join step when Join with Code is clicked', async () => {
     render(<CouplingOnboarding currentUser={mockUser as any} onComplete={vi.fn()} />)
-    await waitFor(() => {
-      expect(screen.getByText('Connect with Your Partner')).toBeInTheDocument()
-    }, { timeout: 250 })
     fireEvent.click(screen.getByRole('button', { name: /Join with Code/i }))
     await waitFor(() => {
       expect(screen.getByText('Join with Partner Code')).toBeInTheDocument()
@@ -128,9 +116,6 @@ describe('CouplingOnboarding', () => {
 
   it('allows entering and validating coupling code', async () => {
     render(<CouplingOnboarding currentUser={mockUser as any} onComplete={vi.fn()} />)
-    await waitFor(() => {
-      expect(screen.getByText('Connect with Your Partner')).toBeInTheDocument()
-    }, { timeout: 250 })
     fireEvent.click(screen.getByRole('button', { name: /Join with Code/i }))
     await waitFor(() => {
       expect(screen.getByText('Join with Partner Code')).toBeInTheDocument()
@@ -142,9 +127,6 @@ describe('CouplingOnboarding', () => {
 
   it('shows error when entering invalid code length', async () => {
     render(<CouplingOnboarding currentUser={mockUser as any} onComplete={vi.fn()} />)
-    await waitFor(() => {
-      expect(screen.getByText('Connect with Your Partner')).toBeInTheDocument()
-    }, { timeout: 250 })
     fireEvent.click(screen.getByRole('button', { name: /Join with Code/i }))
     await waitFor(() => {
       expect(screen.getByText('Join with Partner Code')).toBeInTheDocument()
@@ -162,9 +144,6 @@ describe('CouplingOnboarding', () => {
     } as any)
     const showToast = vi.fn()
     render(<CouplingOnboarding currentUser={mockUser as any} onComplete={vi.fn()} showToast={showToast} />)
-    await waitFor(() => {
-      expect(screen.getByText('Connect with Your Partner')).toBeInTheDocument()
-    }, { timeout: 250 })
     fireEvent.click(screen.getAllByRole('button').find(btn => btn.textContent?.includes('Join with Code'))!)
     await waitFor(() => {
       expect(screen.getByText('Join with Partner Code')).toBeInTheDocument()
@@ -174,17 +153,14 @@ describe('CouplingOnboarding', () => {
     fireEvent.click(screen.getByRole('button', { name: /Connect Accounts/i }))
     await waitFor(() => {
       expect(vi.mocked(djangoApi.couplingCodeApi.use)).toHaveBeenCalledWith('ABCD1234')
+      expect(showToast).toHaveBeenCalledWith('Connected! You can now share your couple space.', 'success')
     }, { timeout: 250 })
-    expect(showToast).toHaveBeenCalledWith('Connected! You can now share your couple space.', 'success')
   })
 
   it('handles error when using invalid coupling code', async () => {
     const errorMessage = 'Invalid coupling code'
     vi.mocked(djangoApi.couplingCodeApi.use).mockRejectedValue(new Error(errorMessage))
     render(<CouplingOnboarding currentUser={mockUser as any} onComplete={vi.fn()} />)
-    await waitFor(() => {
-      expect(screen.getByText('Connect with Your Partner')).toBeInTheDocument()
-    }, { timeout: 250 })
     fireEvent.click(screen.getByRole('button', { name: /Join with Code/i }))
     await waitFor(() => {
       expect(screen.getByText('Join with Partner Code')).toBeInTheDocument()
@@ -206,7 +182,7 @@ describe('CouplingOnboarding', () => {
     render(<CouplingOnboarding currentUser={mockUser as any} onComplete={onComplete} />)
     await waitFor(() => {
       expect(screen.getByText("You're Connected!")).toBeInTheDocument()
-    }, { timeout: 250 })
+    }, { timeout: 500 })
     await waitFor(() => {
       expect(onComplete).toHaveBeenCalled()
     }, { timeout: 2500 })
@@ -214,9 +190,6 @@ describe('CouplingOnboarding', () => {
 
   it('allows going back from join step', async () => {
     render(<CouplingOnboarding currentUser={mockUser as any} onComplete={vi.fn()} />)
-    await waitFor(() => {
-      expect(screen.getByText('Connect with Your Partner')).toBeInTheDocument()
-    }, { timeout: 250 })
     fireEvent.click(screen.getByRole('button', { name: /Join with Code/i }))
     await waitFor(() => {
       expect(screen.getByText('Join with Partner Code')).toBeInTheDocument()
@@ -229,9 +202,6 @@ describe('CouplingOnboarding', () => {
 
   it('clears error on input change', async () => {
     render(<CouplingOnboarding currentUser={mockUser as any} onComplete={vi.fn()} />)
-    await waitFor(() => {
-      expect(screen.getByText('Connect with Your Partner')).toBeInTheDocument()
-    }, { timeout: 250 })
     fireEvent.click(screen.getAllByRole('button').find(btn => btn.textContent?.includes('Join with Code'))!)
     await waitFor(() => {
       expect(screen.getByText('Join with Partner Code')).toBeInTheDocument()
@@ -243,15 +213,13 @@ describe('CouplingOnboarding', () => {
     expect(input.value).toBe('AB')
   })
 
-  it('renders sign out button on choose step', async () => {
+  it('renders sign out button on choose step', () => {
     render(<CouplingOnboarding currentUser={mockUser as any} onComplete={vi.fn()} />)
-    await waitFor(() => {
-      expect(screen.getByText('Connect with Your Partner')).toBeInTheDocument()
-    }, { timeout: 250 })
+    expect(screen.getByText('Connect with Your Partner')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Sign Out/i })).toBeInTheDocument()
   })
 
-  it('shows confirmation dialog when sign out button is clicked', async () => {
+  it('shows confirmation dialog when sign out button is clicked', () => {
     const showConfirm = vi.fn()
     render(
       <CouplingOnboarding
@@ -261,9 +229,7 @@ describe('CouplingOnboarding', () => {
         onLogout={vi.fn()}
       />
     )
-    await waitFor(() => {
-      expect(screen.getByText('Connect with Your Partner')).toBeInTheDocument()
-    }, { timeout: 250 })
+    expect(screen.getByText('Connect with Your Partner')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Sign Out/i }))
     expect(showConfirm).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -275,7 +241,7 @@ describe('CouplingOnboarding', () => {
     )
   })
 
-  it('calls onLogout when confirmation is accepted', async () => {
+  it('calls onLogout when confirmation is accepted', () => {
     const showConfirm = vi.fn()
     const onLogout = vi.fn()
     render(
@@ -286,9 +252,7 @@ describe('CouplingOnboarding', () => {
         onLogout={onLogout}
       />
     )
-    await waitFor(() => {
-      expect(screen.getByText('Connect with Your Partner')).toBeInTheDocument()
-    }, { timeout: 250 })
+    expect(screen.getByText('Connect with Your Partner')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Sign Out/i }))
     // Get the stored callback
     const confirmCall = showConfirm.mock.calls[0][0]

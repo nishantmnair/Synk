@@ -2,7 +2,7 @@
  * Tests for SettingsView component
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import SettingsView from '../SettingsView'
 import * as djangoApi from '../../services/djangoApi'
@@ -92,10 +92,6 @@ describe('SettingsView', () => {
     const user = userEvent.setup()
     render(<SettingsView currentUser={mockUser as any} onLogout={mockLogout} showToast={mockShowToast} />)
     
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Delete Account/i })).toBeInTheDocument()
-    }, { timeout: 250 })
-    
     const deleteButton = screen.getByRole('button', { name: /Delete Account/i })
     await user.click(deleteButton)
     
@@ -115,10 +111,6 @@ describe('SettingsView', () => {
         showToast={mockShowToast}
       />
     )
-    
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Delete Account/i })).toBeInTheDocument()
-    }, { timeout: 250 })
     
     const deleteButton = screen.getByRole('button', { name: /Delete Account/i })
     await user.click(deleteButton)
@@ -148,10 +140,6 @@ describe('SettingsView', () => {
       />
     )
     
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Delete Account/i })).toBeInTheDocument()
-    }, { timeout: 250 })
-    
     const deleteButton = screen.getByRole('button', { name: /Delete Account/i })
     await user.click(deleteButton)
     
@@ -168,10 +156,6 @@ describe('SettingsView', () => {
     vi.mocked(djangoApi.couplingCodeApi.create).mockRejectedValue(new Error(errorMsg))
     
     render(<SettingsView currentUser={mockUser as any} showToast={mockShowToast} />)
-    
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Generate Code/i })).toBeInTheDocument()
-    }, { timeout: 250 })
     
     const generateButton = screen.getByRole('button', { name: /Generate Code/i })
     await userEvent.click(generateButton)

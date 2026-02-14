@@ -10,16 +10,18 @@ const slowTests = [
   'SettingsView',
 ]
 
-const excludePattern = slowTests.map(test => `--exclude=**/components/__tests__/${test}.test.tsx`).join(' ')
-
 const args = [
   'run',
   '--coverage',
   '--coverage.provider=v8',
   '--coverage.reporter=text',
   '--coverage.enabled=true',
-  ...excludePattern.split(' '),
 ]
+
+// Add each exclude pattern as a separate argument
+slowTests.forEach(test => {
+  args.push(`--coverage.exclude=**/components/__tests__/${test}.test.tsx`)
+})
 
 const child = spawn('vitest', args, {
   stdio: 'inherit',

@@ -54,7 +54,7 @@ describe('SettingsView', () => {
     render(<SettingsView currentUser={mockUser as any} />)
     await waitFor(() => {
       expect(screen.getByText('Settings')).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
     expect(screen.getByText(/Manage your shared space/i)).toBeInTheDocument()
   })
 
@@ -62,7 +62,7 @@ describe('SettingsView', () => {
     render(<SettingsView currentUser={mockUser as any} />)
     await waitFor(() => {
       expect(screen.getByText(/Partner Connection/i)).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
     expect(screen.getByRole('button', { name: /Generate Code/i })).toBeInTheDocument()
   })
 
@@ -70,14 +70,14 @@ describe('SettingsView', () => {
     render(<SettingsView currentUser={mockUser as any} />)
     await waitFor(() => {
       expect(screen.getByText(/Danger Zone/i)).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
   })
 
   it('renders Delete Account button', async () => {
     render(<SettingsView currentUser={mockUser as any} />)
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Delete Account/i })).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
   })
 
   it('displays warning text for delete account', async () => {
@@ -85,7 +85,7 @@ describe('SettingsView', () => {
     await waitFor(() => {
       expect(screen.getByText(/These actions are irreversible/i)).toBeInTheDocument()
       expect(screen.getByText(/Proceed with caution/i)).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
   })
 
   it('opens delete account modal when button clicked', async () => {
@@ -94,14 +94,14 @@ describe('SettingsView', () => {
     
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Delete Account/i })).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
     
     const deleteButton = screen.getByRole('button', { name: /Delete Account/i })
     await user.click(deleteButton)
     
     await waitFor(() => {
       expect(screen.getByTestId('delete-account-modal')).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
   })
 
   it('calls logout after account deletion', async () => {
@@ -118,21 +118,21 @@ describe('SettingsView', () => {
     
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Delete Account/i })).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
     
     const deleteButton = screen.getByRole('button', { name: /Delete Account/i })
     await user.click(deleteButton)
     
     await waitFor(() => {
       expect(screen.getByTestId('delete-account-modal')).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
     
     const confirmButton = screen.getByText('Confirm Delete')
     await user.click(confirmButton)
     
     await waitFor(() => {
       expect(vi.mocked(djangoApi.accountApi.deleteAccount)).toHaveBeenCalledWith('password')
-    })
+    }, { timeout: 250 })
   })
 
   it('handles delete account error', async () => {
@@ -150,14 +150,14 @@ describe('SettingsView', () => {
     
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Delete Account/i })).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
     
     const deleteButton = screen.getByRole('button', { name: /Delete Account/i })
     await user.click(deleteButton)
     
     await waitFor(() => {
       expect(screen.getByTestId('delete-account-modal')).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
     
     // Modal should still be accessible for retry
     expect(screen.getByTestId('delete-account-modal')).toBeInTheDocument()
@@ -171,14 +171,14 @@ describe('SettingsView', () => {
     
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Generate Code/i })).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
     
     const generateButton = screen.getByRole('button', { name: /Generate Code/i })
     await userEvent.click(generateButton)
     
     await waitFor(() => {
       expect(screen.getByText(new RegExp(errorMsg.split('(')[0].trim()), 'i')).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
   })
 
   it('displays user-friendly error when coupling code use fails', async () => {
@@ -191,7 +191,7 @@ describe('SettingsView', () => {
     await waitFor(() => {
       const codeInput = screen.getByPlaceholderText(/Enter 8-character code/i)
       expect(codeInput).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
     
     const codeInput = screen.getByPlaceholderText(/Enter 8-character code/i)
     await user.type(codeInput, 'TESTCODE')
@@ -201,7 +201,7 @@ describe('SettingsView', () => {
     
     await waitFor(() => {
       expect(screen.getByText(new RegExp(errorMsg.split('(')[0].trim(), 'i'))).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
   })
 
   it('displays button with responsive width class', async () => {
@@ -210,7 +210,7 @@ describe('SettingsView', () => {
     await waitFor(() => {
       const deleteButton = screen.getByRole('button', { name: /Delete Account/i })
       expect(deleteButton).toHaveClass('w-full')
-    })
+    }, { timeout: 250 })
   })
 
   it('displays anniversary input with responsive width', async () => {
@@ -221,7 +221,7 @@ describe('SettingsView', () => {
       expect(inputs.length).toBeGreaterThan(0)
       const anniversaryInput = inputs[0]
       expect(anniversaryInput).toHaveClass('md:w-auto')
-    })
+    }, { timeout: 250 })
   })
 })
 

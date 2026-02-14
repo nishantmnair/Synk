@@ -80,7 +80,7 @@ describe('App', () => {
     expect(screen.getByText(/Loading/i)).toBeInTheDocument()
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/email or username/i)).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
     expect(screen.getAllByRole('button', { name: /Sign Up/i }).length).toBeGreaterThan(0)
   })
 
@@ -89,10 +89,10 @@ describe('App', () => {
     render(<App />)
     await waitFor(() => {
       expect(screen.getByText('Synk')).toBeInTheDocument()
-    }, { timeout: 3000 })
+    }, { timeout: 250 })
     await waitFor(() => {
       expect(screen.getByText('Your Shared Space in Synk')).toBeInTheDocument()
-    }, { timeout: 3000 })
+    }, { timeout: 250 })
     expect(djangoRealtime.djangoRealtimeService.connect).toHaveBeenCalled()
   })
 })

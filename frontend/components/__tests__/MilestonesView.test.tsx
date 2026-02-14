@@ -32,7 +32,7 @@ describe('MilestonesView', () => {
     render(<MilestonesView milestones={mockMilestones} {...mockCallbacks} />)
     await waitFor(() => {
       expect(screen.getByText('Our Milestones')).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
     expect(screen.getByText('Overall Progress')).toBeInTheDocument()
     expect(screen.getByText('0%')).toBeInTheDocument()
   })
@@ -41,7 +41,7 @@ describe('MilestonesView', () => {
     render(<MilestonesView milestones={mockMilestones} />)
     await waitFor(() => {
       expect(screen.getByText('Trip to Japan')).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
     expect(screen.getByText('Milestone')).toBeInTheDocument()
     expect(screen.getByText('Target Date')).toBeInTheDocument()
   })

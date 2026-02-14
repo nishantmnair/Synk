@@ -37,7 +37,7 @@ describe('TodayView', () => {
     renderTodayView()
     await waitFor(() => {
       expect(screen.getByText(/Your Shared Space in Synk/i)).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
     expect(screen.getByText(/Good (morning|afternoon|evening)!/)).toBeInTheDocument()
   })
 
@@ -45,7 +45,7 @@ describe('TodayView', () => {
     renderTodayView()
     await waitFor(() => {
       expect(screen.getByText(/Take a moment to share/i)).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
   })
 
   it.skip('Share Answer button calls onShareAnswer and becomes Shared', async () => {
@@ -55,7 +55,7 @@ describe('TodayView', () => {
     
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Share Answer/i })).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
     
     // Open the answer modal
     fireEvent.click(screen.getByRole('button', { name: /Share Answer/i }))
@@ -69,13 +69,13 @@ describe('TodayView', () => {
     await waitFor(() => {
       expect(onShareAnswer).toHaveBeenCalled()
       expect(screen.getByRole('button', { name: /Shared/i })).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
   })
 
   it('shows Daily Connection section', async () => {
     renderTodayView()
     await waitFor(() => {
       expect(screen.getByText(/Daily Connection/i)).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
   })
 })

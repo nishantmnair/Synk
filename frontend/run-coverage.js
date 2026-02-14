@@ -3,17 +3,15 @@
 import { spawn } from 'child_process'
 import process from 'process'
 
-// Run vitest with coverage, excluding slow integration tests
-// These tests are skipped entirely from running to prevent timeout
+// Run vitest with coverage, all tests now optimized with reduced waitFor timeouts
+// Previously excluded tests (CouplingOnboarding, SettingsView, Sidebar) have been optimized
+// and can now run within the 5-minute timeout window
 const args = [
   'run',
   '--coverage',
   '--coverage.provider=v8',
   '--coverage.reporter=text',
   '--coverage.enabled=true',
-  // Skip slow integration tests using a single glob pattern with brace expansion
-  '--exclude=**/components/__tests__/{CouplingOnboarding,SettingsView,Sidebar}.test.tsx',
-  '--coverage.exclude=**/components/__tests__/{CouplingOnboarding,SettingsView,Sidebar}.test.tsx',
 ]
 
 const child = spawn('vitest', args, {
@@ -26,7 +24,7 @@ const timeout = 300000 // 5 minutes - coverage instrumentation adds 30-40% overh
 
 const timer = setTimeout(() => {
   console.error('\n⚠️  Test coverage process exceeded 5 minute timeout, forcing exit...')
-  process.exit(0)
+  process.exit(1)
 }, timeout)
 
 child.on('exit', (code) => {

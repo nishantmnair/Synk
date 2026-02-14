@@ -76,7 +76,7 @@ describe('DeleteAccountModal', () => {
     
     await waitFor(() => {
       expect(mockOnConfirm).toHaveBeenCalledWith('TestPassword123')
-    })
+    }, { timeout: 250 })
   })
 
   it('clears error when user types in password field', async () => {
@@ -111,12 +111,12 @@ describe('DeleteAccountModal', () => {
     
     await waitFor(() => {
       expect(screen.getByText(/Could not delete your account/i)).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
   })
 
   it('disables button during deletion', async () => {
     const user = userEvent.setup()
-    mockOnConfirm.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)))
+    mockOnConfirm.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 50)))
     
     render(<DeleteAccountModal isOpen={true} onClose={mockOnClose} onConfirm={mockOnConfirm} />)
     
@@ -131,7 +131,7 @@ describe('DeleteAccountModal', () => {
     
     await waitFor(() => {
       expect(mockOnConfirm).toHaveBeenCalled()
-    })
+    }, { timeout: 250 })
   })
 
   it('renders with warning icon', () => {

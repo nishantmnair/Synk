@@ -33,7 +33,7 @@ describe('AuthView', () => {
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/enter your email/i)).toBeInTheDocument()
       expect(screen.getByPlaceholderText(/at least 8 characters/i)).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
   })
 
   it('validates email on signup', async () => {
@@ -41,7 +41,7 @@ describe('AuthView', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /Sign Up/i })[0])
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/enter your email/i)).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
     const emailInput = screen.getByPlaceholderText(/enter your email/i)
     const passwordInput = screen.getByPlaceholderText(/at least 8 characters/i)
     const confirmInput = screen.getByPlaceholderText(/confirm password/i)
@@ -51,7 +51,7 @@ describe('AuthView', () => {
     fireEvent.submit(emailInput.closest('form')!)
     await waitFor(() => {
       expect(screen.getByText(/please enter a valid email address/i)).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
   })
 
   it('validates password length on signup', async () => {
@@ -59,7 +59,7 @@ describe('AuthView', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /Sign Up/i })[0])
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/at least 8 characters/i)).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
     fireEvent.change(screen.getByPlaceholderText(/enter your email/i), { target: { value: 'test@example.com' } })
     fireEvent.change(screen.getByPlaceholderText(/at least 8 characters/i), { target: { value: 'short' } })
     fireEvent.change(screen.getByPlaceholderText(/confirm password/i), { target: { value: 'short' } })
@@ -68,7 +68,7 @@ describe('AuthView', () => {
     fireEvent.submit(form!)
     await waitFor(() => {
       expect(screen.getByText(/password must be at least 8 characters long/i)).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
   })
 
   it('handles login submission', async () => {
@@ -79,7 +79,7 @@ describe('AuthView', () => {
     fireEvent.submit(screen.getByPlaceholderText(/email or username/i).closest('form')!)
     await waitFor(() => {
       expect(mockOnLogin).toHaveBeenCalledWith('test@example.com', 'testpass123')
-    })
+    }, { timeout: 250 })
   })
 
   it('displays user-friendly error message on login failure', async () => {
@@ -90,7 +90,7 @@ describe('AuthView', () => {
     fireEvent.submit(screen.getByPlaceholderText(/email or username/i).closest('form')!)
     await waitFor(() => {
       expect(screen.getByText(/Incorrect username or password/i)).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
   })
 
   it('displays user-friendly error message on signup failure', async () => {
@@ -100,7 +100,7 @@ describe('AuthView', () => {
     fireEvent.click(toggles[0])
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/enter your email/i)).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
     fireEvent.change(screen.getByPlaceholderText(/enter your email/i), { target: { value: 'existing@example.com' } })
     fireEvent.change(screen.getByPlaceholderText(/at least 8 characters/i), { target: { value: 'ValidPass123' } })
     fireEvent.change(screen.getByPlaceholderText(/confirm password/i), { target: { value: 'ValidPass123' } })
@@ -108,6 +108,6 @@ describe('AuthView', () => {
     await waitFor(() => {
       expect(mockOnSignup).toHaveBeenCalled()
       expect(screen.getByText(/already exists|Signup/i)).toBeInTheDocument()
-    })
+    }, { timeout: 250 })
   })
 })

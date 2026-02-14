@@ -101,12 +101,12 @@ describe('Sidebar', () => {
     const adventureLink = screen.getByRole('link', { name: /Adventure/i })
     fireEvent.contextMenu(adventureLink.closest('div')!)
     
-    const deleteButton = await waitFor(() => screen.getAllByText(/Delete/i)[0])
+    const deleteButton = await waitFor(() => screen.getAllByText(/Delete/i)[0], { timeout: 250 })
     fireEvent.click(deleteButton)
     
     await waitFor(() => {
       expect(mockOnDeleteCollection).toHaveBeenCalledWith('1')
-    })
+    }, { timeout: 250 })
   })
 
   it('closes context menu when clicking outside', async () => {
@@ -114,7 +114,7 @@ describe('Sidebar', () => {
     const adventureLink = screen.getByRole('link', { name: /Adventure/i })
     fireEvent.contextMenu(adventureLink.closest('div')!)
     
-    let contextMenuOverlay = await waitFor(() => document.querySelector('.fixed.inset-0.z-40'))
+    let contextMenuOverlay = await waitFor(() => document.querySelector('.fixed.inset-0.z-40'), { timeout: 250 })
     expect(contextMenuOverlay).toBeTruthy()
     
     fireEvent.click(contextMenuOverlay!)
@@ -122,6 +122,6 @@ describe('Sidebar', () => {
     await waitFor(() => {
       contextMenuOverlay = document.querySelector('.fixed.inset-0.z-40')
       expect(contextMenuOverlay).toBeFalsy()
-    })
+    }, { timeout: 250 })
   })
 })

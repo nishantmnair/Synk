@@ -17,7 +17,6 @@ const mockUser = { id: 1, username: 'alex', email: 'alex@example.com', first_nam
 describe('CouplingOnboarding', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.useFakeTimers()
     vi.mocked(djangoApi.coupleApi.get).mockRejectedValue(new Error('Not coupled'))
     // Mock clipboard
     Object.assign(navigator, {
@@ -25,10 +24,6 @@ describe('CouplingOnboarding', () => {
         writeText: vi.fn().mockResolvedValue(undefined),
       },
     })
-  })
-
-  afterEach(() => {
-    vi.useRealTimers()
   })
 
 
@@ -185,11 +180,10 @@ describe('CouplingOnboarding', () => {
     render(<CouplingOnboarding currentUser={mockUser as any} onComplete={onComplete} />)
     await waitFor(() => {
       expect(screen.getByText("You're Connected!")).toBeInTheDocument()
-    }, { timeout: 500 })
-    vi.advanceTimersByTime(2100)
+    }, { timeout: 1000 })
     await waitFor(() => {
       expect(onComplete).toHaveBeenCalled()
-    }, { timeout: 500 })
+    }, { timeout: 3000 })
   })
 
   it('allows going back from join step', async () => {

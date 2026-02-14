@@ -10,17 +10,30 @@ export default defineConfig({
     setupFiles: './test/setup.ts',
     testTimeout: 30000,
     hookTimeout: 30000,
-    teardownTimeout: 5000,
+    teardownTimeout: 10000,
     forceExit: true,
     isolate: true,
     passWithNoTests: true,
+    threads: {
+      singleThread: true,
+    },
     pool: {
       threads: 1,
     },
     coverage: {
       provider: 'v8',
-      reporter: [],
+      reporter: ['text'],
+      reportOnFailure: true,
       enabled: false,
+      exclude: [
+        'coverage/**',
+        'dist/**',
+        'node_modules/**',
+        'test/**',
+        '**/*.d.ts',
+        '**/*.config.ts',
+        '**/vite-env.d.ts',
+      ],
     },
   },
   resolve: {

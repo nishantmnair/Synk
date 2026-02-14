@@ -3,6 +3,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import Sidebar from '../Sidebar'
 
@@ -72,16 +73,17 @@ describe('Sidebar', () => {
     expect(screen.getByText(/Collections/i)).toBeInTheDocument()
   })
 
-  it('opens add collection modal and calls onAddCollection when form submitted', () => {
+  it('opens add collection modal and calls onAddCollection when form submitted', async () => {
+    const user = userEvent.setup()
     renderSidebar()
     const addButtons = screen.getAllByRole('button')
     const addIconBtn = addButtons.find(b => b.textContent === 'add' || b.getAttribute('title') === 'add')
     expect(addIconBtn).toBeTruthy()
-    fireEvent.click(addIconBtn!)
+    await user.click(addIconBtn!)
     expect(screen.getByText('New Collection')).toBeInTheDocument()
     const input = screen.getByPlaceholderText(/e\.g\., Home Projects/i)
-    fireEvent.change(input, { target: { value: 'Food' } })
-    fireEvent.click(screen.getByRole('button', { name: /Create/i }))
+    await user.type(input, 'Food')
+    await user.click(screen.getByRole('button', { name: /Create/i }))
     expect(mockOnAddCollection).toHaveBeenCalledWith('Food', expect.any(String))
   })
 

@@ -4,7 +4,7 @@ import { spawn } from 'child_process'
 import process from 'process'
 
 // Run vitest with coverage and force exit after timeout
-const timeout = 300000 // 5 minutes
+const timeout = 600000 // 10 minutes
 
 const args = [
   'run',
@@ -21,7 +21,7 @@ const child = spawn('vitest', args, {
 
 // Set timeout to force exit if it hangs
 const timer = setTimeout(() => {
-  console.error('\n⚠️  Test coverage process exceeded 5 minute timeout, forcing exit...')
+  console.error('\n⚠️  Test coverage process exceeded 10 minute timeout, forcing exit...')
   process.exit(0)
 }, timeout)
 

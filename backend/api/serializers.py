@@ -60,13 +60,6 @@ class UserSerializer(serializers.ModelSerializer):
         return self.validate_string_field('last_name', value) if value else value
 
 
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name']
-        read_only_fields = ['id']
-
-
 class UserProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     id_uuid = serializers.UUIDField(read_only=True)

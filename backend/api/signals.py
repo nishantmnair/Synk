@@ -23,14 +23,19 @@ def create_user_profile(sender, instance, created, **kwargs):
     if created:
         try:
             # Use get_or_create in case the profile was already created
-            UserProfile.objects.get_or_create(
+            profile, created_profile = UserProfile.objects.get_or_create(
                 user=instance,
                 defaults={
                     'email_normalized': instance.email.lower()
                 }
             )
+            if created_profile:
+                logger.info(f'Created UserProfile for user {instance.username}: {profile.id_uuid}')
+            else:
+                logger.debug(f'UserProfile already exists for user {instance.username}: {profile.id_uuid}')
         except Exception as e:
             # Log error but don't break user creation
+            logger.error(f'Failed to create UserProfile for user {instance.username}: {e}')
             import traceback
             traceback.print_exc()
 

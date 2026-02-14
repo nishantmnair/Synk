@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
+from rest_framework.serializers import ValidationError
 from contextlib import suppress
 import logging
 from django.db import models as django_models
@@ -429,6 +430,24 @@ class UserRegistrationViewSet(viewsets.GenericViewSet):
         # Let exceptions propagate to global handler for consistent error formatting
         user = serializer.save()
         
+        # Ensure UserProfile was created via signal
+        try:
+            profile = user.profile  # This will raise DoesNotExist if profile wasn't created
+            logger.debug(f'UserProfile verified for user {user.username}: {profile.id_uuid}')
+        except Exception as e:
+            logger.error(f'UserProfile missing for user {user.username}: {e}')
+            # Try to create it manually as a fallback
+            try:
+                from .models import UserProfile
+                profile, created = UserProfile.objects.get_or_create(
+                    user=user,
+                    defaults={'email_normalized': user.email.lower()}
+                )
+                if created:
+                    logger.info(f'Manually created UserProfile for user {user.username}')
+            except Exception as profile_error:
+                logger.error(f'Failed to create UserProfile for user {user.username}: {profile_error}')
+        
         # If a coupling code is provided, try to couple the accounts
         if coupling_code := request.data.get('coupling_code', '').strip().upper():
             with suppress(CouplingCode.DoesNotExist):
@@ -448,9 +467,17 @@ class UserRegistrationViewSet(viewsets.GenericViewSet):
                 code_obj.save()
         
         # Update UserProfile with last login
-        with suppress(Exception):
+        try:
             user.profile.last_login_at = timezone.now()
             user.profile.save(update_fields=['last_login_at'])
+        except Exception as e:
+            logger.warning(f'Failed to update last_login_at for user {user.username}: {e}')
+        
+        # Verify user and profile are in database before returning
+        db_user = User.objects.filter(username=user.username).first()
+        if not db_user:
+            logger.error(f'User {user.username} not found in database after creation!')
+            raise ValidationError({'detail': 'Failed to create user account. Please try again.'})
         
         # Return standardized success response (frontend logs in separately to get tokens)
         return Response(

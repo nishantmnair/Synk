@@ -14,16 +14,16 @@ export default defineConfig({
     forceExit: true,
     isolate: true,
     passWithNoTests: true,
-    threads: {
-      singleThread: true,
-    },
-    pool: {
-      threads: 1,
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: true,
+      },
     },
     coverage: {
       provider: 'v8',
-      reporter: ['text'],
-      reportOnFailure: true,
+      reporter: ['json'],
+      reportsDirectory: './coverage',
       enabled: false,
       exclude: [
         'coverage/**',

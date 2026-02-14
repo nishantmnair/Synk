@@ -19,13 +19,12 @@
     <!-- Favicon is controlled by browser's prefers-color-scheme, independent of app theme toggle -->
     <link rel="icon" type="image/png" href="/Synk-Logo-LightMode.png" media="(prefers-color-scheme: light)" />
     <link rel="icon" type="image/png" href="/Synk-Favicon-Inverted.png" media="(prefers-color-scheme: dark)" />
+    <!-- Preload favicon images for faster loading in incognito mode and poor connections -->
+    <link rel="preload" as="image" href="/Synk-Favicon.png" />
+    <link rel="preload" as="image" href="/Synk-Favicon-Inverted.png" />
     <style>
       img[src*="Synk-Favicon"], img[src*="Synk-Logo"] {
         background-color: transparent !important;
-      }
-      
-      [data-theme="dark"] img[src*="Synk-Favicon"] {
-        filter: invert(1);
       }
     </style>
     <title>Synk</title>

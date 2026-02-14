@@ -2,7 +2,7 @@
  * Tests for Sidebar component
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Sidebar from '../Sidebar'
 
@@ -99,14 +99,12 @@ describe('Sidebar', () => {
     const adventureLink = screen.getByRole('link', { name: /Adventure/i })
     fireEvent.contextMenu(adventureLink.closest('div')!)
     
-    // The context menu delete button
-    const deleteButton = screen.getAllByText(/Delete/i)[0]
+    const deleteButton = await waitFor(() => screen.getAllByText(/Delete/i)[0])
     fireEvent.click(deleteButton)
     
-    // Wait a bit for async handlers
-    await new Promise(resolve => setTimeout(resolve, 10))
-    
-    expect(mockOnDeleteCollection).toHaveBeenCalledWith('1')
+    await waitFor(() => {
+      expect(mockOnDeleteCollection).toHaveBeenCalledWith('1')
+    })
   })
 
   it('closes context menu when clicking outside', async () => {
@@ -114,18 +112,14 @@ describe('Sidebar', () => {
     const adventureLink = screen.getByRole('link', { name: /Adventure/i })
     fireEvent.contextMenu(adventureLink.closest('div')!)
     
-    // The context menu should have a delete button
-    let contextMenuOverlay = document.querySelector('.fixed.inset-0.z-40')
+    let contextMenuOverlay = await waitFor(() => document.querySelector('.fixed.inset-0.z-40'))
     expect(contextMenuOverlay).toBeTruthy()
     
-    // Click the overlay to close the context menu
     fireEvent.click(contextMenuOverlay!)
     
-    // Wait a bit for state update
-    await new Promise(resolve => setTimeout(resolve, 10))
-    
-    // Context menu overlay should be gone
-    contextMenuOverlay = document.querySelector('.fixed.inset-0.z-40')
-    expect(contextMenuOverlay).toBeFalsy()
+    await waitFor(() => {
+      contextMenuOverlay = document.querySelector('.fixed.inset-0.z-40')
+      expect(contextMenuOverlay).toBeFalsy()
+    })
   })
 })

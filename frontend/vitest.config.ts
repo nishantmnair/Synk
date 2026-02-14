@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react()] as any,
   test: {
     globals: true,
     environment: 'jsdom',
@@ -14,10 +14,6 @@ export default defineConfig({
     forceExit: true,
     isolate: true,
     passWithNoTests: true,
-    threads: {
-      singleThread: true,
-      isolate: false,
-    },
     pool: {
       threads: 1,
     },
@@ -32,4 +28,4 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-})
+} as any)

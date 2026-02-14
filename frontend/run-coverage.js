@@ -26,8 +26,8 @@ const child = spawn('vitest', args, {
   cwd: process.cwd(),
 })
 
-// Set timeout to force exit if it hangs (reasonable 5 min limit now that slow tests are excluded)
-const timeout = 300000 // 5 minutes
+// Set timeout to force exit if it hangs
+const timeout = 120000 // 2 minutes
 
 const timer = setTimeout(() => {
   console.error('\n⚠️  Test coverage process exceeded 5 minute timeout, forcing exit...')

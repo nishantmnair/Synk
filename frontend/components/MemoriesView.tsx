@@ -554,31 +554,41 @@ const MemoriesView: React.FC<MemoriesViewProps> = ({ memories, setMemories, show
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleToggleFavorite(selectedMemory)}
-                    className="material-symbols-outlined text-secondary hover:text-romantic transition-colors p-2"
-                    style={{ fontVariationSettings: selectedMemory.is_favorite ? '"FILL" 1' : '"FILL" 0' }}
+                    className="text-secondary hover:text-romantic transition-colors p-2"
                   >
-                    favorite
+                    <span 
+                      className="material-symbols-outlined"
+                      style={{ fontVariationSettings: selectedMemory.is_favorite ? '"FILL" 1' : '"FILL" 0' }}
+                    >
+                      favorite
+                    </span>
                   </button>
                   <button
                     onClick={() => {
                       openEditModal(selectedMemory);
                       setSelectedMemory(null);
                     }}
-                    className="material-symbols-outlined text-secondary hover:text-primary transition-colors p-2"
+                    className="text-secondary hover:text-primary transition-colors p-2"
                   >
-                    edit
+                    <span className="material-symbols-outlined">
+                      edit
+                    </span>
                   </button>
                   <button
                     onClick={() => handleDeleteMemory(selectedMemory)}
-                    className="material-symbols-outlined text-secondary hover:text-red-500 transition-colors p-2"
+                    className="text-secondary hover:text-red-500 transition-colors p-2"
                   >
-                    delete
+                    <span className="material-symbols-outlined">
+                      delete
+                    </span>
                   </button>
                   <button
                     onClick={() => setSelectedMemory(null)}
-                    className="material-symbols-outlined text-secondary hover:text-primary transition-colors"
+                    className="text-secondary hover:text-primary transition-colors"
                   >
-                    close
+                    <span className="material-symbols-outlined">
+                      close
+                    </span>
                   </button>
                 </div>
               </div>

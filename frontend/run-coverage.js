@@ -20,7 +20,7 @@ const child = spawn('vitest', args, {
 })
 
 // Set timeout to force exit if it hangs
-const timeout = 300000 // 5 minutes - coverage instrumentation adds 30-40% overhead
+const timeout = 420000 // 7 minutes - coverage instrumentation adds 30-40% overhead, tests run in ~2-3 min
 
 const timer = setTimeout(() => {
   console.error('\n⚠️  Test coverage process exceeded 5 minute timeout, forcing exit...')

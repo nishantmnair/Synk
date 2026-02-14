@@ -5,25 +5,16 @@ import process from 'process'
 
 // Run vitest with coverage, excluding slow integration tests
 // These tests are skipped entirely from running to prevent timeout
-const slowTests = [
-  'CouplingOnboarding',
-  'SettingsView',
-  'Sidebar',
-]
-
 const args = [
   'run',
   '--coverage',
   '--coverage.provider=v8',
   '--coverage.reporter=text',
   '--coverage.enabled=true',
+  // Skip slow integration tests using a single glob pattern with brace expansion
+  '--exclude=**/components/__tests__/{CouplingOnboarding,SettingsView,Sidebar}.test.tsx',
+  '--coverage.exclude=**/components/__tests__/{CouplingOnboarding,SettingsView,Sidebar}.test.tsx',
 ]
-
-// Add exclude patterns to skip these tests from running entirely
-slowTests.forEach(test => {
-  args.push(`--exclude=**/components/__tests__/${test}.test.tsx`)
-  args.push(`--coverage.exclude=**/components/__tests__/${test}.test.tsx`)
-})
 
 const child = spawn('vitest', args, {
   stdio: 'inherit',

@@ -802,7 +802,11 @@ const App: React.FC = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
     document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('synk_theme', next);
+    try {
+      localStorage.setItem('synk_theme', next);
+    } catch {
+      // localStorage not available (incognito mode)
+    }
   };
 
   // Show loading state while checking auth

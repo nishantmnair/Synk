@@ -36,7 +36,13 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup, showToast, theme
       const next = theme === 'dark' ? 'light' : 'dark';
       setTheme(next);
       document.documentElement.setAttribute('data-theme', next);
-      localStorage.setItem('synk_theme', next);
+      // Safely handle localStorage - in incognito mode it might throw or be unavailable
+      try {
+        localStorage.setItem('synk_theme', next);
+      } catch (e) {
+        // Silently fail in incognito mode - theme will reset on page reload but will use browser preference
+        console.debug('Theme preference not saved (incognito mode or localStorage disabled)');
+      }
     }
   };
 

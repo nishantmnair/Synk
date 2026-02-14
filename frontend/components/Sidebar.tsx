@@ -9,9 +9,10 @@ interface SidebarProps {
   onDeleteCollection?: (collectionId: string) => Promise<void>;
   onToggle: () => void;
   suggestionsCount?: number;
+  theme?: 'light' | 'dark';
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ collections, onAddCollection, onDeleteCollection, onToggle, suggestionsCount = 0 }) => {
+const Sidebar: React.FC<SidebarProps> = ({ collections, onAddCollection, onDeleteCollection, onToggle, suggestionsCount = 0, theme = 'dark' }) => {
   const location = useLocation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newColName, setNewColName] = useState('');
@@ -83,7 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collections, onAddCollection, onDelet
           style={{ background: 'transparent' }}
           title="Home"
         >
-          <img src="/Synk-Favicon.png" alt="Synk" className="flex-shrink-0" style={{ width: '30px', height: '30px', imageRendering: 'crisp-edges' }} />
+          <img src={theme === 'dark' ? '/Synk-Logo-Inverted.png' : '/Synk-Logo.png'} alt="Synk" className="flex-shrink-0" style={{ width: '30px', height: '30px', imageRendering: 'crisp-edges' }} />
           <span className="font-bold text-lg tracking-tight text-primary">Synk</span>
         </Link>
         <button 

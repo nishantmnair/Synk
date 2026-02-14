@@ -849,6 +849,7 @@ const App: React.FC = () => {
                 onDeleteCollection={deleteCollection}
                 onToggle={toggleLeftSidebar}
                 suggestionsCount={suggestions.length}
+                theme={theme}
               />
             </div>
           </div>

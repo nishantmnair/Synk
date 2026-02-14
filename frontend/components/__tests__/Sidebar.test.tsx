@@ -15,7 +15,7 @@ const defaultCollections = [
   { id: '2', name: 'Food', icon: 'restaurant', color: '#ff6b6b' },
 ]
 
-const renderSidebar = (initialPath = '/today') => {
+const renderSidebar = (initialPath = '/today', theme: 'light' | 'dark' = 'light') => {
   return render(
     <MemoryRouter initialEntries={[initialPath]}>
       <Sidebar
@@ -23,6 +23,7 @@ const renderSidebar = (initialPath = '/today') => {
         onAddCollection={mockOnAddCollection}
         onDeleteCollection={mockOnDeleteCollection}
         onToggle={mockOnToggle}
+        theme={theme}
       />
     </MemoryRouter>
   )
@@ -47,7 +48,7 @@ describe('Sidebar', () => {
     renderSidebar()
     const favicon = screen.getByAltText('Synk')
     expect(favicon).toBeInTheDocument()
-    expect(favicon).toHaveAttribute('src', '/Synk-Favicon.png')
+    expect(favicon).toHaveAttribute('src', '/Synk-Logo.png')
   })
 
   it('favicon has explicit sizing for crisp rendering', () => {

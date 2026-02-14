@@ -19,18 +19,16 @@ class TestFaviconStaticFiles:
         assert 'Synk' in filename
     
     @pytest.mark.parametrize('filename', [
-        'Synk-Favicon.png',
-        'Synk-Logo-LightMode.png',
-        'Synk-Favicon-Inverted.png',
+        'Synk-Logo.png',
+        'Synk-Logo-Inverted.png',
     ])
     def test_favicon_files_exist(self, filename):
         """Test that favicon files are valid PNG files"""
         self._assert_favicon_format(filename)
     
     @pytest.mark.parametrize('filename,description', [
-        ('Synk-Favicon.png', 'standard favicon'),
-        ('Synk-Logo-LightMode.png', 'light mode logo'),
-        ('Synk-Favicon-Inverted.png', 'dark mode inverted favicon'),
+        ('Synk-Logo.png', 'standard logo'),
+        ('Synk-Logo-Inverted.png', 'dark mode inverted logo'),
     ])
     def test_favicon_naming_convention(self, filename, description):
         """Test favicon files follow naming convention"""
@@ -38,22 +36,21 @@ class TestFaviconStaticFiles:
     
     def test_favicon_is_image_type(self):
         """Test favicon files are image files"""
-        filename = 'Synk-Favicon.png'
+        filename = 'Synk-Logo.png'
         assert filename.lower().endswith('.png')
         assert not filename.lower().endswith(('.txt', '.html', '.js'))
     
     def test_favicon_files_are_different(self):
         """Test that different favicon files have different identities"""
         favicon_files = [
-            'Synk-Favicon.png',
-            'Synk-Logo-LightMode.png', 
-            'Synk-Favicon-Inverted.png',
+            'Synk-Logo.png',
+            'Synk-Logo-Inverted.png',
         ]
         assert len(favicon_files) == len(set(favicon_files))
     
     @pytest.mark.parametrize('filename,keyword', [
-        ('Synk-Logo-LightMode.png', 'LightMode'),
-        ('Synk-Favicon-Inverted.png', 'Inverted'),
+        ('Synk-Logo.png', 'Logo'),
+        ('Synk-Logo-Inverted.png', 'Inverted'),
     ])
     def test_favicon_theme_naming(self, filename, keyword):
         """Test favicon theme variants have correct naming"""
@@ -62,9 +59,9 @@ class TestFaviconStaticFiles:
     
     def test_favicon_standard_naming(self):
         """Test standard favicon has correct naming"""
-        filename = 'Synk-Favicon.png'
+        filename = 'Synk-Logo.png'
         assert filename.startswith('Synk-')
-        assert 'Favicon' in filename
+        assert 'Logo' in filename
         self._assert_png_filetype(filename)
     
     def _assert_png_filetype(self, filename):
@@ -77,17 +74,16 @@ class TestFaviconMetadata:
     """Test favicon metadata and properties"""
     
     @pytest.mark.parametrize('filename', [
-        'Synk-Favicon.png',
-        'Synk-Logo-LightMode.png',
-        'Synk-Favicon-Inverted.png',
+        'Synk-Logo.png',
+        'Synk-Logo-Inverted.png',
     ])
     def test_favicon_uses_png_format(self, filename):
         """Test that favicons use PNG format for transparency"""
         _assert_png_format(filename)
     
     @pytest.mark.parametrize('theme,filename', [
-        ('dark', 'Synk-Favicon-Inverted.png'),
-        ('light', 'Synk-Logo-LightMode.png'),
+        ('dark', 'Synk-Logo-Inverted.png'),
+        ('light', 'Synk-Logo.png'),
     ])
     def test_favicon_theme_variants_exist(self, theme, filename):
         """Test that theme variants exist"""

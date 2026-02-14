@@ -34,7 +34,7 @@ describe('CouplingOnboarding', () => {
     render(<CouplingOnboarding currentUser={mockUser as any} onComplete={vi.fn()} />)
     await waitFor(() => {
       expect(screen.getByText('Connect with Your Partner')).toBeInTheDocument()
-    })
+    }, { timeout: 500 })
     expect(screen.getByText('Generate Code')).toBeInTheDocument()
     expect(screen.getByText('Join with Code')).toBeInTheDocument()
   })
@@ -43,7 +43,7 @@ describe('CouplingOnboarding', () => {
     render(<CouplingOnboarding currentUser={mockUser as any} onComplete={vi.fn()} />)
     await waitFor(() => {
       expect(screen.getByText('Connect with Your Partner')).toBeInTheDocument()
-    })
+    }, { timeout: 500 })
     expect(screen.queryByRole('button', { name: /Skip for Now/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/You can always connect accounts later in Settings/i)).not.toBeInTheDocument()
   })
@@ -93,7 +93,7 @@ describe('CouplingOnboarding', () => {
     fireEvent.click(screen.getByRole('button', { name: /Generate Code/i }))
     await waitFor(() => {
       expect(screen.getByText('ABCD1234')).toBeInTheDocument()
-    })
+    }, { timeout: 500 })
     fireEvent.click(screen.getByRole('button', { name: /Copy Code/i }))
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('ABCD1234')
     expect(showToast).toHaveBeenCalledWith('Code copied to clipboard!', 'success')

@@ -120,9 +120,10 @@ if DB_HOST and DB_HOST != 'localhost':
     db_options = {
         'connect_timeout': 10,
     }
-    # Add SSL mode for production (Neon requires SSL)
+    # Add SSL and channel binding for production (Neon requires both)
     if not DEBUG:
         db_options['sslmode'] = 'require'
+        db_options['channel_binding'] = 'require'
     
     DATABASES = {
         'default': {

@@ -7,7 +7,7 @@ channels-redis==4.1.0
 python-dotenv==1.0.0
 daphne==4.1.0
 psycopg2-binary==2.9.11
-# Production server and utilities
+dj-database-url==2.1.0
 gunicorn==21.2.0
 whitenoise==6.6.0
 python-json-logger==2.0.7

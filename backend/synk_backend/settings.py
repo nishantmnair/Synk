@@ -112,38 +112,55 @@ ASGI_APPLICATION = 'synk_backend.asgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-# Database configuration - uses PostgreSQL by default (Docker), falls back to SQLite for local dev
-DB_HOST = os.environ.get('DB_HOST', 'localhost')
+# Database configuration
+# Prefer DATABASE_URL environment variable (set by Neon or Render)
+# Falls back to individual DB_* variables for backward compatibility
 
-if DB_HOST and DB_HOST != 'localhost':
-    # Use PostgreSQL (for Docker and Neon)
-    db_options = {
-        'connect_timeout': 10,
-    }
-    # Add SSL and channel binding for production (Neon requires both)
-    if not DEBUG:
-        db_options['sslmode'] = 'require'
-        db_options['channel_binding'] = 'require'
-    
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if DATABASE_URL:
+    # Use DATABASE_URL if available (Neon URL with all parameters)
+    import dj_database_url
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.environ.get('DB_NAME', 'synk_db'),
-            'USER': os.environ.get('DB_USER', 'postgres'),
-            'PASSWORD': os.environ.get('DB_PASSWORD', 'postgres'),
-            'HOST': DB_HOST,
-            'PORT': os.environ.get('DB_PORT', '5432'),
-            'OPTIONS': db_options,
-        }
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
 else:
-    # Use SQLite for local development (when DB_HOST is localhost or not set)
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+    # Fallback to individual DB_* environment variables
+    DB_HOST = os.environ.get('DB_HOST', 'localhost')
+    
+    if DB_HOST and DB_HOST != 'localhost':
+        # Use PostgreSQL (for Docker and Neon)
+        db_options = {
+            'connect_timeout': 10,
         }
-    }
+        # Add SSL and channel binding for production (Neon requires both)
+        if not DEBUG:
+            db_options['sslmode'] = 'require'
+            db_options['channel_binding'] = 'require'
+        
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': os.environ.get('DB_NAME', 'synk_db'),
+                'USER': os.environ.get('DB_USER', 'postgres'),
+                'PASSWORD': os.environ.get('DB_PASSWORD', 'postgres'),
+                'HOST': DB_HOST,
+                'PORT': os.environ.get('DB_PORT', '5432'),
+                'OPTIONS': db_options,
+            }
+        }
+    else:
+        # Use SQLite for local development (when DB_HOST is localhost or not set)
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
 
 
 # Password validation

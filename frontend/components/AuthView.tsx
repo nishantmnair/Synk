@@ -31,6 +31,14 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup, showToast, theme
   // Use propTheme if provided, otherwise use localTheme
   const theme = propTheme ?? localTheme;
 
+  // Sync propTheme changes with DOM and localTheme
+  useEffect(() => {
+    if (propTheme) {
+      document.documentElement.setAttribute('data-theme', propTheme);
+      setLocalTheme(propTheme);
+    }
+  }, [propTheme]);
+
   const toggleTheme = () => {
     if (onToggleTheme) {
       onToggleTheme();

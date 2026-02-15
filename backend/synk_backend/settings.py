@@ -116,7 +116,14 @@ ASGI_APPLICATION = 'synk_backend.asgi.application'
 DB_HOST = os.environ.get('DB_HOST', 'localhost')
 
 if DB_HOST and DB_HOST != 'localhost':
-    # Use PostgreSQL (for Docker)
+    # Use PostgreSQL (for Docker and Neon)
+    db_options = {
+        'connect_timeout': 10,
+    }
+    # Add SSL mode for production (Neon requires SSL)
+    if not DEBUG:
+        db_options['sslmode'] = 'require'
+    
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -125,9 +132,7 @@ if DB_HOST and DB_HOST != 'localhost':
             'PASSWORD': os.environ.get('DB_PASSWORD', 'postgres'),
             'HOST': DB_HOST,
             'PORT': os.environ.get('DB_PORT', '5432'),
-            'OPTIONS': {
-                'connect_timeout': 10,
-            },
+            'OPTIONS': db_options,
         }
     }
 else:

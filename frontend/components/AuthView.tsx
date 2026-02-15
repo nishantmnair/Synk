@@ -30,34 +30,32 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup, showToast, theme
 
   // Use propTheme if provided, otherwise use localTheme
   const theme = propTheme ?? localTheme;
+  const logoSrc = theme === 'dark' ? '/Synk-Logo-Inverted.png' : '/Synk-Logo.png';
 
-  // Sync propTheme changes with DOM and localTheme
-  useEffect(() => {
-    if (propTheme) {
-      document.documentElement.setAttribute('data-theme', propTheme);
-      setLocalTheme(propTheme);
-    }
-  }, [propTheme]);
-
-  // Ensure DOM is always in sync with computed theme value
+  // Sync theme with DOM whenever it changes
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
+  // Keep localTheme in sync when propTheme changes
+  useEffect(() => {
+    if (propTheme) {
+      setLocalTheme(propTheme);
+    }
+  }, [propTheme]);
+
   const toggleTheme = () => {
     if (onToggleTheme) {
       onToggleTheme();
-    } else {
-      const next = localTheme === 'dark' ? 'light' : 'dark';
-      setLocalTheme(next);
-      document.documentElement.setAttribute('data-theme', next);
-      // Safely handle localStorage - in incognito mode it might throw or be unavailable
-      try {
-        localStorage.setItem('synk_theme', next);
-      } catch (e) {
-        // Silently fail in incognito mode - theme will reset on page reload but will use browser preference
-        console.debug('Theme preference not saved (incognito mode or localStorage disabled)');
-      }
+    }
+    // Always update localTheme too, so the component re-renders immediately
+    const next = (propTheme ?? localTheme) === 'dark' ? 'light' : 'dark';
+    setLocalTheme(next);
+    document.documentElement.setAttribute('data-theme', next);
+    try {
+      localStorage.setItem('synk_theme', next);
+    } catch (e) {
+      console.debug('Theme preference not saved (incognito mode or localStorage disabled)');
     }
   };
 
@@ -141,7 +139,8 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup, showToast, theme
         {/* Logo with Synk Text */}
         <div className="flex items-center justify-center gap-3 mb-8">
           <img
-            src={theme === 'dark' ? '/Synk-Logo-Inverted.png' : '/Synk-Logo.png'}
+            key={logoSrc}
+            src={logoSrc}
             alt="Synk Logo"
             className="w-12 h-12"
           />

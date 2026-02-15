@@ -136,14 +136,20 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup, showToast, theme
       </button>
 
       <div className="w-full max-w-md">
-        {/* Logo with Synk Text */}
+        {/* Logo with Synk Text - use CSS-driven visibility for reliable theme switching */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <img
-            key={logoSrc}
-            src={logoSrc}
-            alt="Synk Logo"
-            className="w-12 h-12"
-          />
+          <div className="w-12 h-12 relative">
+            <img
+              src="/Synk-Logo-Inverted.png"
+              alt="Synk Logo"
+              className="w-12 h-12 absolute inset-0 auth-logo-dark"
+            />
+            <img
+              src="/Synk-Logo.png"
+              alt="Synk Logo"
+              className="w-12 h-12 absolute inset-0 auth-logo-light"
+            />
+          </div>
           <span className="text-3xl font-bold text-primary">Synk</span>
         </div>
 

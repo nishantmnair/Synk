@@ -64,6 +64,20 @@
   }
 }
 
+/* Auth page logo theme switching - CSS-driven for reliable updates */
+.auth-logo-dark {
+  display: block;
+}
+.auth-logo-light {
+  display: none;
+}
+[data-theme="light"] .auth-logo-dark {
+  display: none;
+}
+[data-theme="light"] .auth-logo-light {
+  display: block;
+}
+
 .animate-in {
   animation: fadeIn 0.2s ease-in-out;
 }

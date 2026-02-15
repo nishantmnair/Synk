@@ -6,6 +6,6 @@
     "VITE_WS_URL": "@vite_ws_url"
   },
   "github": {
-    "enabled": false
+    "enabled": true
   }
 }

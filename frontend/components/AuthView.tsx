@@ -19,8 +19,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup, showToast, theme
   const [couplingCode, setCouplingCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    if (propTheme) return propTheme;
+  const [localTheme, setLocalTheme] = useState<'light' | 'dark'>(() => {
     if (typeof document !== 'undefined') {
       const stored = localStorage.getItem('synk_theme');
       if (stored === 'light' || stored === 'dark') return stored;
@@ -29,12 +28,15 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup, showToast, theme
     return 'dark';
   });
 
+  // Use propTheme if provided, otherwise use localTheme
+  const theme = propTheme ?? localTheme;
+
   const toggleTheme = () => {
     if (onToggleTheme) {
       onToggleTheme();
     } else {
-      const next = theme === 'dark' ? 'light' : 'dark';
-      setTheme(next);
+      const next = localTheme === 'dark' ? 'light' : 'dark';
+      setLocalTheme(next);
       document.documentElement.setAttribute('data-theme', next);
       // Safely handle localStorage - in incognito mode it might throw or be unavailable
       try {

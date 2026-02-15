@@ -95,6 +95,16 @@ const App: React.FC = () => {
     }
   }, [isLeftSidebarOpen]);
 
+  // Sync theme state with DOM and localStorage
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    try {
+      localStorage.setItem('synk_theme', theme);
+    } catch {
+      // localStorage not available (incognito mode)
+    }
+  }, [theme]);
+
   // Transform Django snake_case to frontend camelCase
   const transformTask = (task: any): Task => ({
     id: String(task.id),

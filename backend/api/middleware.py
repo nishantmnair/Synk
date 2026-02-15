@@ -76,6 +76,10 @@ class RateLimitMiddleware(MiddlewareMixin):
         if request.path.startswith('/static/') or request.path == '/health/':
             return None
         
+        # Skip rate limiting for authenticated users (only limit unauthenticated/public endpoints)
+        if request.user and request.user.is_authenticated:
+            return None
+        
         # Determine rate limit for this endpoint
         rate, interval = 300, 3600  # Default: 300 requests per hour
         
@@ -100,26 +104,15 @@ class RateLimitMiddleware(MiddlewareMixin):
                     retry_after
                 )
         
-        # For authenticated users, also check user-based limits (higher limits)
-        if request.user and request.user.is_authenticated:
-            limiter = RateLimiter(rate=rate * 2, interval=interval)
-            if limiter.is_rate_limited(request, user_based=True):
-                retry_after = limiter.get_retry_after(request, user_based=True)
-                logger.warning(f"User {request.user.id} rate limited: {request.path}")
-                return self._rate_limit_response(
-                    'Too many requests. Please try again later.',
-                    retry_after
-                )
-        elif not (request.path.startswith('/api/register/') and request.method == 'POST'):
-            # IP-based rate limit for other unauthenticated requests (not registration)
-            if limiter.is_rate_limited(request, user_based=False):
-                client_ip = self._get_client_ip(request)
-                retry_after = limiter.get_retry_after(request, user_based=False)
-                logger.warning(f"IP {client_ip} rate limited: {request.path}")
-                return self._rate_limit_response(
-                    'Too many requests. Please try again later.',
-                    retry_after
-                )
+        # For unauthenticated requests, apply IP-based rate limit
+        if limiter.is_rate_limited(request, user_based=False):
+            client_ip = self._get_client_ip(request)
+            retry_after = limiter.get_retry_after(request, user_based=False)
+            logger.warning(f"IP {client_ip} rate limited: {request.path}")
+            return self._rate_limit_response(
+                'Too many requests. Please try again later.',
+                retry_after
+            )
         
         return None
 

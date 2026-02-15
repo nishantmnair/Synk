@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build --prefix frontend",
+  "buildCommand": "npm run build --prefix ./frontend",
   "outputDirectory": "frontend/dist",
   "env": {
     "VITE_API_URL": "https://synk-qa88.onrender.com",

@@ -76,8 +76,9 @@ class RateLimitMiddleware(MiddlewareMixin):
         if request.path.startswith('/static/') or request.path == '/health/':
             return None
         
-        # Skip rate limiting for authenticated users (only limit unauthenticated/public endpoints)
-        if request.user and request.user.is_authenticated:
+        # Skip rate limiting for authenticated requests (check Authorization header for JWT token)
+        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+        if auth_header.startswith('Bearer ') or auth_header.startswith('Token '):
             return None
         
         # Determine rate limit for this endpoint

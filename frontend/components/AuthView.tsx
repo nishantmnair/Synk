@@ -39,6 +39,11 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onSignup, showToast, theme
     }
   }, [propTheme]);
 
+  // Ensure DOM is always in sync with computed theme value
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
   const toggleTheme = () => {
     if (onToggleTheme) {
       onToggleTheme();

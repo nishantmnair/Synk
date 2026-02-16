@@ -12,9 +12,12 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterConstraint(
+        migrations.RemoveConstraint(
             model_name='userprofile',
             name='unique_normalized_email',
+        ),
+        migrations.AddConstraint(
+            model_name='userprofile',
             constraint=models.UniqueConstraint(fields=('email_normalized',), name='unique_normalized_email'),
         ),
     ]

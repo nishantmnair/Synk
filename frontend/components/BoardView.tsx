@@ -116,15 +116,7 @@ const BoardView: React.FC<BoardViewProps> = ({ tasks, setTasks, onAction, onAddT
       {allColumns.map(col => {
         // For default columns, use status; for custom columns, use name
         const columnKey = (col.status || col.name);
-        let tasksInColumn = tasks.filter(t => t.status === columnKey);
-        
-        // Sort by priority (high > medium > low) for all columns except completed
-        if (columnKey !== TaskStatus.COMPLETED) {
-          const priorityOrder = { high: 0, medium: 1, low: 2 };
-          tasksInColumn = tasksInColumn.sort((a, b) => 
-            priorityOrder[a.priority as keyof typeof priorityOrder] - priorityOrder[b.priority as keyof typeof priorityOrder]
-          );
-        }
+        const tasksInColumn = tasks.filter(t => t.status === columnKey);
         
         return (
         <div 

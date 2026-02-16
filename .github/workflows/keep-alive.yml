@@ -1,0 +1,14 @@
+name: Keep Render Instance Alive
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    name: Ping Health Endpoint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health endpoint
+        run: curl -f https://synk-qa88.onrender.com/health/ || exit 1
+        timeout-minutes: 2

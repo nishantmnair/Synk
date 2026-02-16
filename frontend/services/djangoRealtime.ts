@@ -99,7 +99,7 @@ class DjangoRealtimeService {
         try {
           listener(data);
         } catch (error) {
-          console.error(`[WebSocket] Error in listener for ${event}:`, error);
+          console.error('[WebSocket] Error in listener for', event, error);
         }
       });
     }

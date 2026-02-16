@@ -51,7 +51,7 @@ describe('BoardView', () => {
     renderBoardView()
     expect(screen.getByText('Backlog')).toBeInTheDocument()
     expect(screen.getByText('Planning')).toBeInTheDocument()
-    expect(screen.getByText('Upcoming')).toBeInTheDocument()
+    expect(screen.getByText('Upcoming/In-Progress')).toBeInTheDocument()
   })
 
   it('renders tasks in correct column', () => {

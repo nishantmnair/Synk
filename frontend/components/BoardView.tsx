@@ -29,7 +29,7 @@ const BoardView: React.FC<BoardViewProps> = ({ tasks, setTasks, onAction, onAddT
   const allColumns = [
     { id: TaskStatus.BACKLOG, title: TaskStatus.BACKLOG, name: TaskStatus.BACKLOG, status: TaskStatus.BACKLOG, icon: 'inventory_2', order: 0 },
     { id: TaskStatus.PLANNING, title: TaskStatus.PLANNING, name: TaskStatus.PLANNING, status: TaskStatus.PLANNING, icon: 'calendar_add_on', order: 1 },
-    { id: TaskStatus.UPCOMING, title: TaskStatus.UPCOMING, name: TaskStatus.UPCOMING, status: TaskStatus.UPCOMING, icon: 'schedule', order: 2, accent: 'text-green-500' },
+    { id: TaskStatus.UPCOMING, title: 'Upcoming/In-Progress', name: TaskStatus.UPCOMING, status: TaskStatus.UPCOMING, icon: 'schedule', order: 2, accent: 'text-green-500' },
     { id: TaskStatus.COMPLETED, title: TaskStatus.COMPLETED, name: TaskStatus.COMPLETED, status: TaskStatus.COMPLETED, icon: 'task_alt', order: 3, accent: 'text-blue-500' }
   ];
 
